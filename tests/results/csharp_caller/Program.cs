@@ -14,6 +14,13 @@ namespace Test
 			a.FuncSimple();
 			a.FuncArgInt(2);
             a.FuncArgFloatBoolStr(2.2f, true, "hello");
+
+            HelloWorld.StructA sa = new HelloWorld.StructA();
+            sa.X = 1.0f;
+            sa.Y = 2.0f;
+            sa.Z = 3.0f;
+            a.FuncArgStruct(ref sa);
+
         }
     }
 }

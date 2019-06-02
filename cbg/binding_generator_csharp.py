@@ -77,7 +77,7 @@ class BindingGeneratorCSharp(BindingGenerator):
             return '{}.selfPtr'.format(name)
 
         if type_ in self.define.structs:
-            return 'ref {}'.format(type_.name)
+            return 'ref {}'.format(name)
 
         if type_ in self.define.enums:
             return '({}){}'.format(type_.name, name)

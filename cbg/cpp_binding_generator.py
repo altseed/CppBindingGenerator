@@ -105,11 +105,28 @@ class Enum:
 
 Enums = List[Enum]
 
+class Field:
+    def __init__(self, type_, name : str):
+        self.name = name
+        self.type_ = type_
+
+Fields = List[Field]
 
 class Struct:
-    def __init__(self):
-        return
+    def __init__(self, namespace='', name=''):
+        self.namespace = namespace
+        self.name = name
+        self.fields = [] # type: Fields
 
+    def add_field(self, type_, name : str):
+        field = Field(type_, name)
+        self.fields.append(field)
+
+    def cpp_fullname(self) -> str:
+        if self.namespace == '':
+            return self.name
+
+        return self.namespace + '::' + self.name
 
 Structs = List[Struct]
 
@@ -226,7 +243,7 @@ class SharedObjectGenerator:
             return 'std::shared_ptr<{}>'.format(self.__get_class_fullname__(type_))
 
         if type_ in self.define.structs:
-            return type_.name
+            return type_.cpp_fullname()
 
         if type_ in self.define.enums:
             return type_.name
@@ -271,7 +288,7 @@ class SharedObjectGenerator:
             return 'CreateAndAddSharedPtr<{}>(({}*){})'.format(self.__get_class_fullname__(type_), self.__get_class_fullname__(type_), name)
 
         if type_ in self.define.structs:
-            return '(*({}*){})'.format(type_.name, name)
+            return '(*({}*){})'.format(type_.cpp_fullname(), name)
 
         if type_ in self.define.enums:
             return '({}){}'.format(type_.name, name)

@@ -30,6 +30,12 @@ public:
     }
 };
 
+struct StructA
+{
+    float X;
+    float Y;
+    float Z;
+};
 
 //CreateAndAddSharedPtr
 
@@ -40,7 +46,7 @@ public:
     void FuncSimple();
     void FuncArgInt(int value);
     void FuncArgFloatBoolStr(float value1, bool value2, const char16_t* value3);
-
+    void FuncArgStruct(const StructA& value1);
     int FuncReturnInt();
     bool FuncReturnBool();
 };

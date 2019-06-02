@@ -13,13 +13,16 @@ Call ```tests/build/GenerateProjects.bat```
 
 # TODO
 
+Make struct in arguments treat safely
+
 ## C#
 
 ```
-Argument class, struct enum
+Argument class, enum
 Return float, const char16_t*, struct, enum
 Return class (generate)
 Proprety (includeing chache system)
 Document
 Generate enum
 ```
+

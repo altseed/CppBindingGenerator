@@ -65,6 +65,11 @@ void ClassA::FuncArgFloatBoolStr(float value1, bool value2, const char16_t* valu
     std::cout << temp << std::endl;
 }
 
+void ClassA::FuncArgStruct(const StructA& value1)
+{
+	std::cout << value1.X << ", " << value1.Y << ", " << value1.Z << std::endl;
+}
+
 int ClassA::FuncReturnInt()
 {
     return 100;

@@ -1,6 +1,12 @@
 import cbg
 import ctypes
 
+# Struct
+StructA = cbg.Struct('HelloWorld', 'StructA')
+StructA.add_field(float, 'X')
+StructA.add_field(float, 'Y')
+StructA.add_field(float, 'Z')
+
 # ClassA
 ClassA = cbg.Class('HelloWorld', 'ClassA')
 
@@ -16,6 +22,9 @@ func.add_arg(float, 'value1')
 func.add_arg(bool, 'value2')
 func.add_arg(ctypes.c_wchar_p, 'value3')
 
+func = ClassA.add_func('FuncArgStruct')
+func.add_arg(StructA, 'value1')
+
 func = ClassA.add_func('FuncReturnInt')
 func.return_type = int
 
@@ -25,6 +34,7 @@ func.return_type = bool
 # define
 define = cbg.Define()
 define.classes.append(ClassA)
+define.structs.append(StructA)
 
 # generate
 sharedObjectGenerator = cbg.SharedObjectGenerator(define)
