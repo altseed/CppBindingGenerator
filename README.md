@@ -19,7 +19,7 @@ Make struct in arguments treat safely
 
 ```
 Argument class, enum
-Return float, const char16_t*, struct, enum
+Return const char16_t*, enum
 Return class (generate)
 Proprety (includeing chache system)
 Document

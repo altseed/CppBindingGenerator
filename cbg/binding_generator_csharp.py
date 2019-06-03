@@ -12,7 +12,7 @@ class BindingGeneratorCSharp(BindingGenerator):
         self.output_path = ''
         self.dll_name = ''
 
-    def __get_cs_type__(self, type_) -> str:
+    def __get_cs_type__(self, type_, is_return = False) -> str:
         if type_ == int:
             return 'int'
 
@@ -29,7 +29,10 @@ class BindingGeneratorCSharp(BindingGenerator):
             return type_.name
 
         if type_ in self.define.structs:
-            return 'ref {}'.format(type_.name)
+            if is_return:
+                return '{}'.format(type_.name)
+            else:
+                return 'ref {}'.format(type_.name)
 
         if type_ in self.define.enums:
             return type_.name
@@ -59,7 +62,10 @@ class BindingGeneratorCSharp(BindingGenerator):
             return 'IntPtr'
 
         if type_ in self.define.structs:
-            return 'ref {}'.format(type_.name)
+            if is_return:
+                return '{}'.format(type_.name)
+            else:
+                return 'ref {}'.format(type_.name)
 
         if type_ in self.define.enums:
             return 'int'
@@ -95,7 +101,7 @@ class BindingGeneratorCSharp(BindingGenerator):
             return 'new {}({})'.format(type_.name, name)
 
         if type_ in self.define.structs:
-            return 'ref {}'.format(type_.name)
+            return '{}'.format(name)
 
         if type_ in self.define.enums:
             return '({}){}'.format(type_.name, name)
@@ -133,7 +139,7 @@ class BindingGeneratorCSharp(BindingGenerator):
             code('public {}({}) {{'.format(class_.name, ','.join(args)))
         else:
             code('public {} {}({}) {{'.format(self.__get_cs_type__(
-                func_.return_type), func_.name, ','.join(args)))
+                func_.return_type, is_return=True), func_.name, ','.join(args)))
 
         code.inc_indent()
 

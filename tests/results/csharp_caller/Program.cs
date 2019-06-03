@@ -21,6 +21,11 @@ namespace Test
             sa.Z = 3.0f;
             a.FuncArgStruct(ref sa);
 
+			var retBool = a.FuncReturnBool();
+			Console.WriteLine(retBool);
+
+			var retStruct = a.FuncReturnStruct();
+			Console.WriteLine(string.Format("{0},{1},{2}", retStruct.X, retStruct.Y, retStruct.Z));
         }
     }
 }

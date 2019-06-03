@@ -49,6 +49,8 @@ public:
     void FuncArgStruct(const StructA& value1);
     int FuncReturnInt();
     bool FuncReturnBool();
+    float FuncReturnFloat();
+    StructA FuncReturnStruct();
 };
 
 }

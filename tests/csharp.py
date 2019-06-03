@@ -31,6 +31,12 @@ func.return_type = int
 func = ClassA.add_func('FuncReturnBool')
 func.return_type = bool
 
+func = ClassA.add_func('FuncReturnFloat')
+func.return_type = float
+
+func = ClassA.add_func('FuncReturnStruct')
+func.return_type = StructA
+
 # define
 define = cbg.Define()
 define.classes.append(ClassA)

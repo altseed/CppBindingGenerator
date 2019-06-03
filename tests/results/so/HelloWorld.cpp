@@ -80,4 +80,17 @@ bool ClassA::FuncReturnBool()
     return true;
 }
 
+float ClassA::FuncReturnFloat()
+{
+    return 2.1f;
+}
+
+StructA ClassA::FuncReturnStruct()
+{
+	StructA ret;
+	ret.X = 2.0f;
+	ret.Y = 1.0f;
+	ret.Z = 3.0f;
+	return ret;
+}
 }
