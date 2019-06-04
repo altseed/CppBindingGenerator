@@ -56,6 +56,8 @@ class BindingGeneratorCSharp(BindingGenerator):
                 return '[MarshalAs(UnmanagedType.Bool)] bool'
 
         if type_ == ctypes.c_wchar_p:
+            if is_return:
+                return 'IntPtr'
             return '[MarshalAs(UnmanagedType.LPWStr)] string'
 
         if type_ in self.define.classes:
@@ -94,8 +96,11 @@ class BindingGeneratorCSharp(BindingGenerator):
         assert(False)
 
     def __convert_ret__(self, type_, name: str) -> str:
-        if type_ == int or type_ == float or type_ == bool or type_ == ctypes.c_wchar_p:
+        if type_ == int or type_ == float or type_ == bool:
             return name
+
+        if type_ == ctypes.c_wchar_p:
+            return 'System.Runtime.InteropServices.Marshal.PtrToStringUni({})'.format(name)
 
         if type_ in self.define.classes:
             return 'new {}({})'.format(type_.name, name)

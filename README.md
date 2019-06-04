@@ -19,7 +19,7 @@ Make struct in arguments treat safely
 
 ```
 Argument class, enum
-Return const char16_t*, enum
+Return enum
 Return class (generate)
 Proprety (includeing chache system)
 Document

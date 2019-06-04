@@ -51,6 +51,7 @@ public:
     bool FuncReturnBool();
     float FuncReturnFloat();
     StructA FuncReturnStruct();
+    const char16_t* FuncReturnString();
 };
 
 }

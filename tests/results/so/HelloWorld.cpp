@@ -93,4 +93,12 @@ StructA ClassA::FuncReturnStruct()
 	ret.Z = 3.0f;
 	return ret;
 }
+
+char16_t* ret_char = u"Return";
+
+const char16_t* ClassA::FuncReturnString()
+{
+	return ret_char;
+}
+
 }

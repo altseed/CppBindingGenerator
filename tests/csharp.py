@@ -37,6 +37,9 @@ func.return_type = float
 func = ClassA.add_func('FuncReturnStruct')
 func.return_type = StructA
 
+func = ClassA.add_func('FuncReturnString')
+func.return_type = ctypes.c_wchar_p
+
 # define
 define = cbg.Define()
 define.classes.append(ClassA)

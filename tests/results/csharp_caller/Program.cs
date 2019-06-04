@@ -26,6 +26,9 @@ namespace Test
 
 			var retStruct = a.FuncReturnStruct();
 			Console.WriteLine(string.Format("{0},{1},{2}", retStruct.X, retStruct.Y, retStruct.Z));
+
+            var retSrring = a.FuncReturnString();
+            Console.WriteLine(retSrring);
         }
     }
 }
