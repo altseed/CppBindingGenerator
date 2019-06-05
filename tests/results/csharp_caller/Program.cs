@@ -21,6 +21,10 @@ namespace Test
             sa.Z = 3.0f;
             a.FuncArgStruct(ref sa);
 
+			HelloWorld.ClassB cb = new HelloWorld.ClassB();
+			cb.SetValue(100);
+			a.FuncArgClass(cb);
+
 			var retBool = a.FuncReturnBool();
 			Console.WriteLine(retBool);
 
@@ -29,6 +33,7 @@ namespace Test
 
             var retSrring = a.FuncReturnString();
             Console.WriteLine(retSrring);
+
         }
     }
 }

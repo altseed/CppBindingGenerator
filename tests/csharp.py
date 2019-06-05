@@ -7,6 +7,14 @@ StructA.add_field(float, 'X')
 StructA.add_field(float, 'Y')
 StructA.add_field(float, 'Z')
 
+# ClassB
+ClassB = cbg.Class('HelloWorld', 'ClassB')
+
+constructor = ClassB.add_constructor()
+
+func = ClassB.add_func('SetValue')
+func.add_arg(int, 'value')
+
 # ClassA
 ClassA = cbg.Class('HelloWorld', 'ClassA')
 
@@ -24,6 +32,9 @@ func.add_arg(ctypes.c_wchar_p, 'value3')
 
 func = ClassA.add_func('FuncArgStruct')
 func.add_arg(StructA, 'value1')
+
+func = ClassA.add_func('FuncArgClass')
+func.add_arg(ClassB, 'value1')
 
 func = ClassA.add_func('FuncReturnInt')
 func.return_type = int
@@ -43,6 +54,7 @@ func.return_type = ctypes.c_wchar_p
 # define
 define = cbg.Define()
 define.classes.append(ClassA)
+define.classes.append(ClassB)
 define.structs.append(StructA)
 
 # generate
@@ -51,6 +63,8 @@ sharedObjectGenerator = cbg.SharedObjectGenerator(define)
 sharedObjectGenerator.header = '''
 #include "HelloWorld.h"
 '''
+
+sharedObjectGenerator.func_name_create_and_add_shared_ptr = 'HelloWorld::CreateAndAddSharedPtr'
 
 sharedObjectGenerator.output_path = 'tests/results/so/so.cpp'
 sharedObjectGenerator.generate()

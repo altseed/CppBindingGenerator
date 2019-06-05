@@ -7,10 +7,20 @@ from cbg.cpp_binding_generator import __get_c_release_func_name__
 
 class BindingGeneratorCSharp(BindingGenerator):
     def __init__(self, define: Define):
+        '''
+        generator for C#
+
+        Parameters
+        ----------
+        self_ptr_name : str
+            pointer name in the Class
+
+        '''
         super().__init__(define)
         self.namespace = ''
         self.output_path = ''
         self.dll_name = ''
+        self.self_ptr_name = 'selfPtr'
 
     def __get_cs_type__(self, type_, is_return = False) -> str:
         if type_ == int:
@@ -82,7 +92,7 @@ class BindingGeneratorCSharp(BindingGenerator):
             return name
 
         if type_ in self.define.classes:
-            return '{}.selfPtr'.format(name)
+            return '{} != null ? {}.{} : IntPtr.Zero'.format(name, name, self.self_ptr_name)
 
         if type_ in self.define.structs:
             return 'ref {}'.format(name)
@@ -121,14 +131,14 @@ class BindingGeneratorCSharp(BindingGenerator):
                 ' ' + arg.name for arg in func_.args]
 
         if not func_.is_static and not func_.is_constructor:
-            args = ['IntPtr selfPtr'] + args
+            args = ['IntPtr {}'.format(self.self_ptr_name)] + args
 
         code('[DllImport("{}")]'.format(self.dll_name))
 
         if(func_.return_type == bool):
             code('[return: MarshalAs(UnmanagedType.U1)]')
             
-        code('internal static extern {} {}({});'.format(
+        code('private static extern {} {}({});'.format(
             self.__get_csc_type__(func_.return_type, is_return=True), fname, ','.join(args)))
 
         return code
@@ -153,10 +163,10 @@ class BindingGeneratorCSharp(BindingGenerator):
                 arg.type_, arg.name) for arg in func_.args]
 
         if not func_.is_static and not func_.is_constructor:
-            args = ['selfPtr'] + args
+            args = [self.self_ptr_name] + args
 
         if func_.is_constructor:
-            code('selfPtr = {}({});'.format(fname, ','.join(args)))
+            code('{} = {}({});'.format(self.self_ptr_name, fname, ','.join(args)))
         else:
             if func_.return_type is None:
                 code('{}({});'.format(fname, ','.join(args)))
@@ -177,7 +187,7 @@ class BindingGeneratorCSharp(BindingGenerator):
 
         code.inc_indent()
 
-        code('IntPtr selfPtr = IntPtr.Zero;')
+        code('internal IntPtr {} = IntPtr.Zero;'.format(self.self_ptr_name))
         code('')
 
         # unmanaged
@@ -199,11 +209,11 @@ class BindingGeneratorCSharp(BindingGenerator):
         code.inc_indent()
 
         code('lock (this) {')
-        code('if (selfPtr != IntPtr.Zero) {')
+        code('if ({} != IntPtr.Zero) {{'.format(self.self_ptr_name))
         code.inc_indent()
 
-        code('{}(selfPtr);'.format(__get_c_release_func_name__(class_)))
-        code('selfPtr = IntPtr.Zero;')
+        code('{}({});'.format(__get_c_release_func_name__(class_), self.self_ptr_name))
+        code('{} = IntPtr.Zero;'.format(self.self_ptr_name))
 
         code.dec_indent()
 

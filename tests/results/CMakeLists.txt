@@ -17,6 +17,7 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/RELEASE")
 
 # specify C# framework
 set(CMAKE_DOTNET_TARGET_FRAMEWORK_VERSION v4.6.1)
+# set(CMAKE_CSharp_FLAGS "/langversion:6")
 
 # add directories
 add_subdirectory(so)

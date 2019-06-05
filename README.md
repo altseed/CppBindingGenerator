@@ -18,7 +18,7 @@ Make struct in arguments treat safely
 ## C#
 
 ```
-Argument class, enum
+Argument enum
 Return enum
 Return class (generate)
 Proprety (includeing chache system)

@@ -70,6 +70,11 @@ void ClassA::FuncArgStruct(const StructA& value1)
 	std::cout << value1.X << ", " << value1.Y << ", " << value1.Z << std::endl;
 }
 
+void ClassA::FuncArgClass(std::shared_ptr<ClassB> value1)
+{
+	std::cout << value1->GetValue() << std::endl;
+}
+
 int ClassA::FuncReturnInt()
 {
     return 100;
