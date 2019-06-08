@@ -225,6 +225,7 @@ class SharedObjectGenerator:
 
         self.header = ''  # header code inserted
         self.func_name_create_and_add_shared_ptr = 'CreateAndAddSharedPtr'
+        self.func_name_add_and_get_shared_ptr = 'AddAndGetSharedPtr'
 
     def __get_class_fullname__(self, type_: Class) -> str:
         if type_.namespace == '':
@@ -309,7 +310,7 @@ class SharedObjectGenerator:
             return name
 
         if type_ in self.define.classes:
-            return '(void*)GetAndAddSharedPtr<{}>({})'.format(self.__get_class_fullname__(type_), name)
+            return '(void*){}<{}>({})'.format(self.func_name_add_and_get_shared_ptr, self.__get_class_fullname__(type_), name)
 
         if type_ in self.define.structs:
             return '({})'.format(name)

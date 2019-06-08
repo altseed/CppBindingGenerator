@@ -34,6 +34,10 @@ namespace Test
             var retSrring = a.FuncReturnString();
             Console.WriteLine(retSrring);
 
+			var retClass = a.FuncReturnClass();
+			retClass.SetValue(101);
+			a.FuncArgClass(retClass);
+			
         }
     }
 }

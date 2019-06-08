@@ -48,6 +48,9 @@ func.return_type = float
 func = ClassA.add_func('FuncReturnStruct')
 func.return_type = StructA
 
+func = ClassA.add_func('FuncReturnClass')
+func.return_type = ClassB
+
 func = ClassA.add_func('FuncReturnString')
 func.return_type = ctypes.c_wchar_p
 
@@ -65,6 +68,7 @@ sharedObjectGenerator.header = '''
 '''
 
 sharedObjectGenerator.func_name_create_and_add_shared_ptr = 'HelloWorld::CreateAndAddSharedPtr'
+sharedObjectGenerator.func_name_add_and_get_shared_ptr = 'HelloWorld::AddAndGetSharedPtr'
 
 sharedObjectGenerator.output_path = 'tests/results/so/so.cpp'
 sharedObjectGenerator.generate()

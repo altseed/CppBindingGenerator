@@ -61,6 +61,17 @@ std::shared_ptr<T> CreateAndAddSharedPtr(T* p)
     return std::shared_ptr<T>(p, ReferenceDeleter<T>());
 }
 
+template <class T> 
+T* AddAndGetSharedPtr(std::shared_ptr<T> sp)
+{
+    auto p = sp.get();
+	if (p == nullptr)
+		return nullptr;
+
+    p->AddRef();
+    return p;
+}
+
 class ClassA;
 class ClassB;
 
@@ -68,6 +79,8 @@ class ClassA
     : public ReferenceObject
 {
 public:
+	ClassA();
+	virtual ~ClassA();
     void FuncSimple();
     void FuncArgInt(int value);
     void FuncArgFloatBoolStr(float value1, bool value2, const char16_t* value3);
@@ -78,7 +91,7 @@ public:
     float FuncReturnFloat();
     StructA FuncReturnStruct();
     const char16_t* FuncReturnString();
-
+    std::shared_ptr<ClassB> FuncReturnClass();
 };
 
 class ClassB
@@ -86,6 +99,8 @@ class ClassB
 {
     int value_ = 0;
 public:
+	ClassB();
+	virtual ~ClassB();
     int GetValue() { return value_; }
     void SetValue(float value) { value_ = value; }
 };

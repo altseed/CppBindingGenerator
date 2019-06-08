@@ -18,11 +18,9 @@ Make struct in arguments treat safely
 ## C#
 
 ```
-Argument enum
-Return enum
-Return class (generate)
-Proprety (includeing chache system)
+Enum (Argument, Resutn, Generate)
+Proprety
 Document
-Generate enum
+CacheSystem
 ```
 

@@ -3,6 +3,7 @@
 #include <codecvt>
 #include <locale>
 #include <iostream>
+#include <thread>
 
 namespace HelloWorld
 {
@@ -45,6 +46,16 @@ namespace HelloWorld
 		*cp = '\0';
 		return cnt;
 	}
+
+ClassA::ClassA()
+{
+	printf("Create ClassA(C++) in %d\n", std::this_thread::get_id());
+}
+
+ClassA::~ClassA()
+{
+	printf("Dispose ClassA(C++) in %d\n", std::this_thread::get_id());
+}
 
 void ClassA::FuncSimple()
 {
@@ -104,6 +115,21 @@ char16_t* ret_char = u"Return";
 const char16_t* ClassA::FuncReturnString()
 {
 	return ret_char;
+}
+
+std::shared_ptr<ClassB> ClassA::FuncReturnClass()
+{
+	return std::shared_ptr<ClassB>(new ClassB(), ReferenceDeleter<ClassB>());
+}
+
+ClassB::ClassB()
+{
+	printf("Create ClassB(C++) in %d\n", std::this_thread::get_id());
+}
+
+ClassB::~ClassB()
+{
+	printf("Dispose ClassB(C++) in %d\n", std::this_thread::get_id());
 }
 
 }

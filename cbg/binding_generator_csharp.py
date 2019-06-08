@@ -113,7 +113,7 @@ class BindingGeneratorCSharp(BindingGenerator):
             return 'System.Runtime.InteropServices.Marshal.PtrToStringUni({})'.format(name)
 
         if type_ in self.define.classes:
-            return 'new {}({})'.format(type_.name, name)
+            return 'ret != null ? new {}(new MemoryHandle({})) : null'.format(type_.name, name)
 
         if type_ in self.define.structs:
             return '{}'.format(name)
@@ -200,6 +200,13 @@ class BindingGeneratorCSharp(BindingGenerator):
 
         code('')
 
+        code('internal {}(MemoryHandle handle) {{'.format(class_.name))
+        code.inc_indent()
+        code('this.{}=handle.selfPtr;'.format(self.self_ptr_name))
+        code.dec_indent()
+        code('}')
+        code('')
+
         # managed
         for func_ in class_.funcs:
             code(self.__generate__managed_func__(class_, func_))
@@ -209,6 +216,7 @@ class BindingGeneratorCSharp(BindingGenerator):
         code.inc_indent()
 
         code('lock (this) {')
+        code.inc_indent()
         code('if ({} != IntPtr.Zero) {{'.format(self.self_ptr_name))
         code.inc_indent()
 
@@ -221,14 +229,14 @@ class BindingGeneratorCSharp(BindingGenerator):
 
         code.dec_indent()
         code('}')
-        code('')
-
         code.dec_indent()
         code('}')
+        code.dec_indent()
+
         code('}')
         code('')
 
-        return str(code)
+        return code
 
     def generate(self):
         code = Code()
@@ -240,6 +248,16 @@ class BindingGeneratorCSharp(BindingGenerator):
         if self.namespace != '':
             code('namespace {} {{'.format(self.namespace))
             code.inc_indent()
+
+        code('struct MemoryHandle {')
+        code.inc_indent()
+        code('public IntPtr selfPtr;')
+        code('public MemoryHandle(IntPtr p) {')
+        code('this.selfPtr = p;')
+        code('}')
+        code.dec_indent()
+        code('}')
+        
 
         for class_ in self.define.classes:
             code(self.__generate_class__(class_))
