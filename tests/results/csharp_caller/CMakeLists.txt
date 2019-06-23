@@ -9,4 +9,5 @@ add_executable(CSharpCaller
 )
 
 target_link_libraries(CSharpCaller CSharpLib)
+target_compile_options(CSharpCaller PRIVATE "/langversion:6")
 

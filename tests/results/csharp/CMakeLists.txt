@@ -10,3 +10,4 @@ add_library(CSharpLib
 )
 
 target_link_libraries(CSharpLib Common)
+target_compile_options(CSharpLib PRIVATE "/langversion:6")

@@ -1,1 +1,1 @@
-cmake ../results/
+cmake -A Win32 ../results/
