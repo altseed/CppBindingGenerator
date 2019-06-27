@@ -51,6 +51,13 @@ struct StructA
     float Z;
 };
 
+enum EnumA
+{
+	Mouse,
+	Cow,
+	Tiger = 3,
+};
+
 template <class T> 
 std::shared_ptr<T> CreateAndAddSharedPtr(T* p)
 {
@@ -98,11 +105,14 @@ class ClassB
     : public ReferenceObject
 {
     int value_ = 0;
+	EnumA enumValue_ = EnumA::Mouse;
 public:
 	ClassB();
 	virtual ~ClassB();
     int GetValue() { return value_; }
     void SetValue(float value) { value_ = value; }
+	EnumA GetEnum(int id) { return EnumA::Cow; }
+	void SetEnum(EnumA value) { enumValue_ = value; }
 };
 
 }

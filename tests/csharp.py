@@ -8,7 +8,7 @@ StructA.add_field(float, 'Y')
 StructA.add_field(float, 'Z')
 
 # EnumA
-EnumA = cbg.Enum('EnumA')
+EnumA = cbg.Enum('HelloWorld', 'EnumA')
 EnumA.add('Mosue')
 EnumA.add('Cow')
 EnumA.add('Tiger', '3')
@@ -20,6 +20,13 @@ constructor = ClassB.add_constructor()
 
 func = ClassB.add_func('SetValue')
 func.add_arg(int, 'value')
+
+func = ClassB.add_func('SetEnum')
+func.add_arg(EnumA, 'enumValue')
+
+func = ClassB.add_func('GetEnum')
+func.return_type = EnumA
+func.add_arg(int, 'id')
 
 # ClassA
 ClassA = cbg.Class('HelloWorld', 'ClassA')

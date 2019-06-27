@@ -105,11 +105,12 @@ class EnumValue:
 
 
 class Enum:
-    def __init__(self, name: str):
+    def __init__(self, namespace: str, name: str):
         self.brief = Description()
         self.desc = Description()
         self.values = []  # type: List[EnumValue]
         self.name = name
+        self.namespace = namespace
 
     def add(self, name: str, value=None) -> EnumValue:
         '''
@@ -269,7 +270,7 @@ class SharedObjectGenerator:
             return type_.cpp_fullname()
 
         if type_ in self.define.enums:
-            return type_.name
+            return '{}::{}'.format(type_.namespace, type_.name)
 
         if type_ is None:
             return 'void'
@@ -317,7 +318,7 @@ class SharedObjectGenerator:
             return '(*(({}*){}))'.format(type_.cpp_fullname(), name)
 
         if type_ in self.define.enums:
-            return '({}){}'.format(type_.name, name)
+            return '({}::{}){}'.format(type_.namespace, type_.name, name)
 
         assert(False)
 
@@ -332,7 +333,7 @@ class SharedObjectGenerator:
             return '({})'.format(name)
 
         if type_ in self.define.enums:
-            return '({}){}'.format(type_.name, name)
+            return '(int32_t){}'.format(name)
 
     def __generate_func__(self, class_: Class, func_: Function) -> str:
         code = Code()
@@ -360,32 +361,31 @@ class SharedObjectGenerator:
         # convert ctype into c++type
         for arg in func_.args:
             ex_name = 'cbg_arg' + str(count)
-            code(self.__get_cpp_type__(arg.type_) + ' ' + ex_name +
-                 ' = ' + self.__convert_c_to_cpp__(arg.type_, arg.name) + ';')
+            cpp_type = self.__get_cpp_type__(arg.type_)
+            c_value = self.__convert_c_to_cpp__(arg.type_, arg.name)
+            code('{} {} = {};'.format(cpp_type, ex_name, c_value))
             args.append(ex_name)
             count += 1
 
         # call function and return
         if func_.is_constructor:
-            code('return new ' + self.__get_class_fullname__(class_) +
-                 '(' + ','.join(args) + ');')
+            class_fullname = self.__get_class_fullname__(class_)
+            code('return new {}({});'.format(class_fullname, ','.join(args)))
         else:
             if func_.return_type is None:
-                code('cbg_self_->' + func_.name + '(' + ','.join(args) + ');')
+                code('cbg_self_->{}({});'.format(func_.name, ','.join(args)))
             else:
-                code(self.__get_cpp_type__(func_.return_type) + ' cbg_ret = cbg_self_->' +
-                     func_.name + '(' + ','.join(args) + ');')
-                code('return ' +
-                     self.__convert_ret__(func_.return_type, 'cbg_ret') + ';')
+                return_type = self.__get_cpp_type__(func_.return_type)
+                return_value = self.__convert_ret__(func_.return_type, 'cbg_ret')
+                code('{} cbg_ret = cbg_self_->{}({});'.format(return_type, func_.name, ','.join(args)))
+                code('return {};'.format(return_value))
 
         code.dec_indent()
         code('}')
         code('')
 
         return str(code)
-
-    def __generate_
-
+    
     def generate(self):
 
         code = ''

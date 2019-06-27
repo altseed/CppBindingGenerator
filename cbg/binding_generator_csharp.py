@@ -52,7 +52,7 @@ class BindingGeneratorCSharp(BindingGenerator):
 
     def __generate_enum__(self, enum_: Enum) -> Code:
         code = Code()
-        with CodeBlock(code, 'public enum {}'.format(enum_.name)):
+        with CodeBlock(code, 'public enum {} : int'.format(enum_.name)):
             for val in enum_.values:
                 line = val.name
                 if val.value != None:
@@ -136,7 +136,7 @@ class BindingGeneratorCSharp(BindingGenerator):
             return 'ref {}'.format(name)
 
         if type_ in self.define.enums:
-            return '({}){}'.format(type_.name, name)
+            return '(int){}'.format(name)
 
         if type_ is None:
             return 'void'
@@ -268,7 +268,6 @@ class BindingGeneratorCSharp(BindingGenerator):
         with CodeBlock(code, 'struct MemoryHandle', True):
             code('public IntPtr selfPtr;')
             with CodeBlock(code, 'public MemoryHandle(IntPtr p)'):
-                code('public MemoryHandle(IntPtr p) {')
                 code('this.selfPtr = p;')
 
         # enum群
