@@ -27,7 +27,6 @@ Make struct in arguments treat safely
 ## C#
 
 ```
-Proprety
 Document
 CacheSystem
 ```
