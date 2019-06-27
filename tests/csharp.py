@@ -7,6 +7,12 @@ StructA.add_field(float, 'X')
 StructA.add_field(float, 'Y')
 StructA.add_field(float, 'Z')
 
+# EnumA
+EnumA = cbg.Enum('EnumA')
+EnumA.add('Mosue')
+EnumA.add('Cow')
+EnumA.add('Tiger', '3')
+
 # ClassB
 ClassB = cbg.Class('HelloWorld', 'ClassB')
 
@@ -59,6 +65,7 @@ define = cbg.Define()
 define.classes.append(ClassA)
 define.classes.append(ClassB)
 define.structs.append(StructA)
+define.enums.append(EnumA)
 
 # generate
 sharedObjectGenerator = cbg.SharedObjectGenerator(define)

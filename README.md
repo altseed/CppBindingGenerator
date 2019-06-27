@@ -3,7 +3,7 @@
 
 Generate cpp wrapper codes and sprcified language wrapper codes.
 
-# Build
+# Run/Test
 
 Add ``` PYTHONPATH . ``` in environment variable.
 

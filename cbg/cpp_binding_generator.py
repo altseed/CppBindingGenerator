@@ -1,6 +1,21 @@
 from typing import List
 import ctypes
 
+# データ構造
+# Define
+# └─Enum
+#   └─EnumValue
+# └─Class
+#   └─Function { return_type, is_static, is_constructor }
+#     └─Description(brief)
+#     └─Description(desc)
+#     └─Argument { type, name }
+#       └─Description
+# └─Struct
+#   └─Field
+#
+# 未使用：Property
+
 
 class Description:
     '''
@@ -90,12 +105,13 @@ class EnumValue:
 
 
 class Enum:
-    def __init__(self):
+    def __init__(self, name: str):
         self.brief = Description()
         self.desc = Description()
         self.values = []  # type: List[EnumValue]
+        self.name = name
 
-    def add(self, name: str, value=None):
+    def add(self, name: str, value=None) -> EnumValue:
         '''
         add an enum value
         '''
@@ -367,6 +383,8 @@ class SharedObjectGenerator:
         code('')
 
         return str(code)
+
+    def __generate_
 
     def generate(self):
 
