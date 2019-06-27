@@ -99,6 +99,8 @@ public:
     StructA FuncReturnStruct();
     const char16_t* FuncReturnString();
     std::shared_ptr<ClassB> FuncReturnClass();
+
+	std::shared_ptr<ClassB> GetBReference() { return nullptr; }
 };
 
 class ClassB
@@ -113,6 +115,10 @@ public:
     void SetValue(float value) { value_ = value; }
 	EnumA GetEnum(int id) { return EnumA::Cow; }
 	void SetEnum(EnumA value) { enumValue_ = value; }
+
+	int GetMyProperty() { return 3; }
+	void SetMyProperty(int value) { }
+	void SetMyBool(bool value) { }
 };
 
 }

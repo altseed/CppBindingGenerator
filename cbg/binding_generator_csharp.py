@@ -1,20 +1,18 @@
 from typing import List
 import ctypes
 
-from cbg.cpp_binding_generator import BindingGenerator, Define, Class, Struct, Enum, Code, Function, EnumValue, __get_c_func_name__
+from cbg.cpp_binding_generator import BindingGenerator, Define, Class, Struct, Enum, Code, Property, Function, EnumValue, __get_c_func_name__
 from cbg.cpp_binding_generator import __get_c_release_func_name__
 
 # 生成処理の流れ
 # generate
 # └─__generate_class__
-#   └─__generate_managed_func__
-#     └─__get_cs_type__
-#     └─__convert_csc_to_cs__
-#     └─__convert_ret__
+#   └─__generate_unmanaged_property__
 #   └─__generate_unmanaged_func__
-#     └─__get_csc_type__
-#     └─__convert_csc_to_cs__
-#     └─__convert_ret__
+#   └─__generate_managed_property__
+#     └─__write_managed_func_body__
+#   └─__generate_managed_func__
+#     └─__write_managed_func_body__
 #   └─(destructor)
 
 # with式を使ってコードブロックの書き出しを視覚的にするためのクラス
@@ -181,6 +179,35 @@ class BindingGeneratorCSharp(BindingGenerator):
 
         return code
 
+    def __generate__unmanaged_property_(self, class_: Class, prop_: Property) -> Code:
+        code = Code()
+        result = ''
+        if prop_.has_getter:
+            result += str(self.__generate__unmanaged_func__(class_, prop_.getter_as_func()))
+        if prop_.has_setter:
+            result += str(self.__generate__unmanaged_func__(class_, prop_.setter_as_func()))
+        code(result)
+        return code
+
+    def __write_managed_function_body__(self, code: Code, class_: Class, func_: Function):
+        fname = __get_c_func_name__(class_, func_)
+        # call a function
+        args = [self.__convert_csc_to_cs__(
+                arg.type_, arg.name) for arg in func_.args]
+
+        if not func_.is_static and not func_.is_constructor:
+            args = [self.self_ptr_name] + args
+
+        if func_.is_constructor:
+            code('{} = {}({});'.format(self.self_ptr_name, fname, ', '.join(args)))
+        else:
+            if func_.return_type is None:
+                code('{}({});'.format(fname, ','.join(args)))
+            else:
+                code('var ret = {}({});'.format(fname, ','.join(args)))
+                code('return {};'.format(
+                    self.__convert_ret__(func_.return_type, 'ret')))
+
     def __generate__managed_func__(self, class_: Class, func_: Function) -> Code:
         code = Code()
         fname = __get_c_func_name__(class_, func_)
@@ -190,30 +217,33 @@ class BindingGeneratorCSharp(BindingGenerator):
 
         # determine signature
         if func_.is_constructor:
-            func_title = 'public {}({})'.format(class_.name, ','.join(args))
+            func_title = 'public {}({})'.format(class_.name, ', '.join(args))
         else:
             func_title = 'public {} {}({})'.format(self.__get_cs_type__(
-                func_.return_type, is_return=True), func_.name, ','.join(args))
+                func_.return_type, is_return=True), func_.name, ', '.join(args))
 
         # function body
         with CodeBlock(code, func_title):
-            # call a function
-            args = [self.__convert_csc_to_cs__(
-                    arg.type_, arg.name) for arg in func_.args]
+            self.__write_managed_function_body__(code, class_, func_)
 
-            if not func_.is_static and not func_.is_constructor:
-                args = [self.self_ptr_name] + args
+        return code
 
-            if func_.is_constructor:
-                code('{} = {}({});'.format(self.self_ptr_name, fname, ','.join(args)))
-            else:
-                if func_.return_type is None:
-                    code('{}({});'.format(fname, ','.join(args)))
-                else:
-                    code('var ret = {}({});'.format(fname, ','.join(args)))
-                    code('return {};'.format(
-                        self.__convert_ret__(func_.return_type, 'ret')))
+    def __generate__managed_property_(self, class_: Class, prop_:Property) -> Code:
+        code = Code()
 
+        # cannot generate property with no getter and no setter
+        if not prop_.has_getter and not prop_.has_setter:
+            return code
+        
+        type_name = self.__get_cs_type__(prop_.type_, is_return=True)
+        with CodeBlock(code, 'public {} {}'.format(type_name, prop_.name)):
+            if prop_.has_getter:
+                with CodeBlock(code, 'get'):
+                    self.__write_managed_function_body__(code, class_, prop_.getter_as_func())
+            if prop_.has_setter:
+                with CodeBlock(code, 'set'):
+                    self.__write_managed_function_body__(code, class_, prop_.setter_as_func())
+        
         return code
 
     def __generate_class__(self, class_: Class) -> Code:
@@ -228,6 +258,8 @@ class BindingGeneratorCSharp(BindingGenerator):
             # extern unmanaged functions
             for func_ in class_.funcs:
                 code(self.__generate__unmanaged_func__(class_, func_))
+            for prop_ in class_.properties:
+                code(self.__generate__unmanaged_property_(class_, prop_))
 
             # releasing function
             release_func = Function('Release')
@@ -237,6 +269,9 @@ class BindingGeneratorCSharp(BindingGenerator):
             # constructor
             with CodeBlock(code, 'internal {}(MemoryHandle handle)'.format(class_.name), True):
                 code('this.{} = handle.selfPtr;'.format(self.self_ptr_name))
+
+            for prop_ in class_.properties:
+                code(self.__generate__managed_property_(class_, prop_))
 
             # managed functions
             for func_ in class_.funcs:

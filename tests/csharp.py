@@ -28,6 +28,15 @@ func = ClassB.add_func('GetEnum')
 func.return_type = EnumA
 func.add_arg(int, 'id')
 
+prop = cbg.Property(int, 'MyProperty', True, True)
+ClassB.add_property(prop)
+
+prop = cbg.Property(float, 'MyFloat', False, False)
+ClassB.add_property(prop)
+
+prop = cbg.Property(bool, 'MyBool', False, True)
+ClassB.add_property(prop)
+
 # ClassA
 ClassA = cbg.Class('HelloWorld', 'ClassA')
 
@@ -66,6 +75,9 @@ func.return_type = ClassB
 
 func = ClassA.add_func('FuncReturnString')
 func.return_type = ctypes.c_wchar_p
+
+prop = cbg.Property(ClassB, 'BReference', True, False)
+ClassA.add_property(prop)
 
 # define
 define = cbg.Define()

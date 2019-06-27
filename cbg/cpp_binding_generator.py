@@ -6,6 +6,7 @@ import ctypes
 # └─Enum
 #   └─EnumValue
 # └─Class
+#   └─Property
 #   └─Function { return_type, is_static, is_constructor }
 #     └─Description(brief)
 #     └─Description(desc)
@@ -13,9 +14,6 @@ import ctypes
 #       └─Description
 # └─Struct
 #   └─Field
-#
-# 未使用：Property
-
 
 class Description:
     '''
@@ -92,9 +90,21 @@ Functions = List[Function]
 
 
 class Property:
-    def __init__(self):
-        self.getter = None
-        self.setter = None
+    def __init__(self, type_, name: str, has_getter: bool, has_setter: bool):
+        self.type_ = type_
+        self.name = name
+        self.has_getter = has_getter
+        self.has_setter = has_setter
+    
+    def getter_as_func(self) -> Function:
+        f = Function('Get' + self.name)
+        f.return_type = self.type_
+        return f
+
+    def setter_as_func(self) -> Function:
+        f = Function('Set' + self.name)
+        f.add_arg(self.type_, 'value')
+        return f
 
 
 class EnumValue:
@@ -158,6 +168,7 @@ class Class:
         self.namespace = namespace  # type: str
         self.name = name  # type: str
         self.funcs = []  # type: Functions
+        self.properties = []  # type: List[Property]
         self.constructor_count = 0
 
     def add_constructor(self) -> Function:
@@ -172,6 +183,9 @@ class Class:
         func = Function(name)
         self.funcs.append(func)
         return func
+    
+    def add_property(self, property: Property):
+        self.properties.append(property)
 
 
 Classes = List[Class]
@@ -335,6 +349,14 @@ class SharedObjectGenerator:
         if type_ in self.define.enums:
             return '(int32_t){}'.format(name)
 
+    def __generate_property__(self, class_: Class, prop_: Property) -> str:
+        result = ''
+        if prop_.has_getter:
+            result += self.__generate_func__(class_, prop_.getter_as_func())
+        if prop_.has_setter:
+            result += self.__generate_func__(class_, prop_.setter_as_func())
+        return result
+
     def __generate_func__(self, class_: Class, func_: Function) -> str:
         code = Code()
 
@@ -430,6 +452,9 @@ extern "C" {
         for class_ in self.define.classes:
             for func in class_.funcs:
                 code += self.__generate_func__(class_, func)
+
+            for prop in class_.properties:
+                code += self.__generate_property__(class_, prop)
 
             # generate release
             release_func = Function('Release')
