@@ -1,5 +1,6 @@
 import cbg
 import ctypes
+import sys
 
 # Struct
 StructA = cbg.Struct('HelloWorld', 'StructA')
@@ -30,6 +31,9 @@ func.add_arg(int, 'id')
 
 prop = cbg.Property(int, 'MyProperty', True, True)
 ClassB.add_property(prop)
+brief = cbg.Description()
+brief.add('ja', 'Gets or sets some integer.')
+prop.brief = brief
 
 prop = cbg.Property(float, 'MyFloat', False, False)
 ClassB.add_property(prop)
@@ -53,13 +57,22 @@ func.add_arg(bool, 'value2')
 func.add_arg(ctypes.c_wchar_p, 'value3')
 
 func = ClassA.add_func('FuncArgStruct')
-func.add_arg(StructA, 'value1')
+arg = func.add_arg(StructA, 'value1')
+brief = cbg.Description()
+brief.add('en', 'Processes a structA.')
+func.brief = brief
+brief = cbg.Description()
+brief.add('en', 'StructA input.')
+arg.desc = brief
 
 func = ClassA.add_func('FuncArgClass')
 func.add_arg(ClassB, 'value1')
 
 func = ClassA.add_func('FuncReturnInt')
 func.return_type = int
+brief = cbg.Description()
+brief.add('en', 'Returns some integer.')
+func.brief = brief
 
 func = ClassA.add_func('FuncReturnBool')
 func.return_type = bool
@@ -99,7 +112,15 @@ sharedObjectGenerator.func_name_add_and_get_shared_ptr = 'HelloWorld::AddAndGetS
 sharedObjectGenerator.output_path = 'tests/results/so/so.cpp'
 sharedObjectGenerator.generate()
 
-bindingGenerator = cbg.BindingGeneratorCSharp(define)
+args = sys.argv
+lang = 'en'
+if len(args) >= 3 and args[1] == '-lang':
+    if args[2] in ['ja', 'en']:
+        lang = args[2]
+    else:
+        print('python csharp.py -lang [ja|en]')
+
+bindingGenerator = cbg.BindingGeneratorCSharp(define, lang)
 bindingGenerator.output_path = 'tests/results/csharp/csharp.cs'
 bindingGenerator.dll_name = 'Common'
 bindingGenerator.namespace = 'HelloWorld'

@@ -21,7 +21,7 @@ class Description:
     '''
 
     def __init__(self):
-        self.descs = {}
+        self.descs = { 'ja':'', 'en':'' }
 
     def add(self, lang: str, desc: str):
         '''
@@ -73,8 +73,8 @@ class Function:
 
     def __init__(self, name: str):
         self.name = name
-        self.brief = Description()
-        self.desc = Description()
+        self.brief = None # type: Description
+        self.desc = None # type: Description
         self.args = []  # type: Arguments
         self.return_type = None
         self.is_static = False
@@ -95,6 +95,7 @@ class Property:
         self.name = name
         self.has_getter = has_getter
         self.has_setter = has_setter
+        self.brief = None # type: Description
     
     def getter_as_func(self) -> Function:
         f = Function('Get' + self.name)

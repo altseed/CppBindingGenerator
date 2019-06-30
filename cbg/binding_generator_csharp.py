@@ -32,7 +32,7 @@ class CodeBlock:
             self.coder('')
 
 class BindingGeneratorCSharp(BindingGenerator):
-    def __init__(self, define: Define):
+    def __init__(self, define: Define, lang: str):
         '''
         generator for C#
 
@@ -47,6 +47,7 @@ class BindingGeneratorCSharp(BindingGenerator):
         self.output_path = ''
         self.dll_name = ''
         self.self_ptr_name = 'selfPtr'
+        self.lang = lang
 
     def __generate_enum__(self, enum_: Enum) -> Code:
         code = Code()
@@ -215,6 +216,14 @@ class BindingGeneratorCSharp(BindingGenerator):
         args = [self.__get_cs_type__(
             arg.type_) + ' ' + arg.name for arg in func_.args]
 
+        # XML comment
+        if func_.brief != None:
+            code('/// <summary>')
+            code('/// {}'.format(func_.brief.descs[self.lang]))
+            code('/// </summary>')
+            for arg in func_.args:
+                code('/// <param name="{}">{}</param>'.format(arg.name, arg.desc.descs[self.lang]))
+
         # determine signature
         if func_.is_constructor:
             func_title = 'public {}({})'.format(class_.name, ', '.join(args))
@@ -234,6 +243,12 @@ class BindingGeneratorCSharp(BindingGenerator):
         # cannot generate property with no getter and no setter
         if not prop_.has_getter and not prop_.has_setter:
             return code
+        
+        # XML comment
+        if prop_.brief != None:
+            code('/// <summary>')
+            code('/// {}'.format(prop_.brief.descs[self.lang]))
+            code('/// </summary>')
         
         type_name = self.__get_cs_type__(prop_.type_, is_return=True)
         with CodeBlock(code, 'public {} {}'.format(type_name, prop_.name)):
