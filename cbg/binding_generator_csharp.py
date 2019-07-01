@@ -172,11 +172,11 @@ class BindingGeneratorCSharp(BindingGenerator):
 
         code('[DllImport("{}")]'.format(self.dll_name))
 
-        if(func_.return_type == bool):
+        if(func_.return_value.type_ == bool):
             code('[return: MarshalAs(UnmanagedType.U1)]')
             
         code('private static extern {} {}({});'.format(
-            self.__get_csc_type__(func_.return_type, is_return=True), fname, ','.join(args)))
+            self.__get_csc_type__(func_.return_value.type_, is_return=True), fname, ','.join(args)))
 
         return code
 
@@ -190,6 +190,35 @@ class BindingGeneratorCSharp(BindingGenerator):
         code(result)
         return code
 
+    def __write_caching_function_body__(self, code: Code, class_: Class, func_: Function):
+        return_type_name = self.__get_cs_type__(func_.return_value.type_, is_return=True)
+        native_func_name = __get_c_func_name__(class_, func_)
+        release_name = __get_c_func_name__(class_, Function('Release'))
+        body = '''var native = {2}(selfPtr);
+if(cache{0}.ContainsKey(native))
+{{
+    {1} cacheRet;
+    cache{0}[native].TryGetTarget(out cacheRet);
+    if(cacheRet != null)
+    {{
+        {3}(native);
+        return cacheRet;
+    }}
+    else
+    {{
+        cache{0}.Remove(native);
+    }}
+}}
+
+var ret = new {1}();
+ret.selfPtr = native;
+cache{0}.Add(native, new WeakReference<{1}>(ret));
+return ret;'''
+        body = body.format(func_.name, return_type_name, native_func_name, release_name)
+        lines = body.split('\n')
+        for line in lines:
+            code(line)
+
     def __write_managed_function_body__(self, code: Code, class_: Class, func_: Function):
         fname = __get_c_func_name__(class_, func_)
         # call a function
@@ -202,12 +231,14 @@ class BindingGeneratorCSharp(BindingGenerator):
         if func_.is_constructor:
             code('{} = {}({});'.format(self.self_ptr_name, fname, ', '.join(args)))
         else:
-            if func_.return_type is None:
+            if func_.return_value.type_ is None:
                 code('{}({});'.format(fname, ','.join(args)))
+            elif func_.return_value.do_cache():
+                self.__write_caching_function_body__(code, class_, func_)
             else:
                 code('var ret = {}({});'.format(fname, ','.join(args)))
                 code('return {};'.format(
-                    self.__convert_ret__(func_.return_type, 'ret')))
+                    self.__convert_ret__(func_.return_value.type_, 'ret')))
 
     def __generate__managed_func__(self, class_: Class, func_: Function) -> Code:
         code = Code()
@@ -224,12 +255,18 @@ class BindingGeneratorCSharp(BindingGenerator):
             for arg in func_.args:
                 code('/// <param name="{}">{}</param>'.format(arg.name, arg.desc.descs[self.lang]))
 
+        # cache repo
+        if func_.return_value.do_cache():
+            return_type_name = self.__get_cs_type__(func_.return_value.type_, is_return=True)
+            cache_code = 'private Dictionary<IntPtr, WeakReference<{}>> cache{} = new Dictionary<IntPtr, WeakReference<{}>>();'
+            code(cache_code.format(return_type_name, func_.name, return_type_name))
+
         # determine signature
         if func_.is_constructor:
             func_title = 'public {}({})'.format(class_.name, ', '.join(args))
         else:
             func_title = 'public {} {}({})'.format(self.__get_cs_type__(
-                func_.return_type, is_return=True), func_.name, ', '.join(args))
+                func_.return_value.type_, is_return=True), func_.name, ', '.join(args))
 
         # function body
         with CodeBlock(code, func_title):
@@ -307,6 +344,7 @@ class BindingGeneratorCSharp(BindingGenerator):
         # using宣言
         code('using System;')
         code('using System.Runtime.InteropServices;')
+        code('using System.Collections.Generic;')
         code('')
 
         # namespace宣言

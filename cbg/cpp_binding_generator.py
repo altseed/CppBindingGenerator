@@ -65,6 +65,17 @@ class Argument:
 
 Arguments = List[Argument]
 
+class ReturnValue:
+    def __init__(self, type_, cache: bool = False):
+        self.type_ = type_
+        self.cache = cache
+        self.desc = None # type: Description
+    
+    def do_cache(self) -> bool:
+        if self.type_ != Class and self.cache:
+            return True
+        else:
+            return False
 
 class Function:
     '''
@@ -77,6 +88,7 @@ class Function:
         self.desc = None # type: Description
         self.args = []  # type: Arguments
         self.return_type = None
+        self.return_value = ReturnValue(None)
         self.is_static = False
         self.is_constructor = False
 
@@ -84,7 +96,6 @@ class Function:
         arg = Argument(type_, name)
         self.args.append(arg)
         return arg
-
 
 Functions = List[Function]
 
@@ -96,10 +107,12 @@ class Property:
         self.has_getter = has_getter
         self.has_setter = has_setter
         self.brief = None # type: Description
+        self.return_value = ReturnValue(type_) if has_getter else ReturnValue(None)
+        self.cache_set_value = False
     
     def getter_as_func(self) -> Function:
         f = Function('Get' + self.name)
-        f.return_type = self.type_
+        f.return_value = self.return_value
         return f
 
     def setter_as_func(self) -> Function:
@@ -175,7 +188,7 @@ class Class:
     def add_constructor(self) -> Function:
         func = Function('Constructor_' + str(self.constructor_count))
         func.is_constructor = True
-        func.return_type = self
+        func.return_value = ReturnValue(self)
         self.funcs.append(func)
         self.constructor_count += 1
         return func

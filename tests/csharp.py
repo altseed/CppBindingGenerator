@@ -26,7 +26,7 @@ func = ClassB.add_func('SetEnum')
 func.add_arg(EnumA, 'enumValue')
 
 func = ClassB.add_func('GetEnum')
-func.return_type = EnumA
+func.return_value = cbg.ReturnValue(EnumA, False)
 func.add_arg(int, 'id')
 
 prop = cbg.Property(int, 'MyProperty', True, True)
@@ -69,25 +69,26 @@ func = ClassA.add_func('FuncArgClass')
 func.add_arg(ClassB, 'value1')
 
 func = ClassA.add_func('FuncReturnInt')
-func.return_type = int
+func.return_value = cbg.ReturnValue(int)
 brief = cbg.Description()
 brief.add('en', 'Returns some integer.')
 func.brief = brief
 
 func = ClassA.add_func('FuncReturnBool')
-func.return_type = bool
+func.return_value.type_ = bool
 
 func = ClassA.add_func('FuncReturnFloat')
-func.return_type = float
+func.return_value.type_ = float
 
 func = ClassA.add_func('FuncReturnStruct')
-func.return_type = StructA
+func.return_value.type_ = StructA
 
 func = ClassA.add_func('FuncReturnClass')
-func.return_type = ClassB
+func.return_value.type_ = ClassB
+func.return_value.cache = True
 
 func = ClassA.add_func('FuncReturnString')
-func.return_type = ctypes.c_wchar_p
+func.return_value.type_ = ctypes.c_wchar_p
 
 prop = cbg.Property(ClassB, 'BReference', True, False)
 ClassA.add_property(prop)
