@@ -4,7 +4,7 @@ import ctypes
 from cbg.cpp_binding_generator import BindingGenerator, Define, Class, Struct, Enum, Code, Property, Function, EnumValue, __get_c_func_name__
 from cbg.cpp_binding_generator import __get_c_release_func_name__
 
-# 生成処理の流れ
+# A flow of generating code
 # generate
 # └─__generate_class__
 #   └─__generate_unmanaged_property__
@@ -15,9 +15,11 @@ from cbg.cpp_binding_generator import __get_c_release_func_name__
 #     └─__write_managed_func_body__
 #   └─(destructor)
 
-# with式を使ってコードブロックの書き出しを視覚的にするためのクラス
 class CodeBlock:
     def __init__(self, coder: Code, title: str, after_space : bool = False):
+        '''
+        a class for generating code block easily
+        '''
         self.title = title
         self.coder = coder
         self.after_space = after_space
@@ -341,32 +343,32 @@ return ret;'''
     def generate(self):
         code = Code()
 
-        # using宣言
+        # declare using
         code('using System;')
         code('using System.Runtime.InteropServices;')
         code('using System.Collections.Generic;')
         code('')
 
-        # namespace宣言
+        # declare namespace
         if self.namespace != '':
             code('namespace {} {{'.format(self.namespace))
             code.inc_indent()
 
-        # メモリ管理用に固定で生成する構造体
+        # a struct for memory management
         with CodeBlock(code, 'struct MemoryHandle', True):
             code('public IntPtr selfPtr;')
             with CodeBlock(code, 'public MemoryHandle(IntPtr p)'):
                 code('this.selfPtr = p;')
 
-        # enum群
+        # enum group
         for enum_ in self.define.enums:
             code(self.__generate_enum__(enum_))
         
-        # class群
+        # class group
         for class_ in self.define.classes:
             code(self.__generate_class__(class_))
 
-        # namespace閉じる
+        # close namespace
         if self.namespace != '':
             code.dec_indent()
             code('}')

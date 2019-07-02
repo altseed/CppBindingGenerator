@@ -20,7 +20,7 @@ ClassB = cbg.Class('HelloWorld', 'ClassB')
 constructor = ClassB.add_constructor()
 
 func = ClassB.add_func('SetValue')
-func.add_arg(int, 'value')
+func.add_arg(float, 'value')
 
 func = ClassB.add_func('SetEnum')
 func.add_arg(EnumA, 'enumValue')
