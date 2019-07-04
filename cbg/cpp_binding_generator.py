@@ -1,7 +1,7 @@
 from typing import List
 import ctypes
 
-# データ構造
+# Data structure
 # Define
 # └─Enum
 #   └─EnumValue
@@ -383,8 +383,13 @@ class SharedObjectGenerator:
         if not func_.is_static and not func_.is_constructor:
             args = ['void* cbg_self'] + args
 
-        code('CBGEXPORT ' + self.__get_c_type__(func_.return_type, is_return=True) + ' CBGSTDCALL ' +
-             fname + '(' + ','.join(args) + ') {')
+        # function header
+        if func_.is_constructor:
+            code('CBGEXPORT ' + self.__get_c_type__(class_, is_return=True) + ' CBGSTDCALL ' +
+                 fname + '(' + ','.join(args) + ') {')
+        else:
+            code('CBGEXPORT ' + self.__get_c_type__(func_.return_type, is_return=True) + ' CBGSTDCALL ' +
+                 fname + '(' + ','.join(args) + ') {')        
         code.inc_indent()
 
         count = 0
