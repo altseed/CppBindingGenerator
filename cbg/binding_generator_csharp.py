@@ -153,7 +153,7 @@ class BindingGeneratorCSharp(BindingGenerator):
 
         if type_ in self.define.classes:
             if type_.do_cache:
-                return '{}.TryGetFromCache({});'.format(type_.name, name)
+                return '{}.TryGetFromCache({})'.format(type_.name, name)
             else:
                 return '{} != null ? new {}(new MemoryHandle({})) : null'.format(name, type_.name, name)
 
@@ -283,7 +283,7 @@ class BindingGeneratorCSharp(BindingGenerator):
         
         if prop_.has_setter and prop_.has_getter:
             back_type = type_name
-            if prop_.return_value.type_ != Class:
+            if prop_.type_ != Class:
                 back_type += '?'
             code('private {} _{};'.format(back_type, prop_.name))
 

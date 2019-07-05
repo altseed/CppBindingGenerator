@@ -61,6 +61,12 @@ class Argument:
         self.type_ = type_
         self.name = name
         self.desc = Description()
+    
+    def __enter__(self):
+        return self
+        
+    def __exit__(self, exit_type, exit_value, traceback):
+        return self
 
 
 Arguments = List[Argument]
@@ -92,6 +98,12 @@ class Function:
         arg = Argument(type_, name)
         self.args.append(arg)
         return arg
+    
+    def __enter__(self):
+        return self
+        
+    def __exit__(self, exit_type, exit_value, traceback):
+        return self
 
 Functions = List[Function]
 
@@ -103,18 +115,23 @@ class Property:
         self.has_getter = has_getter
         self.has_setter = has_setter
         self.brief = None # type: Description
-        self.return_value = ReturnValue(type_) if has_getter else ReturnValue(None)
         self.cache_set_value = False
     
     def getter_as_func(self) -> Function:
         f = Function('Get' + self.name)
-        f.return_value = self.return_value
+        f.return_value = ReturnValue(self.type_)
         return f
 
     def setter_as_func(self) -> Function:
         f = Function('Set' + self.name)
         f.add_arg(self.type_, 'value')
         return f
+    
+    def __enter__(self):
+        return self
+        
+    def __exit__(self, exit_type, exit_value, traceback):
+        return self
 
 
 class EnumValue:
@@ -140,6 +157,11 @@ class Enum:
         self.values.append(v)
         return v
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exit_type, exit_value, traceback):
+        return self
 
 Enums = List[Enum]
 
@@ -168,6 +190,12 @@ class Struct:
             return self.name
 
         return self.namespace + '::' + self.name
+    
+    def __enter__(self):
+        return self
+        
+    def __exit__(self, exit_type, exit_value, traceback):
+        return self
 
 
 Structs = List[Struct]
@@ -195,8 +223,16 @@ class Class:
         self.funcs.append(func)
         return func
     
-    def add_property(self, property: Property):
+    def add_property(self, type_, name: str) -> Property:
+        property = Property(type_, name, False, False)
         self.properties.append(property)
+        return property
+    
+    def __enter__(self):
+        return self
+        
+    def __exit__(self, exit_type, exit_value, traceback):
+        return self
 
 
 Classes = List[Class]

@@ -4,94 +4,91 @@ import sys
 
 # Struct
 StructA = cbg.Struct('HelloWorld', 'StructA')
-StructA.add_field(float, 'X')
-StructA.add_field(float, 'Y')
-StructA.add_field(float, 'Z')
+with StructA as struct:
+    struct.add_field(float, 'X')
+    struct.add_field(float, 'Y')
+    struct.add_field(float, 'Z')
 
 # EnumA
 EnumA = cbg.Enum('HelloWorld', 'EnumA')
-EnumA.add('Mosue')
-EnumA.add('Cow')
-EnumA.add('Tiger', '3')
+with EnumA as enum:
+    enum.add('Mosue')
+    enum.add('Cow')
+    enum.add('Tiger', '3')
 
 # ClassB
 ClassB = cbg.Class('HelloWorld', 'ClassB', True)
+with ClassB as class_:
+    constructor = class_.add_constructor()
 
-constructor = ClassB.add_constructor()
+    with class_.add_func('SetValue') as func:
+        func.add_arg(float, 'value')
 
-func = ClassB.add_func('SetValue')
-func.add_arg(float, 'value')
+    with class_.add_func('SetEnum') as func:
+        func.add_arg(EnumA, 'enumValue')
 
-func = ClassB.add_func('SetEnum')
-func.add_arg(EnumA, 'enumValue')
+    with class_.add_func('GetEnum') as func:
+        func.return_value = cbg.ReturnValue(EnumA)
+        func.add_arg(int, 'id')
 
-func = ClassB.add_func('GetEnum')
-func.return_value = cbg.ReturnValue(EnumA)
-func.add_arg(int, 'id')
+    with class_.add_property(int, 'MyProperty') as prop:
+        prop.has_getter = True
+        prop.has_setter = True
+        prop.brief = cbg.Description()
+        prop.brief.add('ja', 'Gets or sets some integer.')
 
-prop = cbg.Property(int, 'MyProperty', True, True)
-ClassB.add_property(prop)
-brief = cbg.Description()
-brief.add('ja', 'Gets or sets some integer.')
-prop.brief = brief
+    class_.add_property(float, 'MyFloat')
 
-prop = cbg.Property(float, 'MyFloat', False, False)
-ClassB.add_property(prop)
-
-prop = cbg.Property(bool, 'MyBool', False, True)
-ClassB.add_property(prop)
+    with class_.add_property(bool, 'MyBool') as prop:
+        prop.has_setter = True
 
 # ClassA
 ClassA = cbg.Class('HelloWorld', 'ClassA', False)
+with ClassA as class_:
+    class_.add_constructor()
+    class_.add_func('FuncSimple')
 
-constructor = ClassA.add_constructor()
+    with class_.add_func('FuncArgInt') as func:
+        func.add_arg(int, 'value')
+    
+    with class_.add_func('FuncArgFloatBoolStr') as func:
+        func.add_arg(float, 'value1')
+        func.add_arg(bool, 'value2')
+        func.add_arg(ctypes.c_wchar_p, 'value3')
 
-func = ClassA.add_func('FuncSimple')
+    with class_.add_func('FuncArgStruct') as func:
+        with func.add_arg(StructA, 'value1') as arg:
+            arg.desc = cbg.Description()
+            arg.desc.add('en', 'StructA input.')
+        func.brief = cbg.Description()
+        func.brief.add('en', 'Processes a structA.')
+    
+    with class_.add_func('FuncArgClass') as func:
+        func.add_arg(ClassB, 'value1')
 
-func = ClassA.add_func('FuncArgInt')
-func.add_arg(int, 'value')
+    with class_.add_func('FuncReturnInt') as func:
+        func.return_value = cbg.ReturnValue(int)
+        func.brief = cbg.Description()
+        func.brief.add('en', 'Returns some integer.')
 
-func = ClassA.add_func('FuncArgFloatBoolStr')
-func.add_arg(float, 'value1')
-func.add_arg(bool, 'value2')
-func.add_arg(ctypes.c_wchar_p, 'value3')
+    with class_.add_func('FuncReturnBool') as func:
+        func.return_value.type_ = bool
 
-func = ClassA.add_func('FuncArgStruct')
-arg = func.add_arg(StructA, 'value1')
-brief = cbg.Description()
-brief.add('en', 'Processes a structA.')
-func.brief = brief
-brief = cbg.Description()
-brief.add('en', 'StructA input.')
-arg.desc = brief
+    with class_.add_func('FuncReturnFloat') as func:
+        func.return_value.type_ = float
 
-func = ClassA.add_func('FuncArgClass')
-func.add_arg(ClassB, 'value1')
+    with class_.add_func('FuncReturnStruct') as func:
+        func.return_value.type_ = StructA
 
-func = ClassA.add_func('FuncReturnInt')
-func.return_value = cbg.ReturnValue(int)
-brief = cbg.Description()
-brief.add('en', 'Returns some integer.')
-func.brief = brief
+    with class_.add_func('FuncReturnClass') as func:
+        func.return_value.type_ = ClassB
+        func.return_value.cache = True
 
-func = ClassA.add_func('FuncReturnBool')
-func.return_value.type_ = bool
+    with class_.add_func('FuncReturnString') as func:
+        func.return_value.type_ = ctypes.c_wchar_p
 
-func = ClassA.add_func('FuncReturnFloat')
-func.return_value.type_ = float
-
-func = ClassA.add_func('FuncReturnStruct')
-func.return_value.type_ = StructA
-
-func = ClassA.add_func('FuncReturnClass')
-func.return_value.type_ = ClassB
-func.return_value.cache = True
-
-func = ClassA.add_func('FuncReturnString')
-func.return_value.type_ = ctypes.c_wchar_p
-
-prop = cbg.Property(ClassB, 'BReference', True, False)
-ClassA.add_property(prop)
+    with ClassA.add_property(ClassB, 'BReference') as prop:
+        prop.has_getter = True
 
 # define
 define = cbg.Define()
