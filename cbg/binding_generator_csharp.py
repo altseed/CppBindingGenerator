@@ -152,7 +152,10 @@ class BindingGeneratorCSharp(BindingGenerator):
             return 'System.Runtime.InteropServices.Marshal.PtrToStringUni({})'.format(name)
 
         if type_ in self.define.classes:
-            return 'ret != null ? new {}(new MemoryHandle({})) : null'.format(type_.name, name)
+            if type_.do_cache:
+                return '{}.TryGetFromCache({});'.format(type_.name, name)
+            else:
+                return '{} != null ? new {}(new MemoryHandle({})) : null'.format(name, type_.name, name)
 
         if type_ in self.define.structs:
             return '{}'.format(name)
@@ -192,35 +195,6 @@ class BindingGeneratorCSharp(BindingGenerator):
         code(result)
         return code
 
-    def __write_caching_function_body__(self, code: Code, class_: Class, func_: Function):
-        return_type_name = self.__get_cs_type__(func_.return_value.type_, is_return=True)
-        native_func_name = __get_c_func_name__(class_, func_)
-        release_name = __get_c_func_name__(class_, Function('Release'))
-        body = '''var native = {2}(selfPtr);
-if(cache{0}.ContainsKey(native))
-{{
-    {1} cacheRet;
-    cache{0}[native].TryGetTarget(out cacheRet);
-    if(cacheRet != null)
-    {{
-        {3}(native);
-        return cacheRet;
-    }}
-    else
-    {{
-        cache{0}.Remove(native);
-    }}
-}}
-
-var ret = new {1}();
-ret.selfPtr = native;
-cache{0}.Add(native, new WeakReference<{1}>(ret));
-return ret;'''
-        body = body.format(func_.name, return_type_name, native_func_name, release_name)
-        lines = body.split('\n')
-        for line in lines:
-            code(line)
-
     def __write_managed_function_body__(self, code: Code, class_: Class, func_: Function):
         fname = __get_c_func_name__(class_, func_)
         # call a function
@@ -235,8 +209,6 @@ return ret;'''
         else:
             if func_.return_value.type_ is None:
                 code('{}({});'.format(fname, ','.join(args)))
-            elif func_.return_value.do_cache():
-                self.__write_caching_function_body__(code, class_, func_)
             else:
                 code('var ret = {}({});'.format(fname, ','.join(args)))
                 code('return {};'.format(
@@ -276,6 +248,19 @@ return ret;'''
 
         return code
 
+    def __write_getter_(self, code: Code, class_: Class, prop_: Property):
+        with CodeBlock(code, 'get'):
+            if prop_.has_setter:
+                with CodeBlock(code, 'if (_{} != null)'.format(prop_.name)):
+                    code('return _{};'.format(prop_.name))
+            self.__write_managed_function_body__(code, class_, prop_.getter_as_func())
+
+    def __write_setter_(self, code: Code, class_: Class, prop_: Property):
+        with CodeBlock(code, 'set'):
+            if prop_.has_getter:
+                code('_{} = value;'.format(prop_.name))
+            self.__write_managed_function_body__(code, class_, prop_.setter_as_func())
+
     def __generate__managed_property_(self, class_: Class, prop_:Property) -> Code:
         code = Code()
 
@@ -292,19 +277,58 @@ return ret;'''
         type_name = self.__get_cs_type__(prop_.type_, is_return=True)
         with CodeBlock(code, 'public {} {}'.format(type_name, prop_.name)):
             if prop_.has_getter:
-                with CodeBlock(code, 'get'):
-                    self.__write_managed_function_body__(code, class_, prop_.getter_as_func())
+                self.__write_getter_(code, class_, prop_)
             if prop_.has_setter:
-                with CodeBlock(code, 'set'):
-                    self.__write_managed_function_body__(code, class_, prop_.setter_as_func())
+                self.__write_setter_(code, class_, prop_)
         
+        if prop_.has_setter and prop_.has_getter:
+            back_type = type_name
+            if prop_.return_value.type_ != Class:
+                back_type += '?'
+            code('private {} _{};'.format(back_type, prop_.name))
+
         return code
+
+    def __write_cache_getter__(self, code: Code, class_: Class):
+        release_func_name = __get_c_func_name__(class_, Function('Release'))
+        body = '''public static {0} TryGetFromCache(IntPtr native)
+{{
+    if(cacheRepo.ContainsKey(native))
+    {{
+        Subject cacheRet;
+        cacheRepo[native].TryGetTarget(out cacheRet);
+        if(cacheRet != null)
+        {{
+            {1}(native);
+            return cacheRet;
+        }}
+        else
+        {{
+            cacheRepo.Remove(native);
+        }}
+    }}
+
+    var newObject = new {0}(new MemoryHandle(native));
+    cacheRepo[native] = new WeakReference<{0}>(newObject);
+    return newObject;
+}}
+'''.format(class_.name, release_func_name)
+        lines = body.split('\n')
+        for line in lines:
+            code(line)
 
     def __generate_class__(self, class_: Class) -> Code:
         code = Code()
 
         # class body
         with CodeBlock(code, 'public class {}'.format(class_.name)):
+            # cache repo
+            if class_.do_cache:
+                cache_code = 'private static Dictionary<IntPtr, WeakReference<{}>> cacheRepo = new Dictionary<IntPtr, WeakReference<{}>>();'
+                code(cache_code.format(class_.name, class_.name))
+                code('')
+                self.__write_cache_getter__(code, class_)
+
             # unmanaged pointer
             code('internal IntPtr {} = IntPtr.Zero;'.format(self.self_ptr_name))
             code('')

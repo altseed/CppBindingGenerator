@@ -66,16 +66,12 @@ class Argument:
 Arguments = List[Argument]
 
 class ReturnValue:
-    def __init__(self, type_, cache: bool = False):
+    def __init__(self, type_):
         self.type_ = type_
-        self.cache = cache
         self.desc = None # type: Description
     
     def do_cache(self) -> bool:
-        if self.type_ != Class and self.cache:
-            return True
-        else:
-            return False
+        return self.type_ == Class and self.type_.do_cache
 
 class Function:
     '''
@@ -178,12 +174,13 @@ Structs = List[Struct]
 
 
 class Class:
-    def __init__(self, namespace='', name=''):
+    def __init__(self, namespace='', name='', do_cache: bool = True):
         self.namespace = namespace  # type: str
         self.name = name  # type: str
         self.funcs = []  # type: Functions
         self.properties = []  # type: List[Property]
         self.constructor_count = 0
+        self.do_cache = do_cache
 
     def add_constructor(self) -> Function:
         func = Function('Constructor_' + str(self.constructor_count))

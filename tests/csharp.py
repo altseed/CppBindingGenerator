@@ -15,7 +15,7 @@ EnumA.add('Cow')
 EnumA.add('Tiger', '3')
 
 # ClassB
-ClassB = cbg.Class('HelloWorld', 'ClassB')
+ClassB = cbg.Class('HelloWorld', 'ClassB', True)
 
 constructor = ClassB.add_constructor()
 
@@ -26,7 +26,7 @@ func = ClassB.add_func('SetEnum')
 func.add_arg(EnumA, 'enumValue')
 
 func = ClassB.add_func('GetEnum')
-func.return_value = cbg.ReturnValue(EnumA, False)
+func.return_value = cbg.ReturnValue(EnumA)
 func.add_arg(int, 'id')
 
 prop = cbg.Property(int, 'MyProperty', True, True)
@@ -42,7 +42,7 @@ prop = cbg.Property(bool, 'MyBool', False, True)
 ClassB.add_property(prop)
 
 # ClassA
-ClassA = cbg.Class('HelloWorld', 'ClassA')
+ClassA = cbg.Class('HelloWorld', 'ClassA', False)
 
 constructor = ClassA.add_constructor()
 

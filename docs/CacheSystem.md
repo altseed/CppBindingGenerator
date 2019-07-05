@@ -91,3 +91,36 @@ public Subject GetSubject()
     return ret != null ? new Subject(new MemoryHandle(ret)) : null;
 }
 ```
+
+## 関数の中身図鑑
+
+`unmanaged_func_name` は、`__get_c_func_name__` から得ます。
+`self_ptr_name` は、`self_ptr_name` から得ます。
+`ClassName` は、`__get_cs_type__` から得ます。
+`convert` は、`__convert_ret__` から得ます。
+
+### コンストラクタ
+
+```csharp
+self_ptr_name = unmanaged_func_name(args);
+```
+
+### 戻り値がvoid
+
+```csharp
+unmanaged_func_name(args);
+```
+
+### 戻り値がキャッシュする型
+
+```csharp
+var native = unmanaged_func_name(args);
+return ClassName.TryGetFromCache(native);
+```
+
+### 戻り値が通常の型
+
+```csharp
+var ret = unmanaged_func_name(args);
+return convert(ret);
+```
