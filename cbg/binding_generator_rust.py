@@ -178,7 +178,7 @@ class BindingGeneratorRust(BindingGenerator):
 
     def __generate__unmanaged_func__(self, class_: Class, func_: Function) -> Code:
         code = Code()
-        fname = camelcase_to_underscore(__get_c_func_name__(class_, func_))
+        fname = __get_c_func_name__(class_, func_)
 
         args = [arg.name + ' : ' + self.__get_rsc_type__(arg.type_)
             for arg in func_.args]
@@ -211,7 +211,10 @@ class BindingGeneratorRust(BindingGenerator):
         code = Code()
         # extern unmanaged
         code('#[link(name = "{}")]'.format(self.dll_name))
-        with CodeBlock(code, 'extern'):
+
+        with CodeBlock(code, 'extern "C"'):
+            release_func = Function('Release')
+
             for class_ in self.define.classes:
                 # extern unmanaged functions
                 for func_ in class_.funcs:
@@ -220,9 +223,8 @@ class BindingGeneratorRust(BindingGenerator):
                     code(self.__generate__unmanaged_property_(class_, prop_))
 
                 # releasing function
-                release_func = Function('Release')
                 code(self.__generate__unmanaged_func__(class_, release_func))
-                code('')
+                # code('')
 
         return code
 
