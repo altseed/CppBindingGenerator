@@ -16,7 +16,15 @@ from cbg.cpp_binding_generator import __get_c_release_func_name__
 #   └─(destructor)
 
 def camelcase_to_underscore(value : str) -> str:
-    return "".join( (x if x.lower else "_" + x.lower()) for x in list(value) )
+    result = []
+    beforeCharacter = ''
+    for x in list(value):
+        result.append("_" + x.lower()
+        if x.isalnum() and x.isupper() and (beforeCharacter != '_')
+        else x)
+        beforeCharacter = x
+
+    return "".join(result)
 
 class CodeBlock:
     def __init__(self, coder: Code, title: str, after_space : bool = False):
@@ -71,7 +79,8 @@ class BindingGeneratorRust(BindingGenerator):
             return '&str'
 
         if type_ in self.define.classes:
-            return type_.name
+            # return type_.name
+            return '*mut {}'.format(self.PtrEnumName)
 
         if type_ in self.define.structs:
             if is_return:
@@ -175,14 +184,14 @@ class BindingGeneratorRust(BindingGenerator):
             for arg in func_.args]
 
         if not func_.is_static and not func_.is_constructor:
-            args = ['{} : *mut{}'.format(self.self_ptr_name, self.PtrEnumName)] + args
+            args = ['{} : *mut {}'.format(self.self_ptr_name, self.PtrEnumName)] + args
 
         # if(func_.return_value.type_ == bool):
         #     code('[return: MarshalAs(UnmanagedType.U1)]')
             
         code('fn {}({}) -> {};'.format(
             fname,
-            ','.join(args),
+            ', '.join(args),
             self.__get_rsc_type__(func_.return_value.type_, is_return=True)
         ))
 
@@ -322,16 +331,16 @@ class BindingGeneratorRust(BindingGenerator):
 
         # declare use
         code('use std::os::raw::*;')
-
-        code('std::ffi::CString;')
-        # code('')
+        code('use std::ffi::CString;')
+        code('')
 
         # declare module
         if self.module != '':
             code('mod {} {{'.format(self.module))
             code.inc_indent()
 
-        code('enmu {} {{ }}'.format(self.PtrEnumName))
+        code('enum {} {{ }}'.format(self.PtrEnumName))
+        code('')
 
         # a struct for memory management
         # with CodeBlock(code, 'struct MemoryHandle', True):
