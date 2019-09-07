@@ -16,7 +16,7 @@ from cbg.cpp_binding_generator import __get_c_release_func_name__
 #   └─(destructor)
 
 def camelcase_to_underscore(value : str) -> str:
-    return "".join( (x if x.lower else "_" + x.lower()) for x in value.split(""))
+    return "".join( (x if x.lower else "_" + x.lower()) for x in list(value) )
 
 class CodeBlock:
     def __init__(self, coder: Code, title: str, after_space : bool = False):
@@ -55,7 +55,7 @@ class BindingGeneratorRust(BindingGenerator):
         self.lang = lang
         self.PtrEnumName = 'PhantomRawPtr'
 
-    def __get_cs_type__(self, type_, is_return = False) -> str:
+    def __get_rs_type__(self, type_, is_return = False) -> str:
         if type_ == int:
             return 'i32'
 
@@ -95,8 +95,7 @@ class BindingGeneratorRust(BindingGenerator):
             return 'c_float'
 
         if type_ == bool:
-            if is_return:
-                return 'bool'
+            return 'bool'
 
         if type_ == ctypes.c_wchar_p:
             if is_return:
@@ -118,8 +117,10 @@ class BindingGeneratorRust(BindingGenerator):
         if type_ is None:
             if is_return:
                 return '()'
+            
             return ''
 
+        print('Type: {}'.format(type_))
         assert(False)
 
     # def __convert_rsc_to_rs__(self, type_, name: str) -> str:
