@@ -121,7 +121,7 @@ if len(args) >= 3 and args[1] == '-lang':
 from cbg.binding_generator_rust import BindingGeneratorRust
 
 bindingGenerator = BindingGeneratorRust(define, lang)
-bindingGenerator.output_path = 'tests/results/rust/rust.rs'
+bindingGenerator.output_path = 'tests/results/rust/src/rust.rs'
 bindingGenerator.dll_name = 'Common'
 bindingGenerator.namespace = 'HelloWorld'
 bindingGenerator.generate()
