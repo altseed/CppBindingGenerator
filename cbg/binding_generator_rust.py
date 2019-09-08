@@ -243,7 +243,7 @@ class BindingGeneratorRust(BindingGenerator):
             args = ["self." + self.self_ptr_name] + args
 
         if func_.is_constructor:
-            code('{} {{ {} : {}({}) }}'.format(class_.name, self.self_ptr_name, fname, ', '.join(args)))
+            code('Self::create( {}({}) )'.format(fname, ', '.join(args)))
         else:
             func_code = 'unsafe {{ {}({}) }}'.format(fname, ', '.join(args))
             if func_.return_value.type_ is None:
@@ -260,7 +260,7 @@ class BindingGeneratorRust(BindingGenerator):
         args = [arg.name + ' : ' + self.__get_rs_type__(arg.type_) for arg in func_.args]
 
         if not func_.is_static and not func_.is_constructor:
-            args = [ "&self" ] + args
+            args = [ "&mut self" ] + args
 
         # Markdown comment
         if func_.brief != None:
@@ -296,6 +296,36 @@ class BindingGeneratorRust(BindingGenerator):
 
         return code
 
+    def __generate__managed_property_(self, class_: Class, prop_:Property) -> Code:
+        code = Code()
+
+        # cannot generate property with no getter and no setter
+        if not prop_.has_getter and not prop_.has_setter:
+            return code
+        
+        # Markdown comment
+        if prop_.brief != None:
+            code('/// {}'.format(prop_.brief.descs[self.lang]))
+        
+        type_name = self.__get_rs_type__(prop_.type_)
+        type_name_return = self.__get_rs_type__(prop_.type_, is_return=True)
+
+        field_name = camelcase_to_underscore(prop_.name)
+        # with CodeBlock(code, 'public {} {}'.format(type_name, prop_.name)):
+        if prop_.has_getter:
+            with CodeBlock(code, 'pub fn get_{}(&mut self) -> {}'.format(field_name, type_name_return)):
+                if prop_.has_setter:
+                    with CodeBlock(code, 'if let Some(value) = self.{}'.format(field_name)):
+                        code('return value;')
+                self.__write_managed_function_body__(code, class_, prop_.getter_as_func())
+        if prop_.has_setter:
+            with CodeBlock(code, 'pub fn set_{}(&mut self, value : {})'.format(field_name, type_name)):
+                if prop_.has_getter:
+                    code('self.{} = Some(value);'.format(field_name))
+                self.__write_managed_function_body__(code, class_, prop_.setter_as_func())
+
+        return code
+
 
     def __generate_struct__(self, struct_ : Struct) -> Code:
         code = Code()
@@ -319,20 +349,27 @@ class BindingGeneratorRust(BindingGenerator):
         with CodeBlock(code, 'pub struct {}'.format(class_.name)):
             # unmanaged pointer
             code('{} : *mut {},'.format(self.self_ptr_name, self.PtrEnumName))
+            for prop_ in class_.properties:
+                if prop_.has_getter and prop_.has_setter:
+                    code('{} : Option<{}>,'.format(camelcase_to_underscore(prop_.name), self.__get_rs_type__(prop_.type_)))
 
         code('')
 
         with CodeBlock(code, 'impl {}'.format(class_.name)):
             # unmanaged constructor
             with CodeBlock(code, 'pub(crate) fn create({} : *mut {}) -> Self'.format(self.self_ptr_name, self.PtrEnumName), True):
-                code('{} {{ {} }}'.format(class_.name, self.self_ptr_name))
-
-    #         for prop_ in class_.properties:
-    #             code(self.__generate__managed_property_(class_, prop_))
+                with CodeBlock(code, class_.name):
+                    code('{},'.format(self.self_ptr_name))
+                    for prop_ in class_.properties:
+                        if prop_.has_getter and prop_.has_setter:
+                            code('{} : None,'.format(camelcase_to_underscore(prop_.name)))
 
             # managed functions
             for func_ in class_.funcs:
                 code(self.__generate__managed_func__(class_, func_))
+
+            for prop_ in class_.properties:
+                code(self.__generate__managed_property_(class_, prop_))
 
         code('')
 
