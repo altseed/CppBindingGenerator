@@ -67,7 +67,7 @@ class BindingGeneratorRust(BindingGenerator):
         self.dll_name = ''
         self.self_ptr_name = 'selfPtr'
         self.lang = lang
-        self.PtrEnumName = 'PhantomRawPtr'
+        self.PtrEnumName = 'RawPtr'
 
     def __get_rs_type__(self, type_, is_return = False) -> str:
         if type_ == int:
@@ -86,6 +86,8 @@ class BindingGeneratorRust(BindingGenerator):
 
         if type_ in self.define.classes:
             if is_return:
+                if type_.do_cache:
+                    return 'Arc<Mutex<{}>>'.format(type_.name)
                 return type_.name
             else:
                 return '&' + type_.name
@@ -171,10 +173,9 @@ class BindingGeneratorRust(BindingGenerator):
 
         if type_ in self.define.classes:
             if type_.do_cache:
-                # ???????
-                return '/* some code for cache */' #.format(type_.name, name)
+                return '{}::try_get_from_cache({})'.format(type_.name, name)
             else:
-                return '{}::create({}.{})'.format(type_.name, name, self.self_ptr_name)
+                return '{}::create({})'.format(type_.name, name)
 
         if type_ in self.define.structs:
             return '{}'.format(name)
@@ -283,7 +284,10 @@ class BindingGeneratorRust(BindingGenerator):
 
         # determine signature
         if func_.is_constructor:
-            func_title = 'pub fn new({}) -> Self'.format(', '.join(args))
+            ret_type = "Self"
+            if class_.do_cache:
+                ret_type = "Arc<Mutex<Self>>"
+            func_title = 'pub fn new({}) -> {}'.format(', '.join(args), ret_type)
         else:
             func_title = 'pub fn {}({}) -> {}'.format(
                 camelcase_to_underscore(func_.name),
@@ -338,14 +342,32 @@ class BindingGeneratorRust(BindingGenerator):
         return code
 
 
+    def __generate_cache__(self, classes: List[Class]) -> Code:
+        code = Code()
+
+        ptr_storage_name = self.PtrEnumName + "Storage"
+        code('''
+use std::sync::{{Arc, Weak, RwLock, Mutex}};
+use std::collections::HashMap;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+struct {0}(*mut {1});
+
+unsafe impl Send for {0} {{ }}
+unsafe impl Sync for {0} {{ }}
+'''.format(ptr_storage_name, self.PtrEnumName))
+
+        with CodeBlock(code, 'lazy_static!'):
+            for class_ in classes:
+                code('''static ref {}_CACHE: RwLock<HashMap<{}, Weak<Mutex<{}>>>> = RwLock::new(HashMap::new());'''.format(
+                    class_.name.upper(), ptr_storage_name, class_.name))
+
+        return code
+
+
     def __generate_class__(self, class_: Class) -> Code:
         code = Code()
 
-        # cache repo
-        if class_.do_cache:
-            code('// some code for cache')
-        #     code('cacheRepo : std::collections::HashMap<*mut {}, {}>'.format(self.PtrEnumName))
-        #     # hoge
         with CodeBlock(code, 'pub struct {}'.format(class_.name)):
             # unmanaged pointer
             code('{} : *mut {},'.format(self.self_ptr_name, self.PtrEnumName))
@@ -357,12 +379,39 @@ class BindingGeneratorRust(BindingGenerator):
 
         with CodeBlock(code, 'impl {}'.format(class_.name)):
             # unmanaged constructor
-            with CodeBlock(code, 'pub(crate) fn create({} : *mut {}) -> Self'.format(self.self_ptr_name, self.PtrEnumName), True):
+            ret_type = "Self"
+            if class_.do_cache:
+                ret_type = "Arc<Mutex<Self>>"
+            
+            with CodeBlock(code, 'pub(crate) fn create({} : *mut {}) -> {}'.format(self.self_ptr_name, self.PtrEnumName, ret_type), True):
+                if class_.do_cache:
+                    code('Arc::new(Mutex::new(')
+                
                 with CodeBlock(code, class_.name):
                     code('{},'.format(self.self_ptr_name))
                     for prop_ in class_.properties:
                         if prop_.has_getter and prop_.has_setter:
                             code('{} : None,'.format(camelcase_to_underscore(prop_.name)))
+                
+                if class_.do_cache:
+                    code('))')
+
+            if class_.do_cache:
+                code('''
+pub fn try_get_from_cache(selfPtr : *mut RawPtr) -> Arc<Mutex<Self>> {{
+    let hashMap = *{}_CACHE.write().unwrap();
+    let storage = RawPtrStorage(selfPtr);
+    if let Some(x) = hashMap.get(&storage) {{
+        match x.upgrade() {{
+            Some(o) => {{ return o; }},
+            None => {{ hashMap.remove(&storage); }},
+        }}
+    }}
+
+    let o = Self::create(selfPtr);
+    hashMap.insert(storage, Arc::downgrade(&o));
+    o
+}}'''.format(class_.name.upper()))
 
             # managed functions
             for func_ in class_.funcs:
@@ -380,7 +429,10 @@ class BindingGeneratorRust(BindingGenerator):
                 code('unsafe {{ {}(self.{}) }};'.format(__get_c_release_func_name__(class_), self.self_ptr_name))
                     # code('self.{} = std::ptr::null_mut();'.format(self.self_ptr_name))
         
-        code('')
+        code('''
+unsafe impl Send for {0} {{ }}
+unsafe impl Sync for {0} {{ }}
+'''.format(class_.name))
 
         return code
 
@@ -391,6 +443,7 @@ class BindingGeneratorRust(BindingGenerator):
         # declare use
         code('use std::os::raw::*;')
         code('use std::ffi::CString;')
+        code('')
         code('')
 
         # declare module
@@ -415,6 +468,12 @@ class BindingGeneratorRust(BindingGenerator):
             code(self.__generate_struct__(struct_))
 
         code(self.__generate_extern__(self.define.classes))
+
+        chached_classed = list(filter(lambda x: x.do_cache, self.define.classes))
+
+        # Not Empty
+        if chached_classed:
+            code(self.__generate_cache__(chached_classed))
         
         # class group
         for class_ in self.define.classes:
