@@ -65,9 +65,10 @@ class BindingGeneratorRust(BindingGenerator):
         self.module = ''
         self.output_path = ''
         self.dll_name = ''
-        self.self_ptr_name = 'selfPtr'
+        self.self_ptr_name = 'self_ptr'
         self.lang = lang
         self.PtrEnumName = 'RawPtr'
+        self.structModName = 'structs'
 
     def __get_rs_type__(self, type_, is_return = False) -> str:
         if type_ == int:
@@ -90,13 +91,10 @@ class BindingGeneratorRust(BindingGenerator):
                     return 'Arc<Mutex<{}>>'.format(type_.name)
                 return type_.name
             else:
-                return '&' + type_.name
+                return '&mut ' + type_.name
 
         if type_ in self.define.structs:
-            if is_return:
-                return type_.name
-            else:
-                return '&' + type_.name
+            return type_.name
 
         if type_ in self.define.enums:
             return type_.name
@@ -125,10 +123,7 @@ class BindingGeneratorRust(BindingGenerator):
             return '*mut {}'.format(self.PtrEnumName)
 
         if type_ in self.define.structs:
-            if is_return:
-                return '{}'.format(type_.name)
-            else:
-                return '&{}'.format(type_.name)
+            return '{}::{}'.format(self.structModName, type_.name)
 
         if type_ in self.define.enums:
             return 'c_int'
@@ -153,7 +148,7 @@ class BindingGeneratorRust(BindingGenerator):
             return '{}.{}'.format(name, self.self_ptr_name)
 
         if type_ in self.define.structs:
-            return '&{}'.format(name)
+            return 'From::from({})'.format(name)
 
         if type_ in self.define.enums:
             return '{} as i32'.format(name)
@@ -168,7 +163,7 @@ class BindingGeneratorRust(BindingGenerator):
             return name
 
         if type_ == ctypes.c_wchar_p:
-            x = 'CString::from_raw({} as *mut i8)'.format(name)
+            x = 'unsafe{{ CString::from_raw({} as *mut i8) }}'.format(name)
             return '{0}.into_string().expect("{0} failed")'.format(x)
 
         if type_ in self.define.classes:
@@ -178,10 +173,10 @@ class BindingGeneratorRust(BindingGenerator):
                 return '{}::create({})'.format(type_.name, name)
 
         if type_ in self.define.structs:
-            return '{}'.format(name)
+            return '{}.into()'.format(name)
 
         if type_ in self.define.enums:
-            return 'unsafe {{ std::mem::transmute({} as i8) }}'.format(name)
+            return 'unsafe {{ std::mem::transmute({}) }}'.format(name)
 
         assert(False)
 
@@ -238,13 +233,13 @@ class BindingGeneratorRust(BindingGenerator):
         fname = __get_c_func_name__(class_, func_)
         # call a function
         args = [self.__convert_rsc_to_rs__(
-                arg.type_, arg.name) for arg in func_.args]
+                arg.type_, camelcase_to_underscore(arg.name)) for arg in func_.args]
 
         if not func_.is_static and not func_.is_constructor:
             args = ["self." + self.self_ptr_name] + args
 
         if func_.is_constructor:
-            code('Self::create( {}({}) )'.format(fname, ', '.join(args)))
+            code('Self::create(unsafe{{ {}({}) }})'.format(fname, ', '.join(args)))
         else:
             func_code = 'unsafe {{ {}({}) }}'.format(fname, ', '.join(args))
             if func_.return_value.type_ is None:
@@ -258,7 +253,8 @@ class BindingGeneratorRust(BindingGenerator):
     def __generate__managed_func__(self, class_: Class, func_: Function) -> Code:
         code = Code()
 
-        args = [arg.name + ' : ' + self.__get_rs_type__(arg.type_) for arg in func_.args]
+        args = [camelcase_to_underscore(arg.name) + ' : ' + self.__get_rs_type__(arg.type_)
+            for arg in func_.args]
 
         if not func_.is_static and not func_.is_constructor:
             args = [ "&mut self" ] + args
@@ -274,13 +270,7 @@ class BindingGeneratorRust(BindingGenerator):
 
             for arg in func_.args:
                 code('///')
-                code('/// * `{}` - {}'.format(arg.name, arg.desc.descs[self.lang]))
-
-        # cache repo
-        # if func_.return_value.do_cache():
-        #     return_type_name = self.__get_cs_type__(func_.return_value.type_, is_return=True)
-        #     cache_code = 'private Dictionary<IntPtr, WeakReference<{}>> cache{} = new Dictionary<IntPtr, WeakReference<{}>>();'
-        #     code(cache_code.format(return_type_name, func_.name, return_type_name))
+                code('/// * `{}` - {}'.format(camelcase_to_underscore(arg.name), arg.desc.descs[self.lang]))
 
         # determine signature
         if func_.is_constructor:
@@ -345,13 +335,36 @@ class BindingGeneratorRust(BindingGenerator):
         return code
 
 
-    def __generate_struct__(self, struct_ : Struct) -> Code:
+    def __generate_unmanaged_struct__(self, struct_ : Struct) -> Code:
         code = Code()
 
         code('#[repr(C)]')
-        with CodeBlock(code, 'struct {}'.format(struct_.name)):
+        with CodeBlock(code, 'pub(crate) struct {}'.format(struct_.name)):
             for field_ in struct_.fields:
-                code('{} : {},'.format(camelcase_to_underscore(field_.name), self.__get_rs_type__(field_.type_)))
+                code('{} : {},'.format(camelcase_to_underscore(field_.name), self.__get_rsc_type__(field_.type_)))
+        
+        with CodeBlock(code, 'impl From<super::{0}> for self::{0}'.format(struct_.name)):
+            with CodeBlock(code, 'fn from(item: super::{}) -> Self'.format(struct_.name)):
+                with CodeBlock(code, 'self::{}'.format(struct_.name)):
+                    for field_ in struct_.fields:
+                        name = camelcase_to_underscore(field_.name)
+                        code('{} : {},'.format(name, self.__convert_ret__(field_.type_, 'item.' + name)))
+
+        with CodeBlock(code, 'impl Into<super::{0}> for self::{0}'.format(struct_.name)):
+            with CodeBlock(code, 'fn into(self) -> super::{}'.format(struct_.name)):
+                with CodeBlock(code, 'super::{}'.format(struct_.name)):
+                    for field_ in struct_.fields:
+                        name = camelcase_to_underscore(field_.name)
+                        code('{} : {},'.format(name, self.__convert_rsc_to_rs__(field_.type_, 'self.' + name)))
+
+        return code
+
+    def __generate_managed_struct__(self, struct_ : Struct) -> Code:
+        code = Code()
+
+        with CodeBlock(code, 'pub struct {}'.format(struct_.name)):
+            for field_ in struct_.fields:
+                code('{} : {},'.format(camelcase_to_underscore(field_.name), self.__get_rs_type__(field_.type_, is_return=True)))
 
         return code
 
@@ -390,6 +403,10 @@ unsafe impl Sync for {0} {{ }}
                     code('{} : Option<{}>,'.format(camelcase_to_underscore(prop_.name), self.__get_rs_type__(prop_.type_)))
 
         code('')
+        code('''
+unsafe impl Send for {0} {{ }}
+unsafe impl Sync for {0} {{ }}
+'''.format(class_.name))
 
         with CodeBlock(code, 'impl {}'.format(class_.name)):
             # unmanaged constructor
@@ -397,7 +414,7 @@ unsafe impl Sync for {0} {{ }}
             if class_.do_cache:
                 ret_type = "Arc<Mutex<Self>>"
             
-            with CodeBlock(code, 'pub(crate) fn create({} : *mut {}) -> {}'.format(self.self_ptr_name, self.PtrEnumName, ret_type), True):
+            with CodeBlock(code, 'fn create({} : *mut {}) -> {}'.format(self.self_ptr_name, self.PtrEnumName, ret_type), True):
                 if class_.do_cache:
                     code('Arc::new(Mutex::new(')
                 
@@ -412,20 +429,21 @@ unsafe impl Sync for {0} {{ }}
 
             if class_.do_cache:
                 code('''
-pub fn try_get_from_cache(selfPtr : *mut RawPtr) -> Arc<Mutex<Self>> {{
-    let hashMap = *{}_CACHE.write().unwrap();
-    let storage = RawPtrStorage(selfPtr);
-    if let Some(x) = hashMap.get(&storage) {{
+fn try_get_from_cache({0} : *mut RawPtr) -> Arc<Mutex<Self>> {{
+
+    let mut hash_map = {1}_CACHE.write().unwrap();
+    let storage = RawPtrStorage({0});
+    if let Some(x) = hash_map.get(&storage) {{
         match x.upgrade() {{
             Some(o) => {{ return o; }},
-            None => {{ hashMap.remove(&storage); }},
+            None => {{ hash_map.remove(&storage); }},
         }}
     }}
 
-    let o = Self::create(selfPtr);
-    hashMap.insert(storage, Arc::downgrade(&o));
+    let o = Self::create({0});
+    hash_map.insert(storage, Arc::downgrade(&o));
     o
-}}'''.format(class_.name.upper()))
+}}'''.format(self.self_ptr_name, class_.name.upper()))
 
             # managed functions
             for func_ in class_.funcs:
@@ -442,11 +460,6 @@ pub fn try_get_from_cache(selfPtr : *mut RawPtr) -> Arc<Mutex<Self>> {{
                 # with CodeBlock(code, 'if !self.{}.is_null()'.format(self.self_ptr_name)):
                 code('unsafe {{ {}(self.{}) }};'.format(__get_c_release_func_name__(class_), self.self_ptr_name))
                     # code('self.{} = std::ptr::null_mut();'.format(self.self_ptr_name))
-        
-        code('''
-unsafe impl Send for {0} {{ }}
-unsafe impl Sync for {0} {{ }}
-'''.format(class_.name))
 
         return code
 
@@ -468,18 +481,18 @@ unsafe impl Sync for {0} {{ }}
         code('enum {} {{ }}'.format(self.PtrEnumName))
         code('')
 
-        # a struct for memory management
-        # with CodeBlock(code, 'struct MemoryHandle', True):
-        #     code('public IntPtr selfPtr;')
-        #     with CodeBlock(code, 'public MemoryHandle(IntPtr p)'):
-        #         code('this.selfPtr = p;')
-
         # enum group
         for enum_ in self.define.enums:
             code(self.__generate_enum__(enum_))
-
+        
         for struct_ in self.define.structs:
-            code(self.__generate_struct__(struct_))
+                code(self.__generate_managed_struct__(struct_))
+
+        with CodeBlock(code, 'mod {}'.format(self.structModName)):
+            code('use super::*;')
+            for struct_ in self.define.structs:
+                code(self.__generate_unmanaged_struct__(struct_))
+
 
         code(self.__generate_extern__(self.define.classes))
 
