@@ -439,9 +439,8 @@ unsafe impl Sync for {0} {{ }}
                     code('))')
 
             if class_.do_cache:
-                code('''
+                body ='''
 fn try_get_from_cache({0} : *mut RawPtr) -> Arc<Mutex<Self>> {{
-
     let mut hash_map = {1}_CACHE.write().unwrap();
     let storage = RawPtrStorage({0});
     if let Some(x) = hash_map.get(&storage) {{
@@ -450,11 +449,15 @@ fn try_get_from_cache({0} : *mut RawPtr) -> Arc<Mutex<Self>> {{
             None => {{ hash_map.remove(&storage); }},
         }}
     }}
-
     let o = Self::create({0});
     hash_map.insert(storage, Arc::downgrade(&o));
     o
-}}'''.format(self.self_ptr_name, class_.name.upper()))
+}}
+'''.format(self.self_ptr_name, class_.name.upper())
+
+                lines = body.split('\n')
+                for line in lines:
+                    code(line)
 
             # managed functions
             for func_ in class_.funcs:
