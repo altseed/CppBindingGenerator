@@ -181,7 +181,7 @@ class BindingGeneratorRust(BindingGenerator):
             return '{}'.format(name)
 
         if type_ in self.define.enums:
-            return '// convert enum'
+            return 'unsafe {{ std::mem::transmute({} as i8) }}'.format(name)
 
         assert(False)
 
@@ -331,6 +331,20 @@ class BindingGeneratorRust(BindingGenerator):
         return code
 
 
+    def __generate_enum__(self, enum_ : Enum) -> Code:
+        code = Code()
+
+        code('#[repr(C)]')
+        with CodeBlock(code, "pub enum {}".format(enum_.name)):
+            for val in enum_.values:
+                line = val.name
+                if val.value != None:
+                    line = '{} = {}'.format(line, val.value)
+                code(line + ',')
+
+        return code
+
+
     def __generate_struct__(self, struct_ : Struct) -> Code:
         code = Code()
 
@@ -460,9 +474,9 @@ unsafe impl Sync for {0} {{ }}
         #     with CodeBlock(code, 'public MemoryHandle(IntPtr p)'):
         #         code('this.selfPtr = p;')
 
-        # # enum group
-        # for enum_ in self.define.enums:
-        #     code(self.__generate_enum__(enum_))
+        # enum group
+        for enum_ in self.define.enums:
+            code(self.__generate_enum__(enum_))
 
         for struct_ in self.define.structs:
             code(self.__generate_struct__(struct_))
