@@ -325,6 +325,7 @@ class BindingGeneratorRust(BindingGenerator):
         code = Code()
 
         code('#[repr(C)]')
+        code('#[derive(Debug, Clone, Copy, PartialEq)]')
         with CodeBlock(code, "pub enum {}".format(enum_.name)):
             for val in enum_.values:
                 line = val.name
@@ -361,7 +362,7 @@ class BindingGeneratorRust(BindingGenerator):
 
     def __generate_managed_struct__(self, struct_ : Struct) -> Code:
         code = Code()
-
+        code('#[derive(Debug, Clone, Copy, PartialEq)]')
         with CodeBlock(code, 'pub struct {}'.format(struct_.name)):
             for field_ in struct_.fields:
                 code('{} : {},'.format(camelcase_to_underscore(field_.name), self.__get_rs_type__(field_.type_, is_return=True)))
@@ -395,6 +396,7 @@ unsafe impl Sync for {0} {{ }}
     def __generate_class__(self, class_: Class) -> Code:
         code = Code()
 
+        code('#[derive(Debug, PartialEq, Eq, Hash)]')
         with CodeBlock(code, 'pub struct {}'.format(class_.name)):
             # unmanaged pointer
             code('{} : *mut {},'.format(self.self_ptr_name, self.PtrEnumName))
@@ -402,11 +404,20 @@ unsafe impl Sync for {0} {{ }}
                 if prop_.has_getter and prop_.has_setter:
                     code('{} : Option<{}>,'.format(camelcase_to_underscore(prop_.name), self.__get_rs_type__(prop_.type_)))
 
-        code('')
         code('''
 unsafe impl Send for {0} {{ }}
 unsafe impl Sync for {0} {{ }}
 '''.format(class_.name))
+
+        with CodeBlock(code, 'impl Clone for {}'.format(class_.name)):
+            with CodeBlock(code, 'fn clone(&self) -> Self'):
+                with CodeBlock(code, class_.name):
+                    code('{0} : self.{0},'.format(self.self_ptr_name))
+                    for prop_ in class_.properties:
+                        if prop_.has_getter and prop_.has_setter:
+                            name = camelcase_to_underscore(prop_.name)
+                            code('{} : self.{},'.format(name, name))
+        code('')
 
         with CodeBlock(code, 'impl {}'.format(class_.name)):
             # unmanaged constructor
