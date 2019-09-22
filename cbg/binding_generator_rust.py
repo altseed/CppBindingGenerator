@@ -377,7 +377,7 @@ class BindingGeneratorRust(BindingGenerator):
 use std::sync::{{Arc, Weak, RwLock, Mutex}};
 use std::collections::HashMap;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash)]
 struct {0}(*mut {1});
 
 unsafe impl Send for {0} {{ }}
