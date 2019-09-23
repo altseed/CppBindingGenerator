@@ -81,5 +81,223 @@ bindingGenerator.generate()
 
 設定ファイルを書いたので、実際に生成してみましょう。
 ターミナルでリポジトリのルートディレクトリへ行き、`python tests/csharp.py`を実行します。
-こうすることで、`tests/csharp.py`で決めた場所にラップ用コードが生成されます。つまり、`tests/results/csharp/csharp.cs`と、`tests/results/so/so.cpp`です。
+こうすることで、`tests/csharp.py`で決めた場所にラップ用コードが生成されます。つまり、`tests/results/csharp/csharp.cs`と`tests/results/so/so.cpp`です。
 
+こうして生成されたC++のコードはDLLの関数として公開されるもので、中身は生成元のC++コードを単にラップするものです。
+
+生成されたC#のコードはDLLの関数を`DllImport`し、ラップしてC#側からC#らしく呼び出せるようにするものです。このコードは、そのままAltseed2のAPIとしてユーザーに公開してもよいですし、さらに使いやすいようにラップすることもできます。
+
+## 定義ファイルの書き方詳細
+
+定義ファイルでは、列挙体や構造体、引数のある関数などのコード生成を設定できます。その書き方を紹介します。
+
+### クラス
+
+まず、クラスの定義を作成するには以下のようにします。
+
+```python
+Class1 = cbg.Class('HelloWorld', 'ClassA', False)
+```
+
+このコードは、`HelloWorld`名前空間に`ClassA`クラスを生成するための設定です。
+第三引数のBool値は、このクラスのインスタンスをC++側から取得した際にキャッシュを行うかどうかを表すフラグです。
+
+クラスには関数やプロパティを追加することができます。フィールドを追加することはできません。
+
+### 関数
+
+クラスには関数を追加することができます。そのためには`add_func`関数を使います。
+
+```python
+Class1 = cbg.Class('HelloWorld', 'ClassA', False)
+Class1.add_func("FuncA")
+```
+
+このように作成した関数定義には、引数や戻り値を設定することができます。
+
+#### 引数の追加のしかた
+
+引数を追加するには、`add_arg`関数を使います。第一引数に引数の型を、第二引数に引数の名前を指定します。
+
+第一引数の型の設定には、`int`, `float`などというように型そのものを渡します。ここには以下のようなものを渡すことができます：
+
+* プリミティブ型(int, float, bool)
+* ユーザー定義の型(Classオブジェクト、Enumオブジェクト、Structオブジェクト)
+
+```python
+Class1 = cbg.Class('HelloWorld', 'ClassA', False)
+func1 = Class1.add_func("FuncA")
+func1.add_arg(int, "someArg")
+func1.add_arg(Class1, "someArg2")
+```
+
+#### 戻り値の設定のしかた
+
+戻り値を設定するには、`return_value`メンバー変数を利用します。
+
+例えば、戻り値の型を設定するために、`function.return_value.type_`を利用することができます。このメンバー変数には型そのものを代入することができます。戻り値の型を明示的に`void`としたい場合は、`None`を渡してください。
+
+```python
+Class1 = cbg.Class('HelloWorld', 'ClassA', False)
+func1 = Class1.add_func("FuncA")
+func1.return_value.type_ = bool
+
+# No return value
+func2 = Class1.add_func("FuncB")
+func2.return_value.type_ = None
+```
+
+### プロパティの設定のしかた
+
+クラスにプロパティを追加するには、`add_property`関数を使用します。第一引数にはプロパティの型を、第二引数にはプロパティの名前を指定します。
+
+第三引数はgetterを持つかどうかの設定です。第四引数はsetterを持つかどうかの設定です。デフォルト値はそれぞれFalseであり、両方にFalseが指定されたプロパティは結果的に生成されません。
+
+```python
+Class1 = cbg.Class('HelloWorld', 'ClassA', False)
+Class1.add_property(float, 'SomeFloat', True, True)
+```
+
+### 構造体の設定のしかた
+
+構造体を生成するように定義を追加することができます。そのためには以下のように書きます。
+
+```python
+Struct1 = cbg.Struct('HelloWorld', 'StructA')
+```
+
+第一引数は構造体の属する名前空間で、第二引数は構造体の名前です。
+
+構造体にはフィールドを追加することができます。関数やプロパティを追加することはできません。
+
+#### フィールドの設定のしかた
+
+構造体にフィールドを設定するためには、`add_field`関数を用いて以下のように書きます。
+
+```python
+Struct1 = cbg.Struct('HelloWorld', 'StructA')
+Struct1.add_field(float, 'MyField')
+```
+
+第一引数はフィールドの型であり、第二引数はフィールドの名前です。
+
+### 列挙体の設定のしかた
+
+列挙体を生成するように定義を追加することができます。そのためには以下のように書きます。
+
+```python
+Enum1 = cbg.Enum('HelloWorld', 'EnumA')
+```
+
+第一引数は列挙体の属する名前空間で、第二引数は列挙体の型の名前です。
+
+こうして作成した列挙体には、列挙子を追加することができます。以下のように、`add`関数を使って追加することができます。第一引数は列挙子の名前です。そして、第二引数は列挙子の値を明示的に指定するための設定であり、省略されると実際に生成されたコードでも値の指定が省略されます。
+
+```python
+Enum1 = cbg.Enum('HelloWorld', 'EnumA')
+Enum1.add('Mouse')
+Enum1.add('Cow')
+Enum1.add('Tiger', 3)
+```
+
+### ドキュメントの追加
+
+定義された各要素には、説明の文章を付与することができます。
+
+* 関数
+* プロパティ
+* 引数
+
+```python
+Class1 = cbg.Class('HelloWorld', 'ClassA', False)
+
+# 関数の説明
+func1 = Class1.add_func('Hoge')
+func1.brief = cbg.Description()
+func1.brief.add('en', 'Some comment.')
+
+# プロパティの説明
+prop1 = Class1.add_property(int, 'MyInt')
+prop1.brief = cbg.Description()
+prop1.brief.add('en', 'Some comment.')
+
+# 引数の説明
+arg1 = func1.add_arg(Class1, 'Fuga')
+arg1.desc = cbg.Description()
+arg1.desc.add('en', 'Some comment.')
+```
+
+### withステートメントを用いた記法
+
+ひとつの関数に対して繰り返し操作をしたい場合、変数名がぶつかるなどの煩わしい問題が起きる場合があります。
+
+```python
+Class1 = cbg.Class('HelloWorld', 'ClassA', False)
+
+func1 = Class1.add_func('GetApple')
+func1.add_arg(int, 'id')
+func1.return_value.type_ = int
+
+func2 = Class1.add_func('GetOrange')
+func2.add_arg(int, 'id')
+func2.return_value.type_ = int
+
+func3 = Class1.add_func('GetGrape')
+func3.add_arg(int, 'id')
+func3.return_value.type_ = int
+```
+
+これには（好みの問題ですが）いくつか気になる点があります：
+
+* 関数定義を保持しておく変数の名前をその都度考える必要がある(func1, func2, ...など)
+* どこからどこまでがひとつの関数定義なのかが見た目から分かりづらい
+
+そのため、必要に応じて`with`ステートメントを用いた記法を使えるようにしてあります：
+
+```python
+Class1 = cbg.Class('HelloWorld', 'ClassA', False)
+
+with Class1.add_func('GetApple') as func:
+    func.add_arg(int, 'id')
+    func.return_value.type_ = int
+
+with Class1.add_func('GetOrange') as func:
+    func.add_arg(int, 'id')
+    func.return_value.type_ = int
+
+with Class1.add_func('GetGrape') as func:
+    func3.add_arg(int, 'id')
+    func3.return_value.type_ = int
+```
+
+この記法は、クラス・関数・引数・プロパティ・構造体・列挙体で使うことができます。
+
+```python
+# クラス定義は後でDefineに渡すのでwithの外で生成しておく
+Class1 = cbg.Class('HelloWorld', 'ClassA', False)
+with Class1 as class_:
+    with class_.add_func('GetPeach') as func:
+        # 引数
+        with func.add_arg(int, 'id') as arg:
+            arg.desc = cbg.Description()
+            arg.desc.add('en', 'Some description')
+        func.return_value.type_ = int
+
+    with class_.add_property(int, 'GetMelon', True, True) as prop:
+        prop.brief = cbg.Description()
+        prop.brief.add('ja', 'Some description')
+
+# 列挙体
+Enum1 = cbg.Enum('HelloWorld', 'EnumA')
+with Enum1 as enum:
+    enum.add('Mosue')
+    enum.add('Cow')
+    enum.add('Tiger')
+
+# 構造体
+StructA = cbg.Struct('HelloWorld', 'StructA')
+with StructA as struct:
+    struct.add_field(float, 'X')
+    struct.add_field(float, 'Y')
+    struct.add_field(float, 'Z')
+```
