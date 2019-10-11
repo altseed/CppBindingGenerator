@@ -69,6 +69,7 @@ class BindingGeneratorRust(BindingGenerator):
         self.lang = lang
         self.PtrEnumName = 'RawPtr'
         self.structModName = 'structs'
+        self.structsReplaceMap = {}
 
     def __get_rs_type__(self, type_, is_return = False) -> str:
         if type_ == int:
@@ -94,7 +95,7 @@ class BindingGeneratorRust(BindingGenerator):
                 return '&mut ' + type_.name
 
         if type_ in self.define.structs:
-            return type_.name
+            return self.structsReplaceMap.get(type_, type_.name)
 
         if type_ in self.define.enums:
             return type_.name
@@ -148,7 +149,7 @@ class BindingGeneratorRust(BindingGenerator):
             return '{}.{}'.format(name, self.self_ptr_name)
 
         if type_ in self.define.structs:
-            return 'From::from({})'.format(name)
+            return '{}.into()'.format(name)
 
         if type_ in self.define.enums:
             return '{} as i32'.format(name)
@@ -173,7 +174,7 @@ class BindingGeneratorRust(BindingGenerator):
                 return '{}::create({})'.format(type_.name, name)
 
         if type_ in self.define.structs:
-            return '{}.into()'.format(name)
+            return 'From::from({})'.format(name)
 
         if type_ in self.define.enums:
             return 'unsafe {{ std::mem::transmute({}) }}'.format(name)
@@ -342,22 +343,7 @@ class BindingGeneratorRust(BindingGenerator):
         code('#[repr(C)]')
         with CodeBlock(code, 'pub(crate) struct {}'.format(struct_.name)):
             for field_ in struct_.fields:
-                code('{} : {},'.format(camelcase_to_underscore(field_.name), self.__get_rsc_type__(field_.type_)))
-        
-        with CodeBlock(code, 'impl From<super::{0}> for self::{0}'.format(struct_.name)):
-            with CodeBlock(code, 'fn from(item: super::{}) -> Self'.format(struct_.name)):
-                with CodeBlock(code, 'self::{}'.format(struct_.name)):
-                    for field_ in struct_.fields:
-                        name = camelcase_to_underscore(field_.name)
-                        code('{} : {},'.format(name, self.__convert_ret__(field_.type_, 'item.' + name)))
-
-        with CodeBlock(code, 'impl Into<super::{0}> for self::{0}'.format(struct_.name)):
-            with CodeBlock(code, 'fn into(self) -> super::{}'.format(struct_.name)):
-                with CodeBlock(code, 'super::{}'.format(struct_.name)):
-                    for field_ in struct_.fields:
-                        name = camelcase_to_underscore(field_.name)
-                        code('{} : {},'.format(name, self.__convert_rsc_to_rs__(field_.type_, 'self.' + name)))
-
+                code('pub(crate) {} : {},'.format(camelcase_to_underscore(field_.name), self.__get_rsc_type__(field_.type_)))
         return code
 
     def __generate_managed_struct__(self, struct_ : Struct) -> Code:
@@ -366,6 +352,22 @@ class BindingGeneratorRust(BindingGenerator):
         with CodeBlock(code, 'pub struct {}'.format(struct_.name)):
             for field_ in struct_.fields:
                 code('{} : {},'.format(camelcase_to_underscore(field_.name), self.__get_rs_type__(field_.type_, is_return=True)))
+        
+        unmanagedStructName = '{}::{}'.format(self.structModName, struct_.name)
+
+        with CodeBlock(code, 'impl From<{0}> for {1}'.format(unmanagedStructName, struct_.name)):
+            with CodeBlock(code, 'fn from(item: {}) -> Self'.format(unmanagedStructName)):
+                with CodeBlock(code, 'Self'):
+                    for field_ in struct_.fields:
+                        name = camelcase_to_underscore(field_.name)
+                        code('{} : {},'.format(name, self.__convert_rsc_to_rs__(field_.type_, 'item.' + name)))
+
+        with CodeBlock(code, 'impl Into<{}> for {}'.format(unmanagedStructName, struct_.name)):
+            with CodeBlock(code, 'fn into(self) -> {}'.format(unmanagedStructName)):
+                with CodeBlock(code, unmanagedStructName):
+                    for field_ in struct_.fields:
+                        name = camelcase_to_underscore(field_.name)
+                        code('{} : {},'.format(name, self.__convert_ret__(field_.type_, 'self.' + name)))
 
         return code
 
@@ -500,9 +502,10 @@ fn try_get_from_cache({0} : *mut RawPtr) -> Arc<Mutex<Self>> {{
             code(self.__generate_enum__(enum_))
         
         for struct_ in self.define.structs:
+            if struct_ not in self.structsReplaceMap:
                 code(self.__generate_managed_struct__(struct_))
 
-        with CodeBlock(code, 'mod {}'.format(self.structModName)):
+        with CodeBlock(code, 'pub(crate) mod {}'.format(self.structModName)):
             code('use super::*;')
             for struct_ in self.define.structs:
                 code(self.__generate_unmanaged_struct__(struct_))
