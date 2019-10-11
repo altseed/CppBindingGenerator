@@ -9,6 +9,11 @@ with StructA as struct:
     struct.add_field(float, 'Y')
     struct.add_field(float, 'Z')
 
+ReplaceStructA = cbg.Struct('HelloWorld', 'ReplaceStructA')
+with ReplaceStructA as struct:
+    struct.add_field(float, 'X')
+    struct.add_field(float, 'Y')
+
 # EnumA
 EnumA = cbg.Enum('HelloWorld', 'EnumA')
 with EnumA as enum:
@@ -63,6 +68,9 @@ with ClassA as class_:
         func.brief = cbg.Description()
         func.brief.add('en', 'Processes a structA.')
     
+    with class_.add_func('FuncArgReplaceStruct') as func:
+        func.add_arg(ReplaceStructA, 'value1')
+    
     with class_.add_func('FuncArgClass') as func:
         func.add_arg(ClassB, 'value1')
 
@@ -80,6 +88,9 @@ with ClassA as class_:
     with class_.add_func('FuncReturnStruct') as func:
         func.return_value.type_ = StructA
 
+    with class_.add_func('FuncReturnReplaceStruct') as func:
+        func.return_value.type_ = ReplaceStructA
+
     with class_.add_func('FuncReturnClass') as func:
         func.return_value.type_ = ClassB
         func.return_value.cache = True
@@ -95,6 +106,7 @@ define = cbg.Define()
 define.classes.append(ClassA)
 define.classes.append(ClassB)
 define.structs.append(StructA)
+define.structs.append(ReplaceStructA)
 define.enums.append(EnumA)
 
 # generate
@@ -124,4 +136,7 @@ bindingGenerator = BindingGeneratorRust(define, lang)
 bindingGenerator.output_path = 'tests/results/rust/src/rust.rs'
 bindingGenerator.dll_name = 'Common'
 bindingGenerator.namespace = 'HelloWorld'
+bindingGenerator.structsReplaceMap = {
+    ReplaceStructA : "crate::ReplaceStruct<f32>"
+}
 bindingGenerator.generate()
