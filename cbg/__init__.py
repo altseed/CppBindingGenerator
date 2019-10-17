@@ -5,3 +5,4 @@ from cbg.cpp_binding_generator import Define
 from cbg.cpp_binding_generator import ReturnValue
 
 from cbg.binding_generator_csharp import BindingGeneratorCSharp
+from cbg.binding_generator_rust import BindingGeneratorRust
