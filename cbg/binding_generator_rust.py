@@ -103,6 +103,7 @@ class BindingGeneratorRust(BindingGenerator):
         if type_ is None:
             return '()'
 
+        print('Type: {}'.format(type_.name))
         assert(False)
 
     def __get_rsc_type__(self, type_, is_return = False) -> str:
@@ -135,7 +136,7 @@ class BindingGeneratorRust(BindingGenerator):
             
             return ''
 
-        print('Type: {}'.format(type_))
+        print('Type: {}'.format(type_.name))
         assert(False)
 
     def __convert_rsc_to_rs__(self, type_, name: str) -> str:
