@@ -101,6 +101,12 @@ with ClassA as class_:
     with ClassA.add_property(ClassB, 'BReference') as prop:
         prop.has_getter = True
 
+    with ClassA.add_func('FuncWithArgSameToKeyword') as func:
+        func.add_arg(int, 'type')
+        func.add_arg(int, 'continue')
+        func.add_arg(int, 'crate')
+        func.add_arg(int, 'in')
+
 # define
 define = cbg.Define()
 define.classes.append(ClassA)

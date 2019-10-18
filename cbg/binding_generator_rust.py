@@ -32,6 +32,17 @@ def camelcase_to_underscore(value : str) -> str:
 
     return "".join(result)
 
+keywords = {
+    'as', 'box', 'break', 'const', 'continue', 'crate', 'else', 'enum', 'extern', 'false', 'fn',
+    'for', 'if', 'impl', 'in', 'let', 'loop', 'match', 'mod', 'move', 'mut', 'pub', 'ref', 'return',
+    'self', 'Self', 'static', 'struct', 'super', 'trait', 'true', 'type', 'unsafe', 'use', 'where', 'while'
+}
+
+def replaceKeyword(name):
+    if name in keywords:
+        return name + '_'
+    return name
+
 class CodeBlock:
     def __init__(self, coder: Code, title: str, after_space : bool = False):
         '''
@@ -186,7 +197,7 @@ class BindingGeneratorRust(BindingGenerator):
         code = Code()
         fname = __get_c_func_name__(class_, func_)
 
-        args = [arg.name + ' : ' + self.__get_rsc_type__(arg.type_)
+        args = [replaceKeyword(arg.name) + ' : ' + self.__get_rsc_type__(arg.type_)
             for arg in func_.args]
 
         if not func_.is_static and not func_.is_constructor:
@@ -235,7 +246,7 @@ class BindingGeneratorRust(BindingGenerator):
         fname = __get_c_func_name__(class_, func_)
         # call a function
         args = [self.__convert_rsc_to_rs__(
-                arg.type_, camelcase_to_underscore(arg.name)) for arg in func_.args]
+                arg.type_, camelcase_to_underscore(replaceKeyword(arg.name))) for arg in func_.args]
 
         if not func_.is_static and not func_.is_constructor:
             args = ["self." + self.self_ptr_name] + args
@@ -255,7 +266,7 @@ class BindingGeneratorRust(BindingGenerator):
     def __generate__managed_func__(self, class_: Class, func_: Function) -> Code:
         code = Code()
 
-        args = [camelcase_to_underscore(arg.name) + ' : ' + self.__get_rs_type__(arg.type_)
+        args = [camelcase_to_underscore(replaceKeyword(arg.name)) + ' : ' + self.__get_rs_type__(arg.type_)
             for arg in func_.args]
 
         if not func_.is_static and not func_.is_constructor:
@@ -272,7 +283,7 @@ class BindingGeneratorRust(BindingGenerator):
 
             for arg in func_.args:
                 code('///')
-                code('/// * `{}` - {}'.format(camelcase_to_underscore(arg.name), arg.desc.descs[self.lang]))
+                code('/// * `{}` - {}'.format(camelcase_to_underscore(replaceKeyword(arg.name)), arg.desc.descs[self.lang]))
 
         # determine signature
         if func_.is_constructor:
@@ -506,10 +517,12 @@ fn try_get_from_cache({0} : *mut RawPtr) -> Arc<Mutex<Self>> {{
             if struct_ not in self.structsReplaceMap:
                 code(self.__generate_managed_struct__(struct_))
 
-        with CodeBlock(code, 'pub(crate) mod {}'.format(self.structModName)):
-            code('use super::*;')
-            for struct_ in self.define.structs:
-                code(self.__generate_unmanaged_struct__(struct_))
+        # if list is empty
+        if not self.define.structs:
+            with CodeBlock(code, 'pub(crate) mod {}'.format(self.structModName)):
+                code('use super::*;')
+                for struct_ in self.define.structs:
+                    code(self.__generate_unmanaged_struct__(struct_))
 
 
         code(self.__generate_extern__(self.define.classes))

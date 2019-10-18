@@ -12,7 +12,7 @@ if len(args) >= 3 and args[1] == '-lang':
     else:
         print('python rust.py -lang [ja|en]')
 
-bindingGenerator = BindingGeneratorRust(define, lang)
+bindingGenerator = cbg.BindingGeneratorRust(define, lang)
 bindingGenerator.output_path = 'tests/results/rust/src/rust.rs'
 bindingGenerator.dll_name = 'Common'
 bindingGenerator.namespace = 'HelloWorld'
