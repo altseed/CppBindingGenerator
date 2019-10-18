@@ -1,18 +1,15 @@
 import cbg
 import ctypes
 import sys
+import argparse
 
 from definitions import define, ReplaceStructA
 
-args = sys.argv
-lang = 'en'
-if len(args) >= 3 and args[1] == '-lang':
-    if args[2] in ['ja', 'en']:
-        lang = args[2]
-    else:
-        print('python rust.py -lang [ja|en]')
+parser = argparse.ArgumentParser()
+parser.add_argument('-l', '--lang', type=str, default='en', required=False, choices=['ja', 'en'])
+args = parser.parse_args()
 
-bindingGenerator = cbg.BindingGeneratorRust(define, lang)
+bindingGenerator = cbg.BindingGeneratorRust(define, args.lang)
 bindingGenerator.output_path = 'tests/results/rust/src/rust.rs'
 bindingGenerator.dll_name = 'Common'
 bindingGenerator.namespace = 'HelloWorld'

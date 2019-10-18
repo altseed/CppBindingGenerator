@@ -1,8 +1,8 @@
 from typing import List
 import ctypes
 
-from cbg.cpp_binding_generator import BindingGenerator, Define, Class, Struct, Enum, Code, Property, Function, EnumValue, __get_c_func_name__
-from cbg.cpp_binding_generator import __get_c_release_func_name__
+from .cpp_binding_generator import BindingGenerator, Define, Class, Struct, Enum, Code, Property, Function, EnumValue, __get_c_func_name__
+from .cpp_binding_generator import __get_c_release_func_name__
 
 # A flow of generating code
 # generate
