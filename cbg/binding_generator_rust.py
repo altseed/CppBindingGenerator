@@ -517,8 +517,8 @@ fn try_get_from_cache({0} : *mut RawPtr) -> Arc<Mutex<Self>> {{
             if struct_ not in self.structsReplaceMap:
                 code(self.__generate_managed_struct__(struct_))
 
-        # if list is empty
-        if not self.define.structs:
+        # if list is not empty
+        if self.define.structs:
             with CodeBlock(code, 'pub(crate) mod {}'.format(self.structModName)):
                 code('use super::*;')
                 for struct_ in self.define.structs:
