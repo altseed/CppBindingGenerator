@@ -474,7 +474,7 @@ fn try_get_from_cache({0} : *mut RawPtr) -> Arc<Mutex<Self>> {{
                     code(line)
 
             # managed functions
-            for func_ in class_.funcs:
+            for func_ in [f for f in class_.funcs if len(f.targets) == 0 or 'rust' in f.targets]:
                 code(self.__generate__managed_func__(class_, func_))
 
             for prop_ in class_.properties:

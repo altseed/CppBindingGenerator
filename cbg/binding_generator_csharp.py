@@ -334,7 +334,7 @@ class BindingGeneratorCSharp(BindingGenerator):
             code('')
 
             # extern unmanaged functions
-            for func_ in class_.funcs:
+            for func_ in [f for f in class_.funcs if len(f.targets) == 0 or 'csharp' in f.targets]:
                 code(self.__generate__unmanaged_func__(class_, func_))
             for prop_ in class_.properties:
                 code(self.__generate__unmanaged_property_(class_, prop_))
@@ -352,7 +352,7 @@ class BindingGeneratorCSharp(BindingGenerator):
                 code(self.__generate__managed_property_(class_, prop_))
 
             # managed functions
-            for func_ in class_.funcs:
+            for func_ in [f for f in class_.funcs if len(f.targets) == 0 or 'csharp' in f.targets]:
                 code(self.__generate__managed_func__(class_, func_))
 
             # destructor

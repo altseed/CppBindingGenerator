@@ -55,7 +55,7 @@ with ClassA as class_:
 
     with class_.add_func('FuncArgInt') as func:
         func.add_arg(int, 'value')
-    
+
     with class_.add_func('FuncArgFloatBoolStr') as func:
         func.add_arg(float, 'value1')
         func.add_arg(bool, 'value2')
@@ -67,10 +67,10 @@ with ClassA as class_:
             arg.desc.add('en', 'StructA input.')
         func.brief = cbg.Description()
         func.brief.add('en', 'Processes a structA.')
-    
+
     with class_.add_func('FuncArgReplaceStruct') as func:
         func.add_arg(ReplaceStructA, 'value1')
-    
+
     with class_.add_func('FuncArgClass') as func:
         func.add_arg(ClassB, 'value1')
 
@@ -106,6 +106,7 @@ with ClassA as class_:
         func.add_arg(int, 'continue')
         func.add_arg(int, 'crate')
         func.add_arg(int, 'in')
+        func.targets = ['rust']
 
 # define
 define = cbg.Define()

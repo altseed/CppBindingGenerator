@@ -81,7 +81,12 @@ class ReturnValue:
 
 class Function:
     '''
-    an argument of function    
+    an argument of function
+
+    Parameters
+    ----------
+        targets
+            target languages to export it. if this is empty, functions are exported to all languages
     '''
 
     def __init__(self, name: str):
@@ -93,6 +98,7 @@ class Function:
         self.return_value = ReturnValue(None)
         self.is_static = False
         self.is_constructor = False
+        self.targets = []
 
     def add_arg(self, type_, name: str) -> Argument:
         arg = Argument(type_, name)
@@ -366,7 +372,7 @@ class SharedObjectGenerator:
         if type_ is None:
             return 'void'
 
-        assert(False)
+        raise "{} is not supported in cpp.".format(str(type_))
 
     def __convert_c_to_cpp__(self, type_, name: str) -> str:
         if type_ == int or type_ == float or type_ == bool or type_ == ctypes.c_wchar_p:
