@@ -122,6 +122,11 @@ std::shared_ptr<ClassB> ClassA::FuncReturnClass()
 	return std::shared_ptr<ClassB>(new ClassB(), ReferenceDeleter<ClassB>());
 }
 
+int ClassA::FuncReturnStatic()
+{
+	return 1;
+}
+
 ClassB::ClassB()
 {
 	printf("Create ClassB(C++) in %d\n", std::this_thread::get_id());

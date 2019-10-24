@@ -101,6 +101,8 @@ public:
     std::shared_ptr<ClassB> FuncReturnClass();
 
 	std::shared_ptr<ClassB> GetBReference() { return nullptr; }
+
+	static int FuncReturnStatic();
 };
 
 class ClassB

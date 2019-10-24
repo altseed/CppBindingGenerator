@@ -68,9 +68,6 @@ with ClassA as class_:
         func.brief = cbg.Description()
         func.brief.add('en', 'Processes a structA.')
 
-    with class_.add_func('FuncArgReplaceStruct') as func:
-        func.add_arg(ReplaceStructA, 'value1')
-
     with class_.add_func('FuncArgClass') as func:
         func.add_arg(ClassB, 'value1')
 
@@ -88,9 +85,6 @@ with ClassA as class_:
     with class_.add_func('FuncReturnStruct') as func:
         func.return_value.type_ = StructA
 
-    with class_.add_func('FuncReturnReplaceStruct') as func:
-        func.return_value.type_ = ReplaceStructA
-
     with class_.add_func('FuncReturnClass') as func:
         func.return_value.type_ = ClassB
         func.return_value.cache = True
@@ -101,12 +95,29 @@ with ClassA as class_:
     with ClassA.add_property(ClassB, 'BReference') as prop:
         prop.has_getter = True
 
+    with class_.add_func('FuncReturnStatic') as func:
+        func.return_value = cbg.ReturnValue(int)
+        func.is_static = True
+
+'''
+    with class_.add_func('FuncArgReplaceStruct') as func:
+        func.add_arg(ReplaceStructA, 'value1')
+
+'''
+
+'''
     with ClassA.add_func('FuncWithArgSameToKeyword') as func:
         func.add_arg(int, 'type')
         func.add_arg(int, 'continue')
         func.add_arg(int, 'crate')
         func.add_arg(int, 'in')
         func.targets = ['rust']
+'''
+
+'''
+    with class_.add_func('FuncReturnReplaceStruct') as func:
+        func.return_value.type_ = ReplaceStructA
+'''
 
 # define
 define = cbg.Define()

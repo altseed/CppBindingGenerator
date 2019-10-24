@@ -468,12 +468,17 @@ class SharedObjectGenerator:
             class_fullname = self.__get_class_fullname__(class_)
             code('return new {}({});'.format(class_fullname, ','.join(args)))
         else:
+            caller = 'cbg_self_->'
+            if func_.is_static:
+                class_fullname = self.__get_class_fullname__(class_)
+                caller = class_fullname + '::'
+
             if func_.return_type is None:
-                code('cbg_self_->{}({});'.format(func_.name, ','.join(args)))
+                code('{}{}({});'.format(caller, func_.name, ','.join(args)))
             else:
                 return_type = self.__get_cpp_type__(func_.return_type)
                 return_value = self.__convert_ret__(func_.return_type, 'cbg_ret')
-                code('{} cbg_ret = cbg_self_->{}({});'.format(return_type, func_.name, ','.join(args)))
+                code('{} cbg_ret = {}{}({});'.format(return_type, caller, func_.name, ','.join(args)))
                 code('return {};'.format(return_value))
 
         code.dec_indent()
