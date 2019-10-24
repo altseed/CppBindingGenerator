@@ -12,7 +12,7 @@ args = parser.parse_args()
 bindingGenerator = cbg.BindingGeneratorRust(define, args.lang)
 bindingGenerator.output_path = 'tests/results/rust/src/rust.rs'
 bindingGenerator.dll_name = 'Common'
-bindingGenerator.namespace = 'HelloWorld'
+bindingGenerator.module = ''
 bindingGenerator.structsReplaceMap = {
     ReplaceStructA : "crate::ReplaceStruct<f32>"
 }
