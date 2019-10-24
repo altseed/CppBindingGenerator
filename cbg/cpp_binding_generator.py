@@ -68,6 +68,8 @@ class Argument:
     def __exit__(self, exit_type, exit_value, traceback):
         return self
 
+    def __str__(self):
+        return self.name
 
 Arguments = List[Argument]
 
@@ -111,6 +113,9 @@ class Function:
     def __exit__(self, exit_type, exit_value, traceback):
         return self
 
+    def __str__(self):
+        return self.name
+
 Functions = List[Function]
 
 
@@ -139,6 +144,8 @@ class Property:
     def __exit__(self, exit_type, exit_value, traceback):
         return self
 
+    def __str__(self):
+        return self.name
 
 class EnumValue:
     def __init__(self, name: str, value=None):
@@ -146,6 +153,8 @@ class EnumValue:
         self.desc = Description()
         self.value = value
 
+    def __str__(self):
+        return self.name
 
 class Enum:
     def __init__(self, namespace: str, name: str):
@@ -168,6 +177,9 @@ class Enum:
 
     def __exit__(self, exit_type, exit_value, traceback):
         return self
+
+    def __str__(self):
+        return self.name
 
 Enums = List[Enum]
 
@@ -203,6 +215,8 @@ class Struct:
     def __exit__(self, exit_type, exit_value, traceback):
         return self
 
+    def __str__(self):
+        return self.name
 
 Structs = List[Struct]
 
@@ -240,6 +254,8 @@ class Class:
     def __exit__(self, exit_type, exit_value, traceback):
         return self
 
+    def __str__(self):
+        return self.name
 
 Classes = List[Class]
 
