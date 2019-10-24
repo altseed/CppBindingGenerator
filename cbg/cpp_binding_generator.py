@@ -372,7 +372,7 @@ class SharedObjectGenerator:
         if type_ is None:
             return 'void'
 
-        raise "{} is not supported in cpp.".format(str(type_))
+        raise ValueError("{} is not supported in cpp.".format(str(type_)))
 
     def __convert_c_to_cpp__(self, type_, name: str) -> str:
         if type_ == int or type_ == float or type_ == bool or type_ == ctypes.c_wchar_p:
