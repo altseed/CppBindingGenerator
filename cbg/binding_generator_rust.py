@@ -439,6 +439,7 @@ unsafe impl Sync for {0} {{ }}
             if class_.do_cache:
                 ret_type = "Arc<Mutex<Self>>"
             
+            code('#[allow(dead_code)]')
             with CodeBlock(code, 'fn create({} : *mut {}) -> {}'.format(self.self_ptr_name, self.PtrEnumName, ret_type), True):
                 if class_.do_cache:
                     code('Arc::new(Mutex::new(')
@@ -454,6 +455,7 @@ unsafe impl Sync for {0} {{ }}
 
             if class_.do_cache:
                 body ='''
+#[allow(dead_code)]
 fn try_get_from_cache({0} : *mut RawPtr) -> Arc<Mutex<Self>> {{
     let mut hash_map = {1}_CACHE.write().unwrap();
     let storage = RawPtrStorage({0});
@@ -496,7 +498,9 @@ fn try_get_from_cache({0} : *mut RawPtr) -> Arc<Mutex<Self>> {{
         code = Code()
 
         # declare use
+        code('#[allow(unused_imports)]')
         code('use std::os::raw::*;')
+        code('#[allow(unused_imports)]')
         code('use std::ffi::CString;')
         code('')
         code('')
@@ -520,6 +524,7 @@ fn try_get_from_cache({0} : *mut RawPtr) -> Arc<Mutex<Self>> {{
         # if list is not empty
         if self.define.structs:
             with CodeBlock(code, 'pub(crate) mod {}'.format(self.structModName)):
+                code('#[allow(unused_imports)]')
                 code('use super::*;')
                 for struct_ in self.define.structs:
                     code(self.__generate_unmanaged_struct__(struct_))
