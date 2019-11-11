@@ -251,12 +251,12 @@ class BindingGeneratorCSharp(BindingGenerator):
     def __write_getter_(self, code: Code, class_: Class, prop_: Property):
         with CodeBlock(code, 'get'):
             if prop_.has_setter:
-                with CodeBlock(code, 'if (_{} != null)'.format(prop_.name)):\
+                with CodeBlock(code, 'if (_{} != null)'.format(prop_.name)):
                     type = prop_.type_
                     if type == int or type == float or type == bool:
                         code('return _{}.Value;'.format(prop_.name))
                     else:
-                        code('return _{};'.format(prop_.name))\
+                        code('return _{};'.format(prop_.name))
             self.__write_managed_function_body__(code, class_, prop_.getter_as_func())
 
     def __write_setter_(self, code: Code, class_: Class, prop_: Property):
