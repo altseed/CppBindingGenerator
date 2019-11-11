@@ -1,8 +1,8 @@
 from typing import List
 import ctypes
 
-from cbg.cpp_binding_generator import BindingGenerator, Define, Class, Struct, Enum, Code, Property, Function, EnumValue, __get_c_func_name__
-from cbg.cpp_binding_generator import __get_c_release_func_name__
+from .cpp_binding_generator import BindingGenerator, Define, Class, Struct, Enum, Code, Property, Function, EnumValue, __get_c_func_name__
+from .cpp_binding_generator import __get_c_release_func_name__
 
 # A flow of generating code
 # generate
@@ -251,12 +251,12 @@ class BindingGeneratorCSharp(BindingGenerator):
     def __write_getter_(self, code: Code, class_: Class, prop_: Property):
         with CodeBlock(code, 'get'):
             if prop_.has_setter:
-                with CodeBlock(code, 'if (_{} != null)'.format(prop_.name)):
+                with CodeBlock(code, 'if (_{} != null)'.format(prop_.name)):\
                     type = prop_.type_
                     if type == int or type == float or type == bool:
                         code('return _{}.Value;'.format(prop_.name))
                     else:
-                        code('return _{};'.format(prop_.name))
+                        code('return _{};'.format(prop_.name))\
             self.__write_managed_function_body__(code, class_, prop_.getter_as_func())
 
     def __write_setter_(self, code: Code, class_: Class, prop_: Property):
@@ -338,7 +338,7 @@ class BindingGeneratorCSharp(BindingGenerator):
             code('')
 
             # extern unmanaged functions
-            for func_ in class_.funcs:
+            for func_ in [f for f in class_.funcs if len(f.targets) == 0 or 'csharp' in f.targets]:
                 code(self.__generate__unmanaged_func__(class_, func_))
             for prop_ in class_.properties:
                 code(self.__generate__unmanaged_property_(class_, prop_))
@@ -356,7 +356,7 @@ class BindingGeneratorCSharp(BindingGenerator):
                 code(self.__generate__managed_property_(class_, prop_))
 
             # managed functions
-            for func_ in class_.funcs:
+            for func_ in [f for f in class_.funcs if len(f.targets) == 0 or 'csharp' in f.targets]:
                 code(self.__generate__managed_func__(class_, func_))
 
             # destructor

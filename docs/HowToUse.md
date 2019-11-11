@@ -122,6 +122,7 @@ Class1.add_func("FuncA")
 第一引数の型の設定には、`int`, `float`などというように型そのものを渡します。ここには以下のようなものを渡すことができます：
 
 * プリミティブ型(int, float, bool)
+* 文字列(ctypes.c_wchar_p)
 * ユーザー定義の型(Classオブジェクト、Enumオブジェクト、Structオブジェクト)
 
 ```python

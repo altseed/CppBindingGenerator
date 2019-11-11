@@ -10,6 +10,12 @@ namespace HelloWorld {
         public float Y;
         public float Z;
     }
-    
+
+	[StructLayout(LayoutKind.Sequential)]
+	public struct ReplaceStructA
+	{
+		public float X;
+		public float Y;
+	}
 }
 

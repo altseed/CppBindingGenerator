@@ -68,6 +68,8 @@ class Argument:
     def __exit__(self, exit_type, exit_value, traceback):
         return self
 
+    def __str__(self):
+        return self.name
 
 Arguments = List[Argument]
 
@@ -81,7 +83,12 @@ class ReturnValue:
 
 class Function:
     '''
-    an argument of function    
+    an argument of function
+
+    Parameters
+    ----------
+        targets
+            target languages to export it. if this is empty, functions are exported to all languages
     '''
 
     def __init__(self, name: str):
@@ -93,6 +100,7 @@ class Function:
         self.return_value = ReturnValue(None)
         self.is_static = False
         self.is_constructor = False
+        self.targets = []
 
     def add_arg(self, type_, name: str) -> Argument:
         arg = Argument(type_, name)
@@ -104,6 +112,9 @@ class Function:
         
     def __exit__(self, exit_type, exit_value, traceback):
         return self
+
+    def __str__(self):
+        return self.name
 
 Functions = List[Function]
 
@@ -133,6 +144,8 @@ class Property:
     def __exit__(self, exit_type, exit_value, traceback):
         return self
 
+    def __str__(self):
+        return self.name
 
 class EnumValue:
     def __init__(self, name: str, value=None):
@@ -140,6 +153,8 @@ class EnumValue:
         self.desc = Description()
         self.value = value
 
+    def __str__(self):
+        return self.name
 
 class Enum:
     def __init__(self, namespace: str, name: str):
@@ -162,6 +177,9 @@ class Enum:
 
     def __exit__(self, exit_type, exit_value, traceback):
         return self
+
+    def __str__(self):
+        return self.name
 
 Enums = List[Enum]
 
@@ -197,6 +215,8 @@ class Struct:
     def __exit__(self, exit_type, exit_value, traceback):
         return self
 
+    def __str__(self):
+        return self.name
 
 Structs = List[Struct]
 
@@ -234,6 +254,8 @@ class Class:
     def __exit__(self, exit_type, exit_value, traceback):
         return self
 
+    def __str__(self):
+        return self.name
 
 Classes = List[Class]
 
@@ -366,7 +388,7 @@ class SharedObjectGenerator:
         if type_ is None:
             return 'void'
 
-        assert(False)
+        raise ValueError("{} is not supported in cpp.".format(str(type_)))
 
     def __convert_c_to_cpp__(self, type_, name: str) -> str:
         if type_ == int or type_ == float or type_ == bool or type_ == ctypes.c_wchar_p:
@@ -446,12 +468,17 @@ class SharedObjectGenerator:
             class_fullname = self.__get_class_fullname__(class_)
             code('return new {}({});'.format(class_fullname, ','.join(args)))
         else:
+            caller = 'cbg_self_->'
+            if func_.is_static:
+                class_fullname = self.__get_class_fullname__(class_)
+                caller = class_fullname + '::'
+
             if func_.return_type is None:
-                code('cbg_self_->{}({});'.format(func_.name, ','.join(args)))
+                code('{}{}({});'.format(caller, func_.name, ','.join(args)))
             else:
                 return_type = self.__get_cpp_type__(func_.return_type)
                 return_value = self.__convert_ret__(func_.return_type, 'cbg_ret')
-                code('{} cbg_ret = cbg_self_->{}({});'.format(return_type, func_.name, ','.join(args)))
+                code('{} cbg_ret = {}{}({});'.format(return_type, caller, func_.name, ','.join(args)))
                 code('return {};'.format(return_value))
 
         code.dec_indent()
