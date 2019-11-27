@@ -181,7 +181,7 @@ class BindingGeneratorCSharp(BindingGenerator):
             code('[return: MarshalAs(UnmanagedType.U1)]')
             
         code('private static extern {} {}({});'.format(
-            self.__get_csc_type__(func_.return_value.type_, is_return=True), fname, ','.join(args)))
+            self.__get_csc_type__(func_.return_value.type_, is_return=True), fname, ', '.join(args)))
 
         return code
 
@@ -208,9 +208,9 @@ class BindingGeneratorCSharp(BindingGenerator):
             code('{} = {}({});'.format(self.self_ptr_name, fname, ', '.join(args)))
         else:
             if func_.return_value.type_ is None:
-                code('{}({});'.format(fname, ','.join(args)))
+                code('{}({});'.format(fname, ', '.join(args)))
             else:
-                code('var ret = {}({});'.format(fname, ','.join(args)))
+                code('var ret = {}({});'.format(fname, ', '.join(args)))
                 code('return {};'.format(
                     self.__convert_ret__(func_.return_value.type_, 'ret')))
 
