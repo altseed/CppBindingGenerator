@@ -84,7 +84,7 @@ with ClassA as class_:
 
     with class_.add_func('FuncReturnStruct') as func:
         func.return_value.type_ = StructA
-
+        
     with class_.add_func('FuncReturnClass') as func:
         func.return_value.type_ = ClassB
         func.return_value.cache = True

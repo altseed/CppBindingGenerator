@@ -96,7 +96,6 @@ class Function:
         self.brief = None # type: Description
         self.desc = None # type: Description
         self.args = []  # type: Arguments
-        self.return_type = None
         self.return_value = ReturnValue(None)
         self.is_static = False
         self.is_constructor = False
@@ -443,7 +442,7 @@ class SharedObjectGenerator:
             code('CBGEXPORT ' + self.__get_c_type__(class_, is_return=True) + ' CBGSTDCALL ' +
                  fname + '(' + ','.join(args) + ') {')
         else:
-            code('CBGEXPORT ' + self.__get_c_type__(func_.return_type, is_return=True) + ' CBGSTDCALL ' +
+            code('CBGEXPORT ' + self.__get_c_type__(func_.return_value.type_, is_return=True) + ' CBGSTDCALL ' +
                  fname + '(' + ','.join(args) + ') {')        
         code.inc_indent()
 
@@ -473,11 +472,11 @@ class SharedObjectGenerator:
                 class_fullname = self.__get_class_fullname__(class_)
                 caller = class_fullname + '::'
 
-            if func_.return_type is None:
+            if func_.return_value.type_ is None:
                 code('{}{}({});'.format(caller, func_.name, ','.join(args)))
             else:
-                return_type = self.__get_cpp_type__(func_.return_type)
-                return_value = self.__convert_ret__(func_.return_type, 'cbg_ret')
+                return_type = self.__get_cpp_type__(func_.return_value.type_)
+                return_value = self.__convert_ret__(func_.return_value.type_, 'cbg_ret')
                 code('{} cbg_ret = {}{}({});'.format(return_type, caller, func_.name, ','.join(args)))
                 code('return {};'.format(return_value))
 

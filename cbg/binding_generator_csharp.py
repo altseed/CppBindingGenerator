@@ -236,12 +236,17 @@ class BindingGeneratorCSharp(BindingGenerator):
             code(cache_code.format(return_type_name, func_.name, return_type_name))
 
         # determine signature
-        if func_.is_constructor:
-            func_title = 'public {}({})'.format(class_.name, ', '.join(args))
-        else:
-            func_title = 'public {} {}({})'.format(self.__get_cs_type__(
-                func_.return_value.type_, is_return=True), func_.name, ', '.join(args))
+        determines = ['public']
+        
+        if func_.is_static:
+            determines += ['static']
 
+        if func_.is_constructor:
+            func_title = '{} {}({})'.format(' '.join(determines), class_.name, ', '.join(args))
+        else:
+            func_title = '{} {} {}({})'.format(' '.join(determines), self.__get_cs_type__(
+                func_.return_value.type_, is_return=True), func_.name, ', '.join(args))
+            
         # function body
         with CodeBlock(code, func_title):
             self.__write_managed_function_body__(code, class_, func_)
@@ -295,8 +300,10 @@ class BindingGeneratorCSharp(BindingGenerator):
 
     def __write_cache_getter__(self, code: Code, class_: Class):
         release_func_name = __get_c_func_name__(class_, Function('Release'))
-        body = '''public static {0} TryGetFromCache(IntPtr native)
+        body = '''internal static {0} TryGetFromCache(IntPtr native)
 {{
+    if(native == null) return null;
+
     if(cacheRepo.ContainsKey(native))
     {{
         {0} cacheRet;
