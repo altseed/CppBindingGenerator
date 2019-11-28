@@ -21,3 +21,6 @@ tests/build/Generator.sln
 !tests/results/rust/src/lib.rs
 !tests/results/rust/Cargo.toml
 Cargo.lock
+
+# when as submodule
+__pycache__
