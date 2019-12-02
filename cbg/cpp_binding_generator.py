@@ -226,6 +226,7 @@ class Class:
         self.name = name  # type: str
         self.funcs = []  # type: Functions
         self.properties = []  # type: List[Property]
+        self.base_class = None # type: Class
         self.constructor_count = 0
         self.do_cache = do_cache
 

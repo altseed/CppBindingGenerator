@@ -15,23 +15,27 @@ from .cpp_binding_generator import __get_c_release_func_name__
 #     └─__write_managed_func_body__
 #   └─(destructor)
 
+
 class CodeBlock:
-    def __init__(self, coder: Code, title: str, after_space : bool = False):
+    def __init__(self, coder: Code, title: str, after_space: bool = False):
         '''
         a class for generating code block easily
         '''
         self.title = title
         self.coder = coder
         self.after_space = after_space
+
     def __enter__(self):
         self.coder(self.title + ' {')
         self.coder.inc_indent()
         return self
+
     def __exit__(self, exit_type, exit_value, traceback):
         self.coder.dec_indent()
         self.coder('}')
         if self.after_space:
             self.coder('')
+
 
 class BindingGeneratorCSharp(BindingGenerator):
     def __init__(self, define: Define, lang: str):
@@ -61,7 +65,7 @@ class BindingGeneratorCSharp(BindingGenerator):
                 code(line + ',')
         return code
 
-    def __get_cs_type__(self, type_, is_return = False) -> str:
+    def __get_cs_type__(self, type_, is_return=False) -> str:
         if type_ == int:
             return 'int'
 
@@ -91,7 +95,7 @@ class BindingGeneratorCSharp(BindingGenerator):
 
         assert(False)
 
-    def __get_csc_type__(self, type_, is_return = False) -> str:
+    def __get_csc_type__(self, type_, is_return=False) -> str:
         if type_ == int:
             return 'int'
 
@@ -179,7 +183,7 @@ class BindingGeneratorCSharp(BindingGenerator):
 
         if(func_.return_value.type_ == bool):
             code('[return: MarshalAs(UnmanagedType.U1)]')
-            
+
         code('private static extern {} {}({});'.format(
             self.__get_csc_type__(func_.return_value.type_, is_return=True), fname, ', '.join(args)))
 
@@ -189,9 +193,11 @@ class BindingGeneratorCSharp(BindingGenerator):
         code = Code()
         result = ''
         if prop_.has_getter:
-            result += str(self.__generate__unmanaged_func__(class_, prop_.getter_as_func()))
+            result += str(self.__generate__unmanaged_func__(class_,
+                                                            prop_.getter_as_func()))
         if prop_.has_setter:
-            result += str(self.__generate__unmanaged_func__(class_, prop_.setter_as_func()))
+            result += str(self.__generate__unmanaged_func__(class_,
+                                                            prop_.setter_as_func()))
         code(result)
         return code
 
@@ -227,26 +233,29 @@ class BindingGeneratorCSharp(BindingGenerator):
             code('/// {}'.format(func_.brief.descs[self.lang]))
             code('/// </summary>')
             for arg in func_.args:
-                code('/// <param name="{}">{}</param>'.format(arg.name, arg.desc.descs[self.lang]))
+                code('/// <param name="{}">{}</param>'.format(arg.name,
+                                                              arg.desc.descs[self.lang]))
 
         # cache repo
         if func_.return_value.do_cache():
-            return_type_name = self.__get_cs_type__(func_.return_value.type_, is_return=True)
+            return_type_name = self.__get_cs_type__(
+                func_.return_value.type_, is_return=True)
             cache_code = 'private Dictionary<IntPtr, WeakReference<{}>> cache{} = new Dictionary<IntPtr, WeakReference<{}>>();'
             code(cache_code.format(return_type_name, func_.name, return_type_name))
 
         # determine signature
         determines = ['public']
-        
+
         if func_.is_static:
             determines += ['static']
 
         if func_.is_constructor:
-            func_title = '{} {}({})'.format(' '.join(determines), class_.name, ', '.join(args))
+            func_title = '{} {}({})'.format(
+                ' '.join(determines), class_.name, ', '.join(args))
         else:
             func_title = '{} {} {}({})'.format(' '.join(determines), self.__get_cs_type__(
                 func_.return_value.type_, is_return=True), func_.name, ', '.join(args))
-            
+
         # function body
         with CodeBlock(code, func_title):
             self.__write_managed_function_body__(code, class_, func_)
@@ -262,34 +271,36 @@ class BindingGeneratorCSharp(BindingGenerator):
                         code('return _{}.Value;'.format(prop_.name))
                     else:
                         code('return _{};'.format(prop_.name))
-            self.__write_managed_function_body__(code, class_, prop_.getter_as_func())
+            self.__write_managed_function_body__(
+                code, class_, prop_.getter_as_func())
 
     def __write_setter_(self, code: Code, class_: Class, prop_: Property):
         with CodeBlock(code, 'set'):
             if prop_.has_getter:
                 code('_{} = value;'.format(prop_.name))
-            self.__write_managed_function_body__(code, class_, prop_.setter_as_func())
+            self.__write_managed_function_body__(
+                code, class_, prop_.setter_as_func())
 
-    def __generate__managed_property_(self, class_: Class, prop_:Property) -> Code:
+    def __generate__managed_property_(self, class_: Class, prop_: Property) -> Code:
         code = Code()
 
         # cannot generate property with no getter and no setter
         if not prop_.has_getter and not prop_.has_setter:
             return code
-        
+
         # XML comment
         if prop_.brief != None:
             code('/// <summary>')
             code('/// {}'.format(prop_.brief.descs[self.lang]))
             code('/// </summary>')
-        
+
         type_name = self.__get_cs_type__(prop_.type_, is_return=True)
         with CodeBlock(code, 'public {} {}'.format(type_name, prop_.name)):
             if prop_.has_getter:
                 self.__write_getter_(code, class_, prop_)
             if prop_.has_setter:
                 self.__write_setter_(code, class_, prop_)
-        
+
         if prop_.has_setter and prop_.has_getter:
             back_type = type_name
             if prop_.type_ != Class:
@@ -331,8 +342,11 @@ class BindingGeneratorCSharp(BindingGenerator):
     def __generate_class__(self, class_: Class) -> Code:
         code = Code()
 
+        inheritance = ""
+        if class_.base_class != None:
+            inheritance = ' : {}'.format(class_.base_class.name)
         # class body
-        with CodeBlock(code, 'public class {}'.format(class_.name)):
+        with CodeBlock(code, 'public class {}{}'.format(class_.name, inheritance)):
             # cache repo
             if class_.do_cache:
                 cache_code = 'private static Dictionary<IntPtr, WeakReference<{}>> cacheRepo = new Dictionary<IntPtr, WeakReference<{}>>();'
@@ -370,7 +384,8 @@ class BindingGeneratorCSharp(BindingGenerator):
             with CodeBlock(code, '~{}()'.format(class_.name)):
                 with CodeBlock(code, 'lock (this) '):
                     with CodeBlock(code, 'if ({} != IntPtr.Zero)'.format(self.self_ptr_name)):
-                        code('{}({});'.format(__get_c_release_func_name__(class_), self.self_ptr_name))
+                        code('{}({});'.format(__get_c_release_func_name__(
+                            class_), self.self_ptr_name))
                         code('{} = IntPtr.Zero;'.format(self.self_ptr_name))
 
         return code
@@ -398,7 +413,7 @@ class BindingGeneratorCSharp(BindingGenerator):
         # enum group
         for enum_ in self.define.enums:
             code(self.__generate_enum__(enum_))
-        
+
         # class group
         for class_ in self.define.classes:
             code(self.__generate_class__(class_))
