@@ -84,7 +84,7 @@ with ClassA as class_:
 
     with class_.add_func('FuncReturnStruct') as func:
         func.return_value.type_ = StructA
-        
+
     with class_.add_func('FuncReturnClass') as func:
         func.return_value.type_ = ClassB
         func.return_value.cache = True
@@ -119,6 +119,23 @@ with ClassA as class_:
         func.return_value.type_ = ReplaceStructA
 '''
 
+# Inheritance
+BaseClass = cbg.Class('HelloWorld', 'BaseClass', False)
+with BaseClass as class_:
+    class_.add_constructor()
+    with class_.add_func('GetBaseClassField') as func:
+        func.return_value = cbg.ReturnValue(int)
+    with class_.add_func('SetBaseClassField') as func:
+        func.add_arg(int, 'value')
+
+DerivedClass = cbg.Class('HelloWorld', 'DerivedClass', False)
+with DerivedClass as class_:
+    class_.add_constructor()
+    class_.base_class = BaseClass
+    with class_.add_func('GetBaseClassFieldFromDerivedClass') as func:
+        func.return_value = cbg.ReturnValue(int)
+
+
 # define
 define = cbg.Define()
 define.classes.append(ClassA)
@@ -126,3 +143,5 @@ define.classes.append(ClassB)
 define.structs.append(StructA)
 define.structs.append(ReplaceStructA)
 define.enums.append(EnumA)
+define.classes.append(BaseClass)
+define.classes.append(DerivedClass)

@@ -355,8 +355,9 @@ class BindingGeneratorCSharp(BindingGenerator):
                 self.__write_cache_getter__(code, class_)
 
             # unmanaged pointer
-            code('internal IntPtr {} = IntPtr.Zero;'.format(self.self_ptr_name))
-            code('')
+            if class_.base_class == None:
+                code('internal IntPtr {} = IntPtr.Zero;'.format(self.self_ptr_name))
+                code('')
 
             # extern unmanaged functions
             for func_ in [f for f in class_.funcs if len(f.targets) == 0 or 'csharp' in f.targets]:
@@ -370,8 +371,11 @@ class BindingGeneratorCSharp(BindingGenerator):
             code('')
 
             # constructor
-            with CodeBlock(code, 'internal {}(MemoryHandle handle)'.format(class_.name), True):
-                code('this.{} = handle.selfPtr;'.format(self.self_ptr_name))
+            if class_.base_class == None:
+                with CodeBlock(code, 'internal {}(MemoryHandle handle)'.format(class_.name), True):
+                    code('this.{} = handle.selfPtr;'.format(self.self_ptr_name))
+            else:
+                CodeBlock(code, 'internal {}(MemoryHandle handle) : base(handle)'.format(class_.name), True)
 
             for prop_ in class_.properties:
                 code(self.__generate__managed_property_(class_, prop_))
