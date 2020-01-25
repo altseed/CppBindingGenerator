@@ -18,6 +18,9 @@ namespace Test
             // static test
             if (HelloWorld.ClassA.FuncReturnStatic() != 1) throw new Exception();
 
+            a.EnumA = HelloWorld.EnumA.Tiger;
+            if(a.EnumA != HelloWorld.EnumA.Tiger) throw new Exception();
+
             HelloWorld.StructA sa = new HelloWorld.StructA();
             sa.X = 1.0f;
             sa.Y = 2.0f;

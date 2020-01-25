@@ -99,6 +99,9 @@ with ClassA as class_:
         func.return_value = cbg.ReturnValue(int)
         func.is_static = True
 
+    with class_.add_property(EnumA, 'EnumA') as prop:
+        prop.has_getter = True
+        prop.has_setter = True
 '''
     with class_.add_func('FuncArgReplaceStruct') as func:
         func.add_arg(ReplaceStructA, 'value1')

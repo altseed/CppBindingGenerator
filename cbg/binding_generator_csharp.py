@@ -267,7 +267,7 @@ class BindingGeneratorCSharp(BindingGenerator):
             if prop_.has_setter:
                 with CodeBlock(code, 'if (_{} != null)'.format(prop_.name)):
                     type = prop_.type_
-                    if type == int or type == float or type == bool:
+                    if type == int or type == float or type == bool or isinstance(type, Enum):
                         code('return _{}.Value;'.format(prop_.name))
                     else:
                         code('return _{};'.format(prop_.name))

@@ -122,6 +122,16 @@ std::shared_ptr<ClassB> ClassA::FuncReturnClass()
 	return std::shared_ptr<ClassB>(new ClassB(), ReferenceDeleter<ClassB>());
 }
 
+EnumA ClassA::GetEnumA() const
+{
+	return enumA_;
+}
+
+void ClassA::SetEnumA(EnumA v)
+{
+	enumA_ = v;
+}
+
 int ClassA::FuncReturnStatic()
 {
 	return 1;

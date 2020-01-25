@@ -85,6 +85,8 @@ class ClassB;
 class ClassA
 	: public ReferenceObject
 {
+	EnumA enumA_;
+
 public:
 	ClassA();
 	virtual ~ClassA();
@@ -101,6 +103,9 @@ public:
 	std::shared_ptr<ClassB> FuncReturnClass();
 
 	std::shared_ptr<ClassB> GetBReference() { return nullptr; }
+
+	EnumA GetEnumA() const;
+	void SetEnumA(EnumA v);
 
 	static int FuncReturnStatic();
 };
