@@ -26,7 +26,8 @@ class CodeBlock:
         self.after_space = after_space
 
     def __enter__(self):
-        self.coder(self.title + ' {')
+        self.coder(self.title)
+        self.coder('{')
         self.coder.inc_indent()
         return self
 
@@ -346,7 +347,7 @@ class BindingGeneratorCSharp(BindingGenerator):
         if class_.base_class != None:
             inheritance = ' : {}'.format(class_.base_class.name)
         # class body
-        with CodeBlock(code, 'public class {}{}'.format(class_.name, inheritance)):
+        with CodeBlock(code, 'public partial class {}{}'.format(class_.name, inheritance)):
             # cache repo
             if class_.do_cache:
                 cache_code = 'private static Dictionary<IntPtr, WeakReference<{}>> cacheRepo = new Dictionary<IntPtr, WeakReference<{}>>();'
@@ -405,7 +406,8 @@ class BindingGeneratorCSharp(BindingGenerator):
 
         # declare namespace
         if self.namespace != '':
-            code('namespace {} {{'.format(self.namespace))
+            code('namespace {}'.format(self.namespace))
+            code('{')
             code.inc_indent()
 
         # a struct for memory management
