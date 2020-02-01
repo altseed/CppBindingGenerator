@@ -6,6 +6,7 @@ import ctypes
 # └─Enum
 #   └─EnumValue
 # └─Class
+#   └─Description
 #   └─Property
 #   └─Function { return_type, is_static, is_constructor }
 #     └─Description(brief)
@@ -13,6 +14,7 @@ import ctypes
 #     └─Argument { type, name }
 #       └─Description
 # └─Struct
+#   └─Description
 #   └─Field
 
 class Description:
@@ -99,6 +101,7 @@ class Function:
         self.return_value = ReturnValue(None)
         self.is_static = False
         self.is_constructor = False
+        self.is_public = True
         self.targets = []
 
     def add_arg(self, type_, name: str) -> Argument:
@@ -149,7 +152,7 @@ class Property:
 class EnumValue:
     def __init__(self, name: str, value=None):
         self.name = name
-        self.desc = Description()
+        self.desc = None
         self.value = value
 
     def __str__(self):
@@ -157,8 +160,7 @@ class EnumValue:
 
 class Enum:
     def __init__(self, namespace: str, name: str):
-        self.brief = Description()
-        self.desc = Description()
+        self.brief = None # type: Description
         self.values = []  # type: List[EnumValue]
         self.name = name
         self.namespace = namespace
@@ -185,6 +187,7 @@ Enums = List[Enum]
 
 class Field:
     def __init__(self, type_, name: str):
+        self.brief = None # type: Description
         self.name = name
         self.type_ = type_
 
@@ -229,6 +232,7 @@ class Class:
         self.base_class = None # type: Class
         self.constructor_count = 0
         self.do_cache = do_cache
+        self.brief = None # type: Description
 
     def add_constructor(self) -> Function:
         func = Function('Constructor_' + str(self.constructor_count))
