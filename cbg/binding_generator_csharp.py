@@ -236,6 +236,7 @@ class BindingGeneratorCSharp(BindingGenerator):
             for arg in func_.args:
                 code('/// <param name="{}">{}</param>'.format(arg.name,
                                                               arg.desc.descs[self.lang]))
+            # TODO: for return value
 
         # cache repo
         if func_.return_value.do_cache():
@@ -245,7 +246,12 @@ class BindingGeneratorCSharp(BindingGenerator):
             code(cache_code.format(return_type_name, func_.name, return_type_name))
 
         # determine signature
-        determines = ['public']
+        determines = []
+
+        if func_.is_public:
+            determines += ['public']
+        else:
+            determines += ['internal']
 
         if func_.is_static:
             determines += ['static']
@@ -343,9 +349,17 @@ class BindingGeneratorCSharp(BindingGenerator):
     def __generate_class__(self, class_: Class) -> Code:
         code = Code()
 
+        # XML comment
+        if class_.brief != None:
+            code('/// <summary>')
+            code('/// {}'.format(class_.brief.descs[self.lang]))
+            code('/// </summary>')
+
+        # inheritance
         inheritance = ""
         if class_.base_class != None:
             inheritance = ' : {}'.format(class_.base_class.name)
+
         # class body
         with CodeBlock(code, 'public partial class {}{}'.format(class_.name, inheritance)):
             # cache repo
@@ -376,7 +390,8 @@ class BindingGeneratorCSharp(BindingGenerator):
                 with CodeBlock(code, 'internal {}(MemoryHandle handle)'.format(class_.name), True):
                     code('this.{} = handle.selfPtr;'.format(self.self_ptr_name))
             else:
-                CodeBlock(code, 'internal {}(MemoryHandle handle) : base(handle)'.format(class_.name), True)
+                CodeBlock(code, 'internal {}(MemoryHandle handle) : base(handle)'.format(
+                    class_.name), True)
 
             for prop_ in class_.properties:
                 code(self.__generate__managed_property_(class_, prop_))
@@ -432,5 +447,5 @@ class BindingGeneratorCSharp(BindingGenerator):
         if self.output_path == '':
             print('please specify an output path')
         else:
-            with open(self.output_path, mode='w') as f:
+            with open(self.output_path, mode='w', encoding='utf-8') as f:
                 f.write(str(code))
