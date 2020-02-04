@@ -62,7 +62,7 @@ class Argument:
 
         self.type_ = type_
         self.name = name
-        self.desc = Description()
+        self.brief = None # type: Description
     
     def __enter__(self):
         return self
@@ -78,6 +78,7 @@ Arguments = List[Argument]
 class ReturnValue:
     def __init__(self, type_):
         self.type_ = type_
+        self.brief = None # type: Description
         self.desc = None # type: Description
     
     def do_cache(self) -> bool:
@@ -152,7 +153,8 @@ class Property:
 class EnumValue:
     def __init__(self, name: str, value=None):
         self.name = name
-        self.desc = None
+        self.desc = None # type: Description
+        self.brief = None # type: Description
         self.value = value
 
     def __str__(self):
@@ -200,6 +202,7 @@ class Struct:
         self.namespace = namespace
         self.name = name
         self.fields = []  # type: Fields
+        self.brief = None # type: Description
 
     def add_field(self, type_, name: str):
         field = Field(type_, name)
