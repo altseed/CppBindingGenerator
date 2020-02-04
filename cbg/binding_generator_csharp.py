@@ -58,8 +58,21 @@ class BindingGeneratorCSharp(BindingGenerator):
 
     def __generate_enum__(self, enum_: Enum) -> Code:
         code = Code()
+
+        # XML Comment
+        if enum_.brief != None:
+            code('/// <summary>')
+            code('/// {}'.format(enum_.brief.descs[self.lang]))
+            code('/// </summary>')
         with CodeBlock(code, 'public enum {} : int'.format(enum_.name)):
             for val in enum_.values:
+                # XML Comment
+                if val.brief != None:
+                    code('/// <summary>')
+                    code('/// {}'.format(val.brief.descs[self.lang]))
+                    code('/// </summary>')
+
+                # Enum Value Body
                 line = val.name
                 if val.value != None:
                     line = '{} = {}'.format(line, val.value)
@@ -234,9 +247,12 @@ class BindingGeneratorCSharp(BindingGenerator):
             code('/// {}'.format(func_.brief.descs[self.lang]))
             code('/// </summary>')
             for arg in func_.args:
-                code('/// <param name="{}">{}</param>'.format(arg.name,
-                                                              arg.desc.descs[self.lang]))
-            # TODO: for return value
+                if arg.brief != None:
+                    code('/// <param name="{}">{}</param>'.format(arg.name, arg.brief.descs[self.lang]))
+
+            if func_.return_value.brief != None:
+                code('/// <returns>{}</returns>'.format(func_.return_value.brief.descs[self.lang]))                                                  
+            
 
         # cache repo
         if func_.return_value.do_cache():
