@@ -64,8 +64,7 @@ class BindingGeneratorCSharp(BindingGenerator):
             code('/// <summary>')
             code('/// {}'.format(enum_.brief.descs[self.lang]))
             code('/// </summary>')
-        
-        code('System.Serializable')
+        code('[System.Serializable]')
         with CodeBlock(code, 'public enum {} : int'.format(enum_.name)):
             for val in enum_.values:
                 # XML Comment
