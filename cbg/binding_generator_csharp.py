@@ -335,7 +335,7 @@ class BindingGeneratorCSharp(BindingGenerator):
         release_func_name = __get_c_func_name__(class_, Function('Release'))
         body = '''internal static {0} TryGetFromCache(IntPtr native)
 {{
-    if(native == null) return null;
+    if(native == IntPtr.Zero) return null;
 
     if(cacheRepo.ContainsKey(native))
     {{
