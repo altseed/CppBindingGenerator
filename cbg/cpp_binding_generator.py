@@ -1,5 +1,6 @@
 from typing import List
 import ctypes
+import enum
 
 # Data structure
 # Define
@@ -75,14 +76,21 @@ class Argument:
 
 Arguments = List[Argument]
 
+class CacheMode(enum.Enum):
+    NoCache = 1
+    Cache = 2
+    ThreadSafeCache = 3
+
 class ReturnValue:
     def __init__(self, type_):
         self.type_ = type_
         self.brief = None # type: Description
         self.desc = None # type: Description
     
-    def do_cache(self) -> bool:
-        return self.type_ == Class and self.type_.do_cache
+    def cache_mode(self) -> CacheMode:
+        if self.type_ != Class:
+            return CacheMode.NoCache
+        return self.type_.cache_mode
 
 class Function:
     '''
@@ -225,16 +233,15 @@ class Struct:
 
 Structs = List[Struct]
 
-
 class Class:
-    def __init__(self, namespace='', name='', do_cache: bool = True):
+    def __init__(self, namespace='', name='', cache_mode: CacheMode = CacheMode.NoCache):
         self.namespace = namespace  # type: str
         self.name = name  # type: str
         self.funcs = []  # type: Functions
         self.properties = []  # type: List[Property]
         self.base_class = None # type: Class
         self.constructor_count = 0
-        self.do_cache = do_cache
+        self.cache_mode = cache_mode
         self.brief = None # type: Description
 
     def add_constructor(self) -> Function:

@@ -1,7 +1,7 @@
 from typing import List
 import ctypes
 
-from .cpp_binding_generator import BindingGenerator, Define, Class, Struct, Enum, Code, Property, Function, EnumValue, __get_c_func_name__
+from .cpp_binding_generator import BindingGenerator, Define, CacheMode, Class, Struct, Enum, Code, Property, Function, EnumValue, __get_c_func_name__
 from .cpp_binding_generator import __get_c_release_func_name__
 
 # A flow of generating code
@@ -170,7 +170,7 @@ class BindingGeneratorCSharp(BindingGenerator):
             return 'System.Runtime.InteropServices.Marshal.PtrToStringUni({})'.format(name)
 
         if type_ in self.define.classes:
-            if type_.do_cache:
+            if type_.cache_mode != CacheMode.NoCache:
                 return '{}.TryGetFromCache({})'.format(type_.name, name)
             else:
                 return '{} != null ? new {}(new MemoryHandle({})) : null'.format(name, type_.name, name)
@@ -255,10 +255,15 @@ class BindingGeneratorCSharp(BindingGenerator):
             
 
         # cache repo
-        if func_.return_value.do_cache():
+        if func_.return_value.cache_mode() == CacheMode.Cache:
             return_type_name = self.__get_cs_type__(
                 func_.return_value.type_, is_return=True)
             cache_code = 'private Dictionary<IntPtr, WeakReference<{}>> cache{} = new Dictionary<IntPtr, WeakReference<{}>>();'
+            code(cache_code.format(return_type_name, func_.name, return_type_name))
+        elif func_.return_value.cache_mode() == CacheMode.ThreadSafeCache:
+            return_type_name = self.__get_cs_type__(
+                func_.return_value.type_, is_return=True)
+            cache_code = 'private ConcurrentDictionary<IntPtr, WeakReference<{}>> cache{} = new ConcurrentDictionary<IntPtr, WeakReference<{}>>();'
             code(cache_code.format(return_type_name, func_.name, return_type_name))
 
         # determine signature
@@ -361,6 +366,36 @@ class BindingGeneratorCSharp(BindingGenerator):
         for line in lines:
             code(line)
 
+    def __write_threadsafe_cache_getter__(self, code: Code, class_: Class):
+        release_func_name = __get_c_func_name__(class_, Function('Release'))
+        body = '''internal static {0} TryGetFromCache(IntPtr native)
+{{
+    if(native == IntPtr.Zero) return null;
+
+    if(cacheRepo.ContainsKey(native))
+    {{
+        {0} cacheRet;
+        cacheRepo[native].TryGetTarget(out cacheRet);
+        if(cacheRet != null)
+        {{
+            {1}(native);
+            return cacheRet;
+        }}
+        else
+        {{
+            cacheRepo.TryRemove(native, out _);
+        }}
+    }}
+
+    var newObject = new {0}(new MemoryHandle(native));
+    cacheRepo.TryAdd(native, new WeakReference<{0}>(newObject));
+    return newObject;
+}}
+'''.format(class_.name, release_func_name)
+        lines = body.split('\n')
+        for line in lines:
+            code(line)
+
     def __generate_class__(self, class_: Class) -> Code:
         code = Code()
 
@@ -378,8 +413,13 @@ class BindingGeneratorCSharp(BindingGenerator):
         # class body
         with CodeBlock(code, 'public partial class {}{}'.format(class_.name, inheritance)):
             # cache repo
-            if class_.do_cache:
+            if class_.cache_mode == CacheMode.Cache:
                 cache_code = 'private static Dictionary<IntPtr, WeakReference<{}>> cacheRepo = new Dictionary<IntPtr, WeakReference<{}>>();'
+                code(cache_code.format(class_.name, class_.name))
+                code('')
+                self.__write_cache_getter__(code, class_)
+            elif class_.cache_mode == CacheMode.ThreadSafeCache:
+                cache_code = 'private static ConcurrentDictionary<IntPtr, WeakReference<{}>> cacheRepo = new ConcurrentDictionary<IntPtr, WeakReference<{}>>();'
                 code(cache_code.format(class_.name, class_.name))
                 code('')
                 self.__write_cache_getter__(code, class_)
@@ -432,6 +472,7 @@ class BindingGeneratorCSharp(BindingGenerator):
         code('using System;')
         code('using System.Runtime.InteropServices;')
         code('using System.Collections.Generic;')
+        code('using System.Collections.Concurrent;')
         code('')
 
         # declare namespace

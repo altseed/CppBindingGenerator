@@ -21,8 +21,34 @@ with EnumA as enum:
     enum.add('Cow')
     enum.add('Tiger', '3')
 
+# ClassC
+ClassC = cbg.Class('HelloWorld', 'ClassC', cbg.CacheMode.ThreadSafeCache)
+with ClassC as class_:
+    constructor = class_.add_constructor()
+
+    with class_.add_func('SetValue') as func:
+        func.add_arg(float, 'value')
+
+    with class_.add_func('SetEnum') as func:
+        func.add_arg(EnumA, 'enumValue')
+
+    with class_.add_func('GetEnum') as func:
+        func.return_value = cbg.ReturnValue(EnumA)
+        func.add_arg(int, 'id')
+
+    with class_.add_property(int, 'MyProperty') as prop:
+        prop.has_getter = True
+        prop.has_setter = True
+        prop.brief = cbg.Description()
+        prop.brief.add('ja', 'Gets or sets some integer.')
+
+    class_.add_property(float, 'MyFloat')
+
+    with class_.add_property(bool, 'MyBool') as prop:
+        prop.has_setter = True
+
 # ClassB
-ClassB = cbg.Class('HelloWorld', 'ClassB', True)
+ClassB = cbg.Class('HelloWorld', 'ClassB', cbg.CacheMode.Cache)
 with ClassB as class_:
     constructor = class_.add_constructor()
 
@@ -48,7 +74,7 @@ with ClassB as class_:
         prop.has_setter = True
 
 # ClassA
-ClassA = cbg.Class('HelloWorld', 'ClassA', False)
+ClassA = cbg.Class('HelloWorld', 'ClassA', cbg.CacheMode.NoCache)
 with ClassA as class_:
     class_.add_constructor()
     class_.add_func('FuncSimple')
@@ -123,7 +149,7 @@ with ClassA as class_:
 '''
 
 # Inheritance
-BaseClass = cbg.Class('HelloWorld', 'BaseClass', False)
+BaseClass = cbg.Class('HelloWorld', 'BaseClass', cbg.CacheMode.NoCache)
 with BaseClass as class_:
     class_.add_constructor()
     with class_.add_func('GetBaseClassField') as func:
@@ -143,6 +169,7 @@ with DerivedClass as class_:
 define = cbg.Define()
 define.classes.append(ClassA)
 define.classes.append(ClassB)
+define.classes.append(ClassC)
 define.structs.append(StructA)
 define.structs.append(ReplaceStructA)
 define.enums.append(EnumA)
