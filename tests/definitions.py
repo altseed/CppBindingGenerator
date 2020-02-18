@@ -42,6 +42,12 @@ with ClassC as class_:
         prop.brief = cbg.Description()
         prop.brief.add('ja', 'Gets or sets some integer.')
 
+    with class_.add_property(ctypes.c_wchar_p, 'StringProperty') as prop:
+        prop.has_getter = True
+        prop.has_setter = True
+        prop.brief = cbg.Description()
+        prop.brief.add('ja', 'Gets or sets some string.')
+
     class_.add_property(float, 'MyFloat')
 
     with class_.add_property(bool, 'MyBool') as prop:
@@ -67,6 +73,12 @@ with ClassB as class_:
         prop.has_setter = True
         prop.brief = cbg.Description()
         prop.brief.add('ja', 'Gets or sets some integer.')
+
+    with class_.add_property(ClassC, 'ClassProperty') as prop:
+        prop.has_getter = True
+        prop.has_setter = True
+        prop.brief = cbg.Description()
+        prop.brief.add('ja', 'Gets or sets some ClassC.')
 
     class_.add_property(float, 'MyFloat')
 

@@ -294,10 +294,10 @@ class BindingGeneratorCSharp(BindingGenerator):
         with CodeBlock(code, 'get'):
             if prop_.has_setter:
                 with CodeBlock(code, 'if (_{} != null)'.format(prop_.name)):
-                    if not isinstance(prop_.type_, Class):
-                        code('return _{}.Value;'.format(prop_.name))
-                    else:
+                    if isinstance(prop_.type_, Class) or (prop_.type_ == ctypes.c_wchar_p):
                         code('return _{};'.format(prop_.name))
+                    else:
+                        code('return _{}.Value;'.format(prop_.name))
             self.__write_managed_function_body__(
                 code, class_, prop_.getter_as_func())
 
@@ -330,7 +330,7 @@ class BindingGeneratorCSharp(BindingGenerator):
 
         if prop_.has_setter and prop_.has_getter:
             back_type = type_name
-            if not isinstance(prop_.type_ , Class):
+            if not (isinstance(prop_.type_, Class) or (prop_.type_ == ctypes.c_wchar_p)):
                 back_type += '?'
             code('private {} _{};'.format(back_type, prop_.name))
 
