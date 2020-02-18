@@ -422,7 +422,7 @@ class BindingGeneratorCSharp(BindingGenerator):
                 cache_code = 'private static ConcurrentDictionary<IntPtr, WeakReference<{}>> cacheRepo = new ConcurrentDictionary<IntPtr, WeakReference<{}>>();'
                 code(cache_code.format(class_.name, class_.name))
                 code('')
-                self.__write_cache_getter__(code, class_)
+                self.__write_threadsafe_cache_getter__(code, class_)
 
             # unmanaged pointer
             if class_.base_class == None:
