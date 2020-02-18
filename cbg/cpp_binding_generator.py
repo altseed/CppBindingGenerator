@@ -234,7 +234,7 @@ class Struct:
 Structs = List[Struct]
 
 class Class:
-    def __init__(self, namespace='', name='', cache_mode: CacheMode = CacheMode.NoCache):
+    def __init__(self, namespace='', name='', cache_mode: CacheMode = CacheMode.Cache):
         self.namespace = namespace  # type: str
         self.name = name  # type: str
         self.funcs = []  # type: Functions
