@@ -248,11 +248,12 @@ class BindingGeneratorCSharp(BindingGenerator):
             code('/// </summary>')
             for arg in func_.args:
                 if arg.brief != None:
-                    code('/// <param name="{}">{}</param>'.format(arg.name, arg.brief.descs[self.lang]))
+                    code('/// <param name="{}">{}</param>'.format(arg.name,
+                                                                  arg.brief.descs[self.lang]))
 
             if func_.return_value.brief != None:
-                code('/// <returns>{}</returns>'.format(func_.return_value.brief.descs[self.lang]))                                                  
-            
+                code(
+                    '/// <returns>{}</returns>'.format(func_.return_value.brief.descs[self.lang]))
 
         # cache repo
         if func_.return_value.cache_mode() == CacheMode.Cache:
@@ -412,6 +413,9 @@ class BindingGeneratorCSharp(BindingGenerator):
 
         # class body
         with CodeBlock(code, 'public partial class {}{}'.format(class_.name, inheritance)):
+            code('#region unmanaged')
+            code('')
+
             # cache repo
             if class_.cache_mode == CacheMode.Cache:
                 cache_code = 'private static Dictionary<IntPtr, WeakReference<{}>> cacheRepo = new Dictionary<IntPtr, WeakReference<{}>>();'
@@ -427,8 +431,7 @@ class BindingGeneratorCSharp(BindingGenerator):
             # unmanaged pointer
             if class_.base_class == None:
                 code('internal IntPtr {} = IntPtr.Zero;'.format(self.self_ptr_name))
-                code('')
-
+            
             # extern unmanaged functions
             for func_ in [f for f in class_.funcs if len(f.targets) == 0 or 'csharp' in f.targets]:
                 code(self.__generate__unmanaged_func__(class_, func_))
@@ -438,16 +441,18 @@ class BindingGeneratorCSharp(BindingGenerator):
             # releasing function
             release_func = Function('Release')
             code(self.__generate__unmanaged_func__(class_, release_func))
+            code('#endregion')
             code('')
 
             # constructor
             if class_.base_class == None:
                 with CodeBlock(code, 'internal {}(MemoryHandle handle)'.format(class_.name), True):
-                    code('this.{} = handle.selfPtr;'.format(self.self_ptr_name))
+                    code('{} = handle.selfPtr;'.format(self.self_ptr_name))
             else:
-                CodeBlock(code, 'internal {}(MemoryHandle handle) : base(handle)'.format(
-                    class_.name), True)
-
+                with CodeBlock(code, 'internal {}(MemoryHandle handle) : base(handle)'.format(class_.name), True):
+                    code('{} = handle.selfPtr;'.format(self.self_ptr_name))
+            
+            # properties
             for prop_ in class_.properties:
                 code(self.__generate__managed_property_(class_, prop_))
 
@@ -483,8 +488,8 @@ class BindingGeneratorCSharp(BindingGenerator):
 
         # a struct for memory management
         with CodeBlock(code, 'struct MemoryHandle', True):
-            code('public IntPtr selfPtr;')
-            with CodeBlock(code, 'public MemoryHandle(IntPtr p)'):
+            code('public IntPtr selfPtr;')  # internal?
+            with CodeBlock(code, 'public MemoryHandle(IntPtr p)'):  # internal?
                 code('this.selfPtr = p;')
 
         # enum group
