@@ -506,6 +506,12 @@ class SharedObjectGenerator:
         code = ''
 
         header = '''\
+// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+// !!                                          !!
+// !!  THIS FILE IS AUTO GENERATED.            !!
+// !!  YOUR COMMIT ON THI FILE WILL BE WIPED.  !!
+// !!                                          !!
+// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 #include <stdio.h>
 #include <stdint.h>

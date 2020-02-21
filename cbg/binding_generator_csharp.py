@@ -431,7 +431,7 @@ class BindingGeneratorCSharp(BindingGenerator):
             # unmanaged pointer
             if class_.base_class == None:
                 code('internal IntPtr {} = IntPtr.Zero;'.format(self.self_ptr_name))
-            
+
             # extern unmanaged functions
             for func_ in [f for f in class_.funcs if len(f.targets) == 0 or 'csharp' in f.targets]:
                 code(self.__generate__unmanaged_func__(class_, func_))
@@ -451,7 +451,7 @@ class BindingGeneratorCSharp(BindingGenerator):
             else:
                 with CodeBlock(code, 'internal {}(MemoryHandle handle) : base(handle)'.format(class_.name), True):
                     code('{} = handle.selfPtr;'.format(self.self_ptr_name))
-            
+
             # properties
             for prop_ in class_.properties:
                 code(self.__generate__managed_property_(class_, prop_))
@@ -472,6 +472,14 @@ class BindingGeneratorCSharp(BindingGenerator):
 
     def generate(self):
         code = Code()
+
+        # add Waring
+        code('// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+        code('// !!                                          !!')
+        code('// !!  THIS FILE IS AUTO GENERATED.            !!')
+        code('// !!  YOUR COMMIT ON THI FILE WILL BE WIPED.  !!')
+        code('// !!                                          !!')
+        code('// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
 
         # declare using
         code('using System;')
