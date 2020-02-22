@@ -5,6 +5,7 @@ set PYTHONPATH=.
 tests\csharp.py
 
 cd %~dp0\build
-GenerateProjects_x64.bat
 
+REM GenerateProjects_x64.bat
 
+pause

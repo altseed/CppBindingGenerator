@@ -3,13 +3,14 @@ import ctypes
 import sys
 
 # Struct
-StructA = cbg.Struct('HelloWorld', 'StructA')
+StructA = cbg.Struct('HelloWorld', 'StructA', 'StorakutoA')
 with StructA as struct:
     struct.add_field(float, 'X')
     struct.add_field(float, 'Y')
     struct.add_field(float, 'Z')
 
-ReplaceStructA = cbg.Struct('HelloWorld', 'ReplaceStructA')
+ReplaceStructA = cbg.Struct(
+    'HelloWorld', 'ReplaceStructA', 'ReprasuStorakutoA')
 with ReplaceStructA as struct:
     struct.add_field(float, 'X')
     struct.add_field(float, 'Y')

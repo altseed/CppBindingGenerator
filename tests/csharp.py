@@ -6,7 +6,8 @@ import argparse
 from definitions import define
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-l', '--lang', type=str, default='en', required=False, choices=['ja', 'en'])
+parser.add_argument('-l', '--lang', type=str, default='en',
+                    required=False, choices=['ja', 'en'])
 args = parser.parse_args()
 
 bindingGenerator = cbg.BindingGeneratorCSharp(define, args.lang)

@@ -97,9 +97,9 @@ class BindingGeneratorCSharp(BindingGenerator):
 
         if type_ in self.define.structs:
             if is_return:
-                return '{}'.format(type_.name)
+                return '{}'.format(type_.alias)
             else:
-                return 'ref {}'.format(type_.name)
+                return 'ref {}'.format(type_.alias)
 
         if type_ in self.define.enums:
             return type_.name
@@ -132,9 +132,9 @@ class BindingGeneratorCSharp(BindingGenerator):
 
         if type_ in self.define.structs:
             if is_return:
-                return '{}'.format(type_.name)
+                return '{}'.format(type_.alias)
             else:
-                return 'ref {}'.format(type_.name)
+                return 'ref {}'.format(type_.alias)
 
         if type_ in self.define.enums:
             return 'int'

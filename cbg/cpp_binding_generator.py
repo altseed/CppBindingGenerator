@@ -18,13 +18,14 @@ import enum
 #   └─Description
 #   └─Field
 
+
 class Description:
     '''
     a description for any objects    
     '''
 
     def __init__(self):
-        self.descs = { 'ja':'', 'en':'' }
+        self.descs = {'ja': '', 'en': ''}
 
     def add(self, lang: str, desc: str):
         '''
@@ -63,34 +64,38 @@ class Argument:
 
         self.type_ = type_
         self.name = name
-        self.brief = None # type: Description
-    
+        self.brief = None  # type: Description
+
     def __enter__(self):
         return self
-        
+
     def __exit__(self, exit_type, exit_value, traceback):
         return self
 
     def __str__(self):
         return self.name
 
+
 Arguments = List[Argument]
+
 
 class CacheMode(enum.Enum):
     NoCache = 1
     Cache = 2
     ThreadSafeCache = 3
 
+
 class ReturnValue:
     def __init__(self, type_):
         self.type_ = type_
-        self.brief = None # type: Description
-        self.desc = None # type: Description
-    
+        self.brief = None  # type: Description
+        self.desc = None  # type: Description
+
     def cache_mode(self) -> CacheMode:
         if self.type_ != Class:
             return CacheMode.NoCache
         return self.type_.cache_mode
+
 
 class Function:
     '''
@@ -104,8 +109,8 @@ class Function:
 
     def __init__(self, name: str):
         self.name = name
-        self.brief = None # type: Description
-        self.desc = None # type: Description
+        self.brief = None  # type: Description
+        self.desc = None  # type: Description
         self.args = []  # type: Arguments
         self.return_value = ReturnValue(None)
         self.is_static = False
@@ -117,15 +122,16 @@ class Function:
         arg = Argument(type_, name)
         self.args.append(arg)
         return arg
-    
+
     def __enter__(self):
         return self
-        
+
     def __exit__(self, exit_type, exit_value, traceback):
         return self
 
     def __str__(self):
         return self.name
+
 
 Functions = List[Function]
 
@@ -136,9 +142,9 @@ class Property:
         self.name = name
         self.has_getter = has_getter
         self.has_setter = has_setter
-        self.brief = None # type: Description
+        self.brief = None  # type: Description
         self.cache_set_value = False
-    
+
     def getter_as_func(self) -> Function:
         f = Function('Get' + self.name)
         f.return_value = ReturnValue(self.type_)
@@ -148,29 +154,31 @@ class Property:
         f = Function('Set' + self.name)
         f.add_arg(self.type_, 'value')
         return f
-    
+
     def __enter__(self):
         return self
-        
+
     def __exit__(self, exit_type, exit_value, traceback):
         return self
 
     def __str__(self):
         return self.name
 
+
 class EnumValue:
     def __init__(self, name: str, value=None):
         self.name = name
-        self.desc = None # type: Description
-        self.brief = None # type: Description
+        self.desc = None  # type: Description
+        self.brief = None  # type: Description
         self.value = value
 
     def __str__(self):
         return self.name
 
+
 class Enum:
     def __init__(self, namespace: str, name: str):
-        self.brief = None # type: Description
+        self.brief = None  # type: Description
         self.values = []  # type: List[EnumValue]
         self.name = name
         self.namespace = namespace
@@ -192,12 +200,13 @@ class Enum:
     def __str__(self):
         return self.name
 
+
 Enums = List[Enum]
 
 
 class Field:
     def __init__(self, type_, name: str):
-        self.brief = None # type: Description
+        self.brief = None  # type: Description
         self.name = name
         self.type_ = type_
 
@@ -206,11 +215,12 @@ Fields = List[Field]
 
 
 class Struct:
-    def __init__(self, namespace='', name=''):
+    def __init__(self, namespace='', name='', alias=''):
         self.namespace = namespace
         self.name = name
+        self.alias = alias
         self.fields = []  # type: Fields
-        self.brief = None # type: Description
+        self.brief = None  # type: Description
 
     def add_field(self, type_, name: str):
         field = Field(type_, name)
@@ -221,17 +231,19 @@ class Struct:
             return self.name
 
         return self.namespace + '::' + self.name
-    
+
     def __enter__(self):
         return self
-        
+
     def __exit__(self, exit_type, exit_value, traceback):
         return self
 
     def __str__(self):
         return self.name
 
+
 Structs = List[Struct]
+
 
 class Class:
     def __init__(self, namespace='', name='', cache_mode: CacheMode = CacheMode.Cache):
@@ -239,10 +251,10 @@ class Class:
         self.name = name  # type: str
         self.funcs = []  # type: Functions
         self.properties = []  # type: List[Property]
-        self.base_class = None # type: Class
+        self.base_class = None  # type: Class
         self.constructor_count = 0
         self.cache_mode = cache_mode
-        self.brief = None # type: Description
+        self.brief = None  # type: Description
 
     def add_constructor(self) -> Function:
         func = Function('Constructor_' + str(self.constructor_count))
@@ -256,20 +268,21 @@ class Class:
         func = Function(name)
         self.funcs.append(func)
         return func
-    
+
     def add_property(self, type_, name: str) -> Property:
         property = Property(type_, name, False, False)
         self.properties.append(property)
         return property
-    
+
     def __enter__(self):
         return self
-        
+
     def __exit__(self, exit_type, exit_value, traceback):
         return self
 
     def __str__(self):
         return self.name
+
 
 Classes = List[Class]
 
@@ -491,8 +504,10 @@ class SharedObjectGenerator:
                 code('{}{}({});'.format(caller, func_.name, ', '.join(args)))
             else:
                 return_type = self.__get_cpp_type__(func_.return_value.type_)
-                return_value = self.__convert_ret__(func_.return_value.type_, 'cbg_ret')
-                code('{} cbg_ret = {}{}({});'.format(return_type, caller, func_.name, ', '.join(args)))
+                return_value = self.__convert_ret__(
+                    func_.return_value.type_, 'cbg_ret')
+                code('{} cbg_ret = {}{}({});'.format(
+                    return_type, caller, func_.name, ', '.join(args)))
                 code('return {};'.format(return_value))
 
         code.dec_indent()
@@ -500,7 +515,7 @@ class SharedObjectGenerator:
         code('')
 
         return str(code)
-    
+
     def generate(self):
 
         code = ''
