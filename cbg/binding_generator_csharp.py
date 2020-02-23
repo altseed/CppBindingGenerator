@@ -92,6 +92,9 @@ class BindingGeneratorCSharp(BindingGenerator):
         if type_ == ctypes.c_wchar_p:
             return 'string'
 
+        if type_ == ctypes.c_void_p:
+            return 'IntPtr'
+
         if type_ in self.define.classes:
             return type_.name
 
@@ -127,6 +130,9 @@ class BindingGeneratorCSharp(BindingGenerator):
                 return 'IntPtr'
             return '[MarshalAs(UnmanagedType.LPWStr)] string'
 
+        if type_ == ctypes.c_void_p:
+            return 'IntPtr'
+
         if type_ in self.define.classes:
             return 'IntPtr'
 
@@ -145,7 +151,7 @@ class BindingGeneratorCSharp(BindingGenerator):
         assert(False)
 
     def __convert_csc_to_cs__(self, type_, name: str) -> str:
-        if type_ == int or type_ == float or type_ == bool or type_ == ctypes.c_wchar_p:
+        if type_ == int or type_ == float or type_ == bool or type_ == ctypes.c_wchar_p or type_ == ctypes.c_void_p:
             return name
 
         if type_ in self.define.classes:
@@ -163,7 +169,7 @@ class BindingGeneratorCSharp(BindingGenerator):
         assert(False)
 
     def __convert_ret__(self, type_, name: str) -> str:
-        if type_ == int or type_ == float or type_ == bool:
+        if type_ == int or type_ == float or type_ == bool or type_ == ctypes.c_void_p:
             return name
 
         if type_ == ctypes.c_wchar_p:
@@ -339,7 +345,12 @@ class BindingGeneratorCSharp(BindingGenerator):
 
     def __write_cache_getter__(self, code: Code, class_: Class):
         release_func_name = __get_c_func_name__(class_, Function('Release'))
-        body = '''internal static {0} TryGetFromCache(IntPtr native)
+
+        new_ = ''
+        if class_.base_class != None:
+            new_ = 'new'
+
+        body = '''internal static {2} {0} TryGetFromCache(IntPtr native)
 {{
     if(native == IntPtr.Zero) return null;
 
@@ -362,14 +373,19 @@ class BindingGeneratorCSharp(BindingGenerator):
     cacheRepo[native] = new WeakReference<{0}>(newObject);
     return newObject;
 }}
-'''.format(class_.name, release_func_name)
+'''.format(class_.name, release_func_name, new_)
         lines = body.split('\n')
         for line in lines:
             code(line)
 
     def __write_threadsafe_cache_getter__(self, code: Code, class_: Class):
         release_func_name = __get_c_func_name__(class_, Function('Release'))
-        body = '''internal static {0} TryGetFromCache(IntPtr native)
+
+        new_ = ''
+        if class_.base_class != None:
+            new_ = 'new'
+
+        body = '''internal static {2} {0} TryGetFromCache(IntPtr native)
 {{
     if(native == IntPtr.Zero) return null;
 
@@ -392,7 +408,7 @@ class BindingGeneratorCSharp(BindingGenerator):
     cacheRepo.TryAdd(native, new WeakReference<{0}>(newObject));
     return newObject;
 }}
-'''.format(class_.name, release_func_name)
+'''.format(class_.name, release_func_name, new_)
         lines = body.split('\n')
         for line in lines:
             code(line)

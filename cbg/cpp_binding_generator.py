@@ -373,6 +373,9 @@ class SharedObjectGenerator:
         if type_ == ctypes.c_wchar_p:
             return 'const char16_t*'
 
+        if type_ == ctypes.c_void_p:
+            return 'void*'
+
         if type_ in self.define.classes:
             return 'std::shared_ptr<{}>'.format(self.__get_class_fullname__(type_))
 
@@ -400,6 +403,9 @@ class SharedObjectGenerator:
         if type_ == ctypes.c_wchar_p:
             return 'const char16_t*'
 
+        if type_ == ctypes.c_void_p:
+            return 'void*'
+
         if type_ in self.define.classes:
             return 'void*'
 
@@ -418,7 +424,7 @@ class SharedObjectGenerator:
         raise ValueError("{} is not supported in cpp.".format(str(type_)))
 
     def __convert_c_to_cpp__(self, type_, name: str) -> str:
-        if type_ == int or type_ == float or type_ == bool or type_ == ctypes.c_wchar_p:
+        if type_ == int or type_ == float or type_ == bool or type_ == ctypes.c_wchar_p or type_ == ctypes.c_void_p:
             return name
 
         if type_ in self.define.classes:
@@ -433,7 +439,7 @@ class SharedObjectGenerator:
         assert(False)
 
     def __convert_ret__(self, type_, name: str) -> str:
-        if type_ == int or type_ == float or type_ == bool or type_ == ctypes.c_wchar_p:
+        if type_ == int or type_ == float or type_ == bool or type_ == ctypes.c_wchar_p or type_ == ctypes.c_void_p:
             return name
 
         if type_ in self.define.classes:
