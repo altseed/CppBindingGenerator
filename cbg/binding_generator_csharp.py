@@ -428,7 +428,12 @@ class BindingGeneratorCSharp(BindingGenerator):
             inheritance = ' : {}'.format(class_.base_class.name)
 
         # class body
-        with CodeBlock(code, 'public partial class {}{}'.format(class_.name, inheritance)):
+
+        access = 'internal'
+        if class_.is_public:
+            access = 'public'
+
+        with CodeBlock(code, '{} partial class {}{}'.format(access, class_.name, inheritance)):
             code('#region unmanaged')
             code('')
 

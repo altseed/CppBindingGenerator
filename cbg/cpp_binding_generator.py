@@ -255,6 +255,7 @@ class Class:
         self.constructor_count = 0
         self.cache_mode = cache_mode
         self.brief = None  # type: Description
+        self.is_public = True
 
     def add_constructor(self) -> Function:
         func = Function('Constructor_' + str(self.constructor_count))
