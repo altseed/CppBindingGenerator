@@ -461,7 +461,7 @@ class SharedObjectGenerator:
         assert(False)
 
     def __convert_ret__(self, type_, name: str) -> str:
-        if type_ == int or type_ == float or type_ == bool or type_ == ctypes.c_wchar_p or type_ == ctypes.c_void_p:
+        if type_ == ctypes.c_byte or type_ == int or type_ == float or type_ == bool or type_ == ctypes.c_wchar_p or type_ == ctypes.c_void_p:
             return name
 
         if type_ in self.define.classes:
