@@ -1,7 +1,7 @@
 from typing import List
 import ctypes
 
-from .cpp_binding_generator import BindingGenerator, Define, CacheMode, Class, Struct, Enum, Code, Property, Function, EnumValue, __get_c_func_name__
+from .cpp_binding_generator import BindingGenerator, Define, CacheMode, ArgCalledBy, Class, Struct, Enum, Code, Property, Function, EnumValue, __get_c_func_name__
 from .cpp_binding_generator import __get_c_release_func_name__
 
 # A flow of generating code
@@ -79,15 +79,24 @@ class BindingGeneratorCSharp(BindingGenerator):
                 code(line + ',')
         return code
 
-    def __get_cs_type__(self, type_, is_return=False) -> str:
+    def __get_cs_type__(self, type_, is_return=False, called_by: ArgCalledBy = None) -> str:
+        ptr = ''
+        if called_by == ArgCalledBy.Out:
+            ptr = 'out '
+        elif called_by == ArgCalledBy.Ref:
+            ptr = 'ref '
+
+        if type_ == ctypes.c_byte:
+            return ptr + 'byte'
+
         if type_ == int:
-            return 'int'
+            return ptr + 'int'
 
         if type_ == float:
-            return 'float'
+            return ptr + 'float'
 
         if type_ == bool:
-            return 'bool'
+            return ptr + 'bool'
 
         if type_ == ctypes.c_wchar_p:
             return 'string'
@@ -112,18 +121,27 @@ class BindingGeneratorCSharp(BindingGenerator):
 
         assert(False)
 
-    def __get_csc_type__(self, type_, is_return=False) -> str:
+    def __get_csc_type__(self, type_, is_return=False, called_by: ArgCalledBy = None) -> str:
+        ptr = ''
+        if called_by == ArgCalledBy.Out:
+            ptr = '[Out] out '
+        elif called_by == ArgCalledBy.Ref:
+            ptr = '[In, Out] ref '
+
+        if type_ == ctypes.c_byte:
+            return ptr + 'byte'
+
         if type_ == int:
-            return 'int'
+            return ptr + 'int'
 
         if type_ == float:
-            return 'float'
+            return ptr + 'float'
 
         if type_ == bool:
             if is_return:
                 return 'bool'
             else:
-                return '[MarshalAs(UnmanagedType.Bool)] bool'
+                return '[MarshalAs(UnmanagedType.Bool)] ' + ptr + 'bool'
 
         if type_ == ctypes.c_wchar_p:
             if is_return:
@@ -148,11 +166,18 @@ class BindingGeneratorCSharp(BindingGenerator):
         if type_ is None:
             return 'void'
 
+        print('Unsupported Type:{}'.format(type_))
+
         assert(False)
 
-    def __convert_csc_to_cs__(self, type_, name: str) -> str:
-        if type_ == int or type_ == float or type_ == bool or type_ == ctypes.c_wchar_p or type_ == ctypes.c_void_p:
-            return name
+    def __convert_csc_to_cs__(self, type_, name: str, called_by: ArgCalledBy = None) -> str:
+        if type_ == ctypes.c_byte or type_ == int or type_ == float or type_ == bool or type_ == ctypes.c_wchar_p or type_ == ctypes.c_void_p:
+            if called_by == ArgCalledBy.Out:
+                return 'out ' + name
+            if called_by == ArgCalledBy.Ref:
+                return 'ref ' + name
+            else:
+                return name
 
         if type_ in self.define.classes:
             return '{} != null ? {}.{} : IntPtr.Zero'.format(name, name, self.self_ptr_name)
@@ -169,7 +194,7 @@ class BindingGeneratorCSharp(BindingGenerator):
         assert(False)
 
     def __convert_ret__(self, type_, name: str) -> str:
-        if type_ == int or type_ == float or type_ == bool or type_ == ctypes.c_void_p:
+        if type_ == ctypes.c_byte or type_ == int or type_ == float or type_ == bool or type_ == ctypes.c_void_p:
             return name
 
         if type_ == ctypes.c_wchar_p:
@@ -193,7 +218,7 @@ class BindingGeneratorCSharp(BindingGenerator):
         code = Code()
         fname = __get_c_func_name__(class_, func_)
 
-        args = [self.__get_csc_type__(arg.type_) +
+        args = [self.__get_csc_type__(arg.type_, False, arg.called_by) +
                 ' ' + arg.name for arg in func_.args]
 
         if not func_.is_static and not func_.is_constructor:
@@ -225,7 +250,7 @@ class BindingGeneratorCSharp(BindingGenerator):
         fname = __get_c_func_name__(class_, func_)
         # call a function
         args = [self.__convert_csc_to_cs__(
-                arg.type_, arg.name) for arg in func_.args]
+            arg.type_, arg.name, arg.called_by) for arg in func_.args]
 
         if not func_.is_static and not func_.is_constructor:
             args = [self.self_ptr_name] + args
@@ -245,7 +270,7 @@ class BindingGeneratorCSharp(BindingGenerator):
         fname = __get_c_func_name__(class_, func_)
 
         args = [self.__get_cs_type__(
-            arg.type_) + ' ' + arg.name for arg in func_.args]
+            arg.type_, False, arg.called_by) + ' ' + arg.name for arg in func_.args]
 
         # XML comment
         if func_.brief != None:

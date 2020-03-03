@@ -54,6 +54,10 @@ with ClassC as class_:
     with class_.add_property(bool, 'MyBool') as prop:
         prop.has_setter = True
 
+    with class_.add_func('FuncHasRefArg') as func:
+        with func.add_arg(ctypes.c_byte, 'intRef') as arg:
+            arg.called_by = cbg.CalledBy.Out
+
 # ClassB
 ClassB = cbg.Class('HelloWorld', 'ClassB', cbg.CacheMode.Cache)
 with ClassB as class_:
@@ -141,25 +145,6 @@ with ClassA as class_:
     with class_.add_property(EnumA, 'EnumA') as prop:
         prop.has_getter = True
         prop.has_setter = True
-'''
-    with class_.add_func('FuncArgReplaceStruct') as func:
-        func.add_arg(ReplaceStructA, 'value1')
-
-'''
-
-'''
-    with ClassA.add_func('FuncWithArgSameToKeyword') as func:
-        func.add_arg(int, 'type')
-        func.add_arg(int, 'continue')
-        func.add_arg(int, 'crate')
-        func.add_arg(int, 'in')
-        func.targets = ['rust']
-'''
-
-'''
-    with class_.add_func('FuncReturnReplaceStruct') as func:
-        func.return_value.type_ = ReplaceStructA
-'''
 
 # Inheritance
 BaseClass = cbg.Class('HelloWorld', 'BaseClass', cbg.CacheMode.NoCache)

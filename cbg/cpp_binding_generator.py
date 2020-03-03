@@ -43,12 +43,18 @@ class Description:
         self.descs[lang] = desc
 
 
+class ArgCalledBy(enum.Enum):
+    Default = 1
+    Ref = 2
+    Out = 3
+
+
 class Argument:
     '''
     an argument of function    
     '''
 
-    def __init__(self, type_, name: str):
+    def __init__(self, type_, name: str, called_by: ArgCalledBy = ArgCalledBy.Default):
         '''
         add a description
 
@@ -65,6 +71,7 @@ class Argument:
         self.type_ = type_
         self.name = name
         self.brief = None  # type: Description
+        self.called_by = called_by
 
     def __enter__(self):
         return self
@@ -361,15 +368,22 @@ class SharedObjectGenerator:
 
         return type_.namespace + '::' + type_.name
 
-    def __get_cpp_type__(self, type_) -> str:
+    def __get_cpp_type__(self, type_, called_by: ArgCalledBy = None) -> str:
+        ptr = ''
+        if called_by == ArgCalledBy.Out or called_by == ArgCalledBy.Ref:
+            ptr = '*'
+
+        if type_ == ctypes.c_byte:
+            return 'int8_t' + ptr
+
         if type_ == int:
-            return 'int32_t'
+            return 'int32_t' + ptr
 
         if type_ == float:
-            return 'float'
+            return 'float' + ptr
 
         if type_ == bool:
-            return 'bool'
+            return 'bool' + ptr
 
         if type_ == ctypes.c_wchar_p:
             return 'const char16_t*'
@@ -391,15 +405,22 @@ class SharedObjectGenerator:
 
         assert(False)
 
-    def __get_c_type__(self, type_, is_return=False) -> str:
+    def __get_c_type__(self, type_, is_return=False, called_by: ArgCalledBy = None) -> str:
+        ptr = ''
+        if called_by == ArgCalledBy.Out or called_by == ArgCalledBy.Ref:
+            ptr = ' *'
+
+        if type_ == ctypes.c_byte:
+            return 'int8_t' + ptr
+
         if type_ == int:
-            return 'int32_t'
+            return 'int32_t' + ptr
 
         if type_ == float:
-            return 'float'
+            return 'float' + ptr
 
         if type_ == bool:
-            return 'bool'
+            return 'bool' + ptr
 
         if type_ == ctypes.c_wchar_p:
             return 'const char16_t*'
@@ -425,7 +446,7 @@ class SharedObjectGenerator:
         raise ValueError("{} is not supported in cpp.".format(str(type_)))
 
     def __convert_c_to_cpp__(self, type_, name: str) -> str:
-        if type_ == int or type_ == float or type_ == bool or type_ == ctypes.c_wchar_p or type_ == ctypes.c_void_p:
+        if type_ == ctypes.c_byte or type_ == int or type_ == float or type_ == bool or type_ == ctypes.c_wchar_p or type_ == ctypes.c_void_p:
             return name
 
         if type_ in self.define.classes:
@@ -465,7 +486,7 @@ class SharedObjectGenerator:
 
         fname = __get_c_func_name__(class_, func_)
 
-        args = [self.__get_c_type__(arg.type_) +
+        args = [self.__get_c_type__(arg.type_, False, arg.called_by) +
                 ' ' + arg.name for arg in func_.args]
 
         # function name and args
@@ -491,8 +512,9 @@ class SharedObjectGenerator:
         # convert ctype into c++type
         for arg in func_.args:
             ex_name = 'cbg_arg' + str(count)
-            cpp_type = self.__get_cpp_type__(arg.type_)
-            c_value = self.__convert_c_to_cpp__(arg.type_, arg.name)
+            cpp_type = self.__get_cpp_type__(arg.type_, arg.called_by)
+            c_value = self.__convert_c_to_cpp__(
+                arg.type_, arg.name)
             code('{} {} = {};'.format(cpp_type, ex_name, c_value))
             args.append(ex_name)
             count += 1
