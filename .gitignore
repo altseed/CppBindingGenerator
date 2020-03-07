@@ -6,19 +6,14 @@
 .vs/
 *.rs
 
-tests/build/csharp
-tests/build/CMakeFiles
-tests/build/csharp_caller
-tests/build/so
-tests/build/ALL_BUILD.vcxproj
-tests/build/ALL_BUILD.vcxproj.filters
-tests/build/cmake_install.cmake
-tests/build/CMakeCache.txt
-tests/build/Generator.sln
+tests/build/**
+!tests/build/GenerateProjects**
 
-/target
+**/rust**/target
 **/*.rs.bk
+!tests/results/rust/build.rs
 !tests/results/rust/src/lib.rs
+!tests/results/rust/src/main.rs
 !tests/results/rust/Cargo.toml
 Cargo.lock
 
