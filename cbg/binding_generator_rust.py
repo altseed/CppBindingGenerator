@@ -114,7 +114,9 @@ class BindingGeneratorRust(BindingGenerator):
 
         if type_ in self.define.classes:
             if is_return or is_property:
-                if is_cached(type_):
+                if type_.cache_mode == CacheMode.Cache:
+                    return 'Rc<RefCell<{}>>'.format(type_.name)
+                elif type_.cache_mode == CacheMode.ThreadSafeCache:
                     return 'Arc<Mutex<{}>>'.format(type_.name)
                 else:
                     return type_.name
@@ -191,9 +193,12 @@ class BindingGeneratorRust(BindingGenerator):
 
         if type_ in self.define.classes:
             if is_property:
-                return '{}.lock().expect("Failed to get lock of {}").{}'.format(name, type_.name, self.self_ptr_name)
-            else:
-                return '{}.{}'.format(name, self.self_ptr_name)
+                if type_.cache_mode == CacheMode.Cache:
+                    return '{}.borrow_mut().{}'.format(name, self.self_ptr_name)
+                elif type_.cache_mode == CacheMode.ThreadSafeCache:
+                    return '{}.lock().expect("Failed to get lock of {}").{}'.format(name, type_.name, self.self_ptr_name)
+            
+            return '{}.{}'.format(name, self.self_ptr_name)
 
         if type_ in self.define.structs:
             return '{}.into()'.format(name)
@@ -430,7 +435,9 @@ class BindingGeneratorRust(BindingGenerator):
 
         ptr_storage_name = self.PtrEnumName + "Storage"
         code('''
-use std::sync::{{Weak, Arc, RwLock, Mutex}};
+use std::rc::{{self, Rc}};
+use std::cell::RefCell;
+use std::sync::{{self, Arc, RwLock, Mutex}};
 use std::collections::HashMap;
 
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -453,11 +460,12 @@ unsafe impl Sync for {0} {{ }}
             for prop_ in class_.properties:
                 if prop_.has_getter and prop_.has_setter:
                     code('{} : Option<{}>,'.format(camelcase_to_underscore(prop_.name), self.__get_rs_type__(prop_.type_, is_return=True, is_property=True)))
-
-        code('''
-unsafe impl Send for {0} {{ }}
-unsafe impl Sync for {0} {{ }}
-'''.format(class_.name))
+        
+        if class_.cache_mode == CacheMode.ThreadSafeCache:
+            code('''
+    unsafe impl Send for {0} {{ }}
+    unsafe impl Sync for {0} {{ }}
+    '''.format(class_.name))
 
         # with CodeBlock(code, 'impl Clone for {}'.format(class_.name)):
         #     with CodeBlock(code, 'fn clone(&self) -> Self'):
@@ -473,12 +481,16 @@ unsafe impl Sync for {0} {{ }}
         with CodeBlock(code, 'impl {}'.format(class_.name)):
             # unmanaged constructor
             ret_type = "Self"
-            if is_cached(class_):
+            if class_.cache_mode == CacheMode.Cache:
+                ret_type = "Rc<RefCell<Self>>"
+            elif class_.cache_mode == CacheMode.ThreadSafeCache:
                 ret_type = "Arc<Mutex<Self>>"
             
             code('#[allow(dead_code)]')
             with CodeBlock(code, 'fn cbg_create_raw({} : *mut {}) -> {}'.format(self.self_ptr_name, self.PtrEnumName, ret_type), True):
-                if is_cached(class_):
+                if class_.cache_mode == CacheMode.Cache:
+                    code('Rc::new(RefCell::new(')
+                elif class_.cache_mode == CacheMode.ThreadSafeCache:
                     code('Arc::new(Mutex::new(')
                 
                 with CodeBlock(code, class_.name):
@@ -490,12 +502,36 @@ unsafe impl Sync for {0} {{ }}
                 if is_cached(class_):
                     code('))')
 
-            if is_cached(class_):
+            body = ''
+            if class_.cache_mode == CacheMode.Cache:
+                body = '''
+#[allow(dead_code)]
+fn try_get_from_cache({0} : *mut {1}) -> Rc<RefCell<Self>> {{
+    thread_local! {{
+        static {2}_CACHE: RefCell<HashMap<{1}Storage, rc::Weak<RefCell<{3}>>>> = RefCell::new(HashMap::new());
+    }}
+    {2}_CACHE.with(|hash_map| {{
+        let mut hash_map = hash_map.borrow_mut();
+        let storage = {1}Storage({0});
+        if let Some(x) = hash_map.get(&storage) {{
+            match x.upgrade() {{
+                Some(o) => {{ return o; }},
+                None => {{ hash_map.remove(&storage); }},
+            }}
+        }}
+        let o = Self::cbg_create_raw({0});
+        hash_map.insert(storage, Rc::downgrade(&o));
+        o
+    }})
+}}
+'''.format(self.self_ptr_name, self.PtrEnumName, class_.name.upper(), class_.name)
+
+            elif class_.cache_mode == CacheMode.ThreadSafeCache:
                 body = '''
 #[allow(dead_code)]
 fn try_get_from_cache({0} : *mut {1}) -> Arc<Mutex<Self>> {{
     lazy_static! {{
-        static ref {2}_CACHE: RwLock<HashMap<{1}Storage, Weak<Mutex<{3}>>>> = RwLock::new(HashMap::new());
+        static ref {2}_CACHE: RwLock<HashMap<{1}Storage, sync::Weak<Mutex<{3}>>>> = RwLock::new(HashMap::new());
     }}
     let mut hash_map = {2}_CACHE.write().unwrap();
     let storage = {1}Storage({0});
@@ -511,9 +547,9 @@ fn try_get_from_cache({0} : *mut {1}) -> Arc<Mutex<Self>> {{
 }}
 '''.format(self.self_ptr_name, self.PtrEnumName, class_.name.upper(), class_.name)
 
-                lines = body.split('\n')
-                for line in lines:
-                    code(line)
+            lines = body.split('\n')
+            for line in lines:
+                code(line)
 
             # managed functions
             for func_ in [f for f in class_.funcs if len(f.targets) == 0 or 'rust' in f.targets]:
