@@ -1,7 +1,7 @@
 from typing import List
 import ctypes
 
-from .cpp_binding_generator import BindingGenerator, Define, Class, Struct, Enum, Code, Property, Function, EnumValue, __get_c_func_name__
+from .cpp_binding_generator import BindingGenerator, Define, CacheMode, ArgCalledBy, Class, Struct, Enum, Code, Property, Function, EnumValue, __get_c_func_name__
 from .cpp_binding_generator import __get_c_release_func_name__
 
 # A flow of generating code
@@ -43,6 +43,9 @@ def replaceKeyword(name):
         return name + '_'
     return name
 
+def is_cached(class_ : Class):
+    return (class_.cache_mode == CacheMode.Cache or class_.cache_mode == CacheMode.ThreadSafeCache)
+
 class CodeBlock:
     def __init__(self, coder: Code, title: str, after_space : bool = False):
         '''
@@ -82,31 +85,44 @@ class BindingGeneratorRust(BindingGenerator):
         self.structModName = 'structs'
         self.structsReplaceMap = {}
 
-    def __get_rs_type__(self, type_, is_return = False) -> str:
+    def __get_rs_type__(self, type_, is_return = False, is_property = False, called_by: ArgCalledBy = None) -> str:
+        ptr = ''
+        if called_by == ArgCalledBy.Out:
+            ptr = '&mut '
+        elif called_by == ArgCalledBy.Ref:
+            ptr = '&'
+
+        if type_ == ctypes.c_byte:
+            return ptr + 'u8'
+
         if type_ == int:
-            return 'i32'
+            return ptr + 'i32'
 
         if type_ == float:
-            return 'f32'
+            return ptr + 'f32'
 
         if type_ == bool:
-            return 'bool'
+            return ptr + 'bool'
+
+        if type_ == ctypes.c_void_p:
+            return ptr + 'c_void'
 
         if type_ == ctypes.c_wchar_p:
-            if is_return:
+            if is_return or is_property:
                 return 'String'
             return '&str'
 
         if type_ in self.define.classes:
-            if is_return:
-                if type_.do_cache:
+            if is_return or is_property:
+                if is_cached(type_):
                     return 'Arc<Mutex<{}>>'.format(type_.name)
-                return type_.name
+                else:
+                    return type_.name
             else:
                 return '&mut ' + type_.name
 
         if type_ in self.define.structs:
-            return self.structsReplaceMap.get(type_, type_.name)
+            return self.structsReplaceMap.get(type_, type_.alias)
 
         if type_ in self.define.enums:
             return type_.name
@@ -114,29 +130,42 @@ class BindingGeneratorRust(BindingGenerator):
         if type_ is None:
             return '()'
 
-        print('Type: {}'.format(type_.name))
+        print('Type: {}'.format(type_))
         assert(False)
 
-    def __get_rsc_type__(self, type_, is_return = False) -> str:
+    def __get_rsc_type__(self, type_, is_return = False, called_by: ArgCalledBy = None) -> str:
+        ptr = ''
+        if called_by == ArgCalledBy.Out:
+            ptr = '*mut '
+        elif called_by == ArgCalledBy.Ref:
+            ptr = '*const '
+
+        if type_ == ctypes.c_void_p:
+            return ptr + 'c_void'
+
+        if type_ == ctypes.c_byte:
+            return ptr + 'c_uchar'
+
         if type_ == int:
-            return 'c_int'
+            return ptr + 'c_int'
 
         if type_ == float:
-            return 'c_float'
+            return ptr + 'c_float'
 
         if type_ == bool:
-            return 'bool'
+            return ptr + 'bool'
 
         if type_ == ctypes.c_wchar_p:
-            if is_return:
-                return '*const c_char'
-            return '*const c_char'
+            return '*const u16'
+
+        if type_ == ctypes.c_void_p:
+            return self.PtrEnumName
 
         if type_ in self.define.classes:
             return '*mut {}'.format(self.PtrEnumName)
 
         if type_ in self.define.structs:
-            return '{}::{}'.format(self.structModName, type_.name)
+            return '{}::{}'.format(self.structModName, type_.alias)
 
         if type_ in self.define.enums:
             return 'c_int'
@@ -147,18 +176,24 @@ class BindingGeneratorRust(BindingGenerator):
             
             return ''
 
-        print('Type: {}'.format(type_.name))
+        print('Type: {}'.format(type_))
         assert(False)
 
-    def __convert_rsc_to_rs__(self, type_, name: str) -> str:
-        if type_ == int or type_ == float or type_ == bool:
-            return name
+    def __convert_rsc_to_rs__(self, type_, name: str, is_property = False, called_by: ArgCalledBy = None) -> str:
+        if type_ == int or type_ == float or type_ == bool or type_ == ctypes.c_byte or type_ == ctypes.c_void_p:
+            if called_by == ArgCalledBy.Out or called_by == ArgCalledBy.Ref:
+                return  '{} as {}'.format(name, self.__get_rsc_type__(type_, called_by=called_by))
+            else:
+                return name
 
         if type_ == ctypes.c_wchar_p:
-            return 'CString::new({0}).expect("CString::new({0}) failed").as_ptr()'.format(name)
+            return 'encode_string(&{})'.format(name)
 
         if type_ in self.define.classes:
-            return '{}.{}'.format(name, self.self_ptr_name)
+            if is_property:
+                return '{}.lock().expect("Failed to get lock of {}").{}'.format(name, type_.name, self.self_ptr_name)
+            else:
+                return '{}.{}'.format(name, self.self_ptr_name)
 
         if type_ in self.define.structs:
             return '{}.into()'.format(name)
@@ -169,35 +204,36 @@ class BindingGeneratorRust(BindingGenerator):
         if type_ is None:
             return '()'
 
+        print('Type: {}'.format(type_))
         assert(False)
 
     def __convert_ret__(self, type_, name: str) -> str:
-        if type_ == int or type_ == float or type_ == bool:
+        if type_ == int or type_ == float or type_ == bool or type_ == ctypes.c_byte or type_ == ctypes.c_void_p:
             return name
 
         if type_ == ctypes.c_wchar_p:
-            x = 'unsafe{{ CString::from_raw({} as *mut i8) }}'.format(name)
-            return '{0}.into_string().expect("{0} failed")'.format(x)
+            return 'decode_string({})'.format(name)
 
         if type_ in self.define.classes:
-            if type_.do_cache:
+            if is_cached(type_):
                 return '{}::try_get_from_cache({})'.format(type_.name, name)
             else:
-                return '{}::create({})'.format(type_.name, name)
+                return '{}::cbg_create_raw({})'.format(type_.name, name)
 
         if type_ in self.define.structs:
-            return 'From::from({})'.format(name)
+            return '{}.into()'.format(name)
 
         if type_ in self.define.enums:
             return 'unsafe {{ std::mem::transmute({}) }}'.format(name)
 
+        print('Type: {}'.format(type_))
         assert(False)
 
     def __generate__unmanaged_func__(self, class_: Class, func_: Function) -> Code:
         code = Code()
         fname = __get_c_func_name__(class_, func_)
 
-        args = [replaceKeyword(arg.name) + ' : ' + self.__get_rsc_type__(arg.type_)
+        args = [replaceKeyword(arg.name) + ' : ' + self.__get_rsc_type__(arg.type_, called_by=arg.called_by)
             for arg in func_.args]
 
         if not func_.is_static and not func_.is_constructor:
@@ -225,7 +261,8 @@ class BindingGeneratorRust(BindingGenerator):
         code = Code()
         # extern unmanaged
 
-        code('#[link(name = "{}")]'.format(self.dll_name))
+        # code('#[link(name = "{}")]'.format(self.dll_name))
+        code('#[allow(dead_code)]')
         with CodeBlock(code, 'extern'):
             release_func = Function('Release')
 
@@ -242,17 +279,17 @@ class BindingGeneratorRust(BindingGenerator):
         return code
 
 
-    def __write_managed_function_body__(self, code: Code, class_: Class, func_: Function):
+    def __write_managed_function_body__(self, code: Code, class_: Class, func_: Function, is_property=False):
         fname = __get_c_func_name__(class_, func_)
         # call a function
         args = [self.__convert_rsc_to_rs__(
-                arg.type_, camelcase_to_underscore(replaceKeyword(arg.name))) for arg in func_.args]
+                arg.type_, camelcase_to_underscore(replaceKeyword(arg.name)), is_property=is_property, called_by=arg.called_by) for arg in func_.args]
 
         if not func_.is_static and not func_.is_constructor:
             args = ["self." + self.self_ptr_name] + args
 
         if func_.is_constructor:
-            code('Self::create(unsafe{{ {}({}) }})'.format(fname, ', '.join(args)))
+            code('Self::cbg_create_raw(unsafe{{ {}({}) }})'.format(fname, ', '.join(args)))
         else:
             func_code = 'unsafe {{ {}({}) }}'.format(fname, ', '.join(args))
             if func_.return_value.type_ is None:
@@ -266,7 +303,7 @@ class BindingGeneratorRust(BindingGenerator):
     def __generate__managed_func__(self, class_: Class, func_: Function) -> Code:
         code = Code()
 
-        args = [camelcase_to_underscore(replaceKeyword(arg.name)) + ' : ' + self.__get_rs_type__(arg.type_)
+        args = [camelcase_to_underscore(replaceKeyword(arg.name)) + ' : ' + self.__get_rs_type__(arg.type_, is_return=False, is_property=False, called_by=arg.called_by)
             for arg in func_.args]
 
         if not func_.is_static and not func_.is_constructor:
@@ -278,21 +315,25 @@ class BindingGeneratorRust(BindingGenerator):
 
             # not empty
             if func_.args:
-                code('///')
                 code('/// # Arguments')
 
             for arg in func_.args:
-                code('///')
-                code('/// * `{}` - {}'.format(camelcase_to_underscore(replaceKeyword(arg.name)), arg.desc.descs[self.lang]))
+                if arg.brief != None:
+                    code('/// * `{}` - {}'.format(camelcase_to_underscore(replaceKeyword(arg.name)), arg.brief.descs[self.lang]))
 
         # determine signature
-        if func_.is_constructor:
-            ret_type = "Self"
-            if class_.do_cache:
-                ret_type = "Arc<Mutex<Self>>"
-            func_title = 'pub fn new({}) -> {}'.format(', '.join(args), ret_type)
+        determine = ''
+
+        if func_.is_public:
+            determine = 'pub'
         else:
-            func_title = 'pub fn {}({}) -> {}'.format(
+            determine = 'pub(crate)'
+
+        if func_.is_constructor:
+            func_title = '{} fn new({}) -> {}'.format(determine, ', '.join(args), self.__get_rs_type__(class_, is_return=True))
+        else:
+            func_title = '{} fn {}({}) -> {}'.format(
+                determine,
                 camelcase_to_underscore(func_.name),
                 ', '.join(args),
                 self.__get_rs_type__(func_.return_value.type_, is_return=True))
@@ -314,7 +355,7 @@ class BindingGeneratorRust(BindingGenerator):
         if prop_.brief != None:
             code('/// {}'.format(prop_.brief.descs[self.lang]))
         
-        type_name = self.__get_rs_type__(prop_.type_)
+        type_name = self.__get_rs_type__(prop_.type_, is_property=True)
         type_name_return = self.__get_rs_type__(prop_.type_, is_return=True)
 
         field_name = camelcase_to_underscore(prop_.name)
@@ -322,14 +363,14 @@ class BindingGeneratorRust(BindingGenerator):
         if prop_.has_getter:
             with CodeBlock(code, 'pub fn get_{}(&mut self) -> {}'.format(field_name, type_name_return)):
                 if prop_.has_setter:
-                    with CodeBlock(code, 'if let Some(value) = self.{}'.format(field_name)):
+                    with CodeBlock(code, 'if let Some(value) = self.{}.clone()'.format(field_name)):
                         code('return value;')
                 self.__write_managed_function_body__(code, class_, prop_.getter_as_func())
         if prop_.has_setter:
             with CodeBlock(code, 'pub fn set_{}(&mut self, value : {})'.format(field_name, type_name)):
                 if prop_.has_getter:
-                    code('self.{} = Some(value);'.format(field_name))
-                self.__write_managed_function_body__(code, class_, prop_.setter_as_func())
+                    code('self.{} = Some(value.clone());'.format(field_name))
+                self.__write_managed_function_body__(code, class_, prop_.setter_as_func(), is_property=True)
 
         return code
 
@@ -338,7 +379,7 @@ class BindingGeneratorRust(BindingGenerator):
         code = Code()
 
         code('#[repr(C)]')
-        code('#[derive(Debug, Clone, Copy, PartialEq)]')
+        code('#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]')
         with CodeBlock(code, "pub enum {}".format(enum_.name)):
             for val in enum_.values:
                 line = val.name
@@ -353,28 +394,28 @@ class BindingGeneratorRust(BindingGenerator):
         code = Code()
 
         code('#[repr(C)]')
-        with CodeBlock(code, 'pub(crate) struct {}'.format(struct_.name)):
+        with CodeBlock(code, 'pub struct {}'.format(struct_.alias)):
             for field_ in struct_.fields:
                 code('pub(crate) {} : {},'.format(camelcase_to_underscore(field_.name), self.__get_rsc_type__(field_.type_)))
         return code
 
     def __generate_managed_struct__(self, struct_ : Struct) -> Code:
         code = Code()
-        code('#[derive(Debug, Clone, Copy, PartialEq)]')
-        with CodeBlock(code, 'pub struct {}'.format(struct_.name)):
+        code('#[derive(Debug, Clone, Copy, PartialEq, Default)]')
+        with CodeBlock(code, 'pub struct {}'.format(struct_.alias)):
             for field_ in struct_.fields:
-                code('{} : {},'.format(camelcase_to_underscore(field_.name), self.__get_rs_type__(field_.type_, is_return=True)))
+                code('pub {} : {},'.format(camelcase_to_underscore(field_.name), self.__get_rs_type__(field_.type_, is_return=True, is_property=True)))
         
-        unmanagedStructName = '{}::{}'.format(self.structModName, struct_.name)
+        unmanagedStructName = '{}::{}'.format(self.structModName, struct_.alias)
 
-        with CodeBlock(code, 'impl From<{0}> for {1}'.format(unmanagedStructName, struct_.name)):
+        with CodeBlock(code, 'impl From<{0}> for {1}'.format(unmanagedStructName, struct_.alias)):
             with CodeBlock(code, 'fn from(item: {}) -> Self'.format(unmanagedStructName)):
                 with CodeBlock(code, 'Self'):
                     for field_ in struct_.fields:
                         name = camelcase_to_underscore(field_.name)
                         code('{} : {},'.format(name, self.__convert_rsc_to_rs__(field_.type_, 'item.' + name)))
 
-        with CodeBlock(code, 'impl Into<{}> for {}'.format(unmanagedStructName, struct_.name)):
+        with CodeBlock(code, 'impl Into<{}> for {}'.format(unmanagedStructName, struct_.alias)):
             with CodeBlock(code, 'fn into(self) -> {}'.format(unmanagedStructName)):
                 with CodeBlock(code, unmanagedStructName):
                     for field_ in struct_.fields:
@@ -389,7 +430,7 @@ class BindingGeneratorRust(BindingGenerator):
 
         ptr_storage_name = self.PtrEnumName + "Storage"
         code('''
-use std::sync::{{Arc, Weak, RwLock, Mutex}};
+use std::sync::{{Weak, Arc, RwLock, Mutex}};
 use std::collections::HashMap;
 
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -399,49 +440,45 @@ unsafe impl Send for {0} {{ }}
 unsafe impl Sync for {0} {{ }}
 '''.format(ptr_storage_name, self.PtrEnumName))
 
-        with CodeBlock(code, 'lazy_static!'):
-            for class_ in classes:
-                code('''static ref {}_CACHE: RwLock<HashMap<{}, Weak<Mutex<{}>>>> = RwLock::new(HashMap::new());'''.format(
-                    class_.name.upper(), ptr_storage_name, class_.name))
-
         return code
 
 
     def __generate_class__(self, class_: Class) -> Code:
         code = Code()
 
-        code('#[derive(Debug, PartialEq, Eq, Hash)]')
+        code('#[derive(Debug)]')
         with CodeBlock(code, 'pub struct {}'.format(class_.name)):
             # unmanaged pointer
             code('{} : *mut {},'.format(self.self_ptr_name, self.PtrEnumName))
             for prop_ in class_.properties:
                 if prop_.has_getter and prop_.has_setter:
-                    code('{} : Option<{}>,'.format(camelcase_to_underscore(prop_.name), self.__get_rs_type__(prop_.type_)))
+                    code('{} : Option<{}>,'.format(camelcase_to_underscore(prop_.name), self.__get_rs_type__(prop_.type_, is_return=True, is_property=True)))
 
         code('''
 unsafe impl Send for {0} {{ }}
 unsafe impl Sync for {0} {{ }}
 '''.format(class_.name))
 
-        with CodeBlock(code, 'impl Clone for {}'.format(class_.name)):
-            with CodeBlock(code, 'fn clone(&self) -> Self'):
-                with CodeBlock(code, class_.name):
-                    code('{0} : self.{0},'.format(self.self_ptr_name))
-                    for prop_ in class_.properties:
-                        if prop_.has_getter and prop_.has_setter:
-                            name = camelcase_to_underscore(prop_.name)
-                            code('{} : self.{},'.format(name, name))
+        # with CodeBlock(code, 'impl Clone for {}'.format(class_.name)):
+        #     with CodeBlock(code, 'fn clone(&self) -> Self'):
+        #         with CodeBlock(code, class_.name):
+        #             code('{0} : self.{0},'.format(self.self_ptr_name))
+        #             for prop_ in class_.properties:
+        #                 if prop_.has_getter and prop_.has_setter:
+        #                     name = camelcase_to_underscore(prop_.name)
+                            
+        #                     code('{} : self.{},'.format(name, name))
         code('')
 
         with CodeBlock(code, 'impl {}'.format(class_.name)):
             # unmanaged constructor
             ret_type = "Self"
-            if class_.do_cache:
+            if is_cached(class_):
                 ret_type = "Arc<Mutex<Self>>"
             
             code('#[allow(dead_code)]')
-            with CodeBlock(code, 'fn create({} : *mut {}) -> {}'.format(self.self_ptr_name, self.PtrEnumName, ret_type), True):
-                if class_.do_cache:
+            with CodeBlock(code, 'fn cbg_create_raw({} : *mut {}) -> {}'.format(self.self_ptr_name, self.PtrEnumName, ret_type), True):
+                if is_cached(class_):
                     code('Arc::new(Mutex::new(')
                 
                 with CodeBlock(code, class_.name):
@@ -450,26 +487,29 @@ unsafe impl Sync for {0} {{ }}
                         if prop_.has_getter and prop_.has_setter:
                             code('{} : None,'.format(camelcase_to_underscore(prop_.name)))
                 
-                if class_.do_cache:
+                if is_cached(class_):
                     code('))')
 
-            if class_.do_cache:
-                body ='''
+            if is_cached(class_):
+                body = '''
 #[allow(dead_code)]
-fn try_get_from_cache({0} : *mut RawPtr) -> Arc<Mutex<Self>> {{
-    let mut hash_map = {1}_CACHE.write().unwrap();
-    let storage = RawPtrStorage({0});
+fn try_get_from_cache({0} : *mut {1}) -> Arc<Mutex<Self>> {{
+    lazy_static! {{
+        static ref {2}_CACHE: RwLock<HashMap<{1}Storage, Weak<Mutex<{3}>>>> = RwLock::new(HashMap::new());
+    }}
+    let mut hash_map = {2}_CACHE.write().unwrap();
+    let storage = {1}Storage({0});
     if let Some(x) = hash_map.get(&storage) {{
         match x.upgrade() {{
             Some(o) => {{ return o; }},
             None => {{ hash_map.remove(&storage); }},
         }}
     }}
-    let o = Self::create({0});
+    let o = Self::cbg_create_raw({0});
     hash_map.insert(storage, Arc::downgrade(&o));
     o
 }}
-'''.format(self.self_ptr_name, class_.name.upper())
+'''.format(self.self_ptr_name, self.PtrEnumName, class_.name.upper(), class_.name)
 
                 lines = body.split('\n')
                 for line in lines:
@@ -497,13 +537,44 @@ fn try_get_from_cache({0} : *mut RawPtr) -> Arc<Mutex<Self>> {{
     def generate(self):
         code = Code()
 
+        # add Waring
+        code('// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+        code('// !!                                          !!')
+        code('// !!  THIS FILE IS AUTO GENERATED.            !!')
+        code('// !!  YOUR COMMIT ON THIS FILE WILL BE WIPED. !!')
+        code('// !!                                          !!')
+        code('// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+        code('')
+
         # declare use
         code('#[allow(unused_imports)]')
         code('use std::os::raw::*;')
-        code('#[allow(unused_imports)]')
-        code('use std::ffi::CString;')
+        code('use std::ffi::{ c_void };')
         code('')
-        code('')
+
+        body = '''
+#[allow(dead_code)]
+fn decode_string(source: *const u16) -> String {
+    unsafe {
+        let len = (0..).take_while(|&i| *source.offset(i) != 0).count();
+        let slice = std::slice::from_raw_parts(source, len);
+        decode_utf16(slice.into_iter().map(|x| *x))
+            .map(|r| r.unwrap_or(REPLACEMENT_CHARACTER))
+            .collect()
+    }
+}
+
+#[allow(dead_code)]
+fn encode_string(s: &str) -> *const u16 {
+    let mut v: Vec<u16> = s.encode_utf16().collect();
+    v.push(0);
+    v.as_ptr()
+}
+'''
+
+        for line in body.split('\n'):
+            code(line)
+
 
         # declare module
         if self.module != '':
@@ -515,7 +586,8 @@ fn try_get_from_cache({0} : *mut RawPtr) -> Arc<Mutex<Self>> {{
 
         # enum group
         for enum_ in self.define.enums:
-            code(self.__generate_enum__(enum_))
+            if len(enum_.values) > 0:
+                code(self.__generate_enum__(enum_))
         
         for struct_ in self.define.structs:
             if struct_ not in self.structsReplaceMap:
@@ -523,7 +595,7 @@ fn try_get_from_cache({0} : *mut RawPtr) -> Arc<Mutex<Self>> {{
 
         # if list is not empty
         if self.define.structs:
-            with CodeBlock(code, 'pub(crate) mod {}'.format(self.structModName)):
+            with CodeBlock(code, 'pub mod {}'.format(self.structModName)):
                 code('#[allow(unused_imports)]')
                 code('use super::*;')
                 for struct_ in self.define.structs:
@@ -532,7 +604,7 @@ fn try_get_from_cache({0} : *mut RawPtr) -> Arc<Mutex<Self>> {{
 
         code(self.__generate_extern__(self.define.classes))
 
-        chached_classed = list(filter(lambda x: x.do_cache, self.define.classes))
+        chached_classed = list(filter(is_cached, self.define.classes))
 
         # Not Empty
         if chached_classed:

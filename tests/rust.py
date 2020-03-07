@@ -1,8 +1,8 @@
-import cbg
-import ctypes
-import sys
-import argparse
+import ctypes, sys, argparse, os
 
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+
+import cbg
 from definitions import define, ReplaceStructA
 
 parser = argparse.ArgumentParser()
