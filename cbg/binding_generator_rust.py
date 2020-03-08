@@ -113,7 +113,14 @@ class BindingGeneratorRust(BindingGenerator):
             return '&str'
 
         if type_ in self.define.classes:
-            if is_return or is_property:
+            if is_return:
+                if type_.cache_mode == CacheMode.Cache:
+                    return 'Option<Rc<RefCell<{}>>>'.format(type_.name)
+                elif type_.cache_mode == CacheMode.ThreadSafeCache:
+                    return 'Option<Arc<Mutex<{}>>>'.format(type_.name)
+                else:
+                    return type_.name
+            elif is_property:
                 if type_.cache_mode == CacheMode.Cache:
                     return 'Rc<RefCell<{}>>'.format(type_.name)
                 elif type_.cache_mode == CacheMode.ThreadSafeCache:
@@ -368,8 +375,10 @@ class BindingGeneratorRust(BindingGenerator):
         if prop_.has_getter:
             with CodeBlock(code, 'pub fn get_{}(&mut self) -> {}'.format(field_name, type_name_return)):
                 if prop_.has_setter:
-                    with CodeBlock(code, 'if let Some(value) = self.{}.clone()'.format(field_name)):
-                        code('return value;')
+                    if prop_.type_ in self.define.classes:
+                        code('if let Some(value) = self.{0}.clone() {{ return Some(value) }}'.format(field_name))
+                    else:
+                        code('if let Some(value) = self.{0}.clone() {{ return value; }}'.format(field_name))
                 self.__write_managed_function_body__(code, class_, prop_.getter_as_func())
         if prop_.has_setter:
             with CodeBlock(code, 'pub fn set_{}(&mut self, value : {})'.format(field_name, type_name)):
@@ -459,7 +468,7 @@ unsafe impl Sync for {0} {{ }}
             code('{} : *mut {},'.format(self.self_ptr_name, self.PtrEnumName))
             for prop_ in class_.properties:
                 if prop_.has_getter and prop_.has_setter:
-                    code('{} : Option<{}>,'.format(camelcase_to_underscore(prop_.name), self.__get_rs_type__(prop_.type_, is_return=True, is_property=True)))
+                    code('{} : Option<{}>,'.format(camelcase_to_underscore(prop_.name), self.__get_rs_type__(prop_.type_, is_property=True)))
         
         if class_.cache_mode == CacheMode.ThreadSafeCache:
             code('''
@@ -480,18 +489,16 @@ unsafe impl Sync for {0} {{ }}
 
         with CodeBlock(code, 'impl {}'.format(class_.name)):
             # unmanaged constructor
-            ret_type = "Self"
-            if class_.cache_mode == CacheMode.Cache:
-                ret_type = "Rc<RefCell<Self>>"
-            elif class_.cache_mode == CacheMode.ThreadSafeCache:
-                ret_type = "Arc<Mutex<Self>>"
+            ret_type = self.__get_rs_type__(class_, is_return=True)
             
             code('#[allow(dead_code)]')
             with CodeBlock(code, 'fn cbg_create_raw({} : *mut {}) -> {}'.format(self.self_ptr_name, self.PtrEnumName, ret_type), True):
+                code('if {} == NULLPTR {{ return None; }}'.format(self.self_ptr_name))
+
                 if class_.cache_mode == CacheMode.Cache:
-                    code('Rc::new(RefCell::new(')
+                    code('Some(Rc::new(RefCell::new(')
                 elif class_.cache_mode == CacheMode.ThreadSafeCache:
-                    code('Arc::new(Mutex::new(')
+                    code('Some(Arc::new(Mutex::new(')
                 
                 with CodeBlock(code, class_.name):
                     code('{},'.format(self.self_ptr_name))
@@ -500,13 +507,13 @@ unsafe impl Sync for {0} {{ }}
                             code('{} : None,'.format(camelcase_to_underscore(prop_.name)))
                 
                 if is_cached(class_):
-                    code('))')
+                    code(')))')
 
             body = ''
             if class_.cache_mode == CacheMode.Cache:
                 body = '''
 #[allow(dead_code)]
-fn try_get_from_cache({0} : *mut {1}) -> Rc<RefCell<Self>> {{
+fn try_get_from_cache({0} : *mut {1}) -> Option<Rc<RefCell<Self>>> {{
     thread_local! {{
         static {2}_CACHE: RefCell<HashMap<{1}Storage, rc::Weak<RefCell<{3}>>>> = RefCell::new(HashMap::new());
     }}
@@ -515,13 +522,13 @@ fn try_get_from_cache({0} : *mut {1}) -> Rc<RefCell<Self>> {{
         let storage = {1}Storage({0});
         if let Some(x) = hash_map.get(&storage) {{
             match x.upgrade() {{
-                Some(o) => {{ return o; }},
+                Some(o) => {{ return Some(o); }},
                 None => {{ hash_map.remove(&storage); }},
             }}
         }}
-        let o = Self::cbg_create_raw({0});
+        let o = Self::cbg_create_raw({0})?;
         hash_map.insert(storage, Rc::downgrade(&o));
-        o
+        Some(o)
     }})
 }}
 '''.format(self.self_ptr_name, self.PtrEnumName, class_.name.upper(), class_.name)
@@ -529,7 +536,7 @@ fn try_get_from_cache({0} : *mut {1}) -> Rc<RefCell<Self>> {{
             elif class_.cache_mode == CacheMode.ThreadSafeCache:
                 body = '''
 #[allow(dead_code)]
-fn try_get_from_cache({0} : *mut {1}) -> Arc<Mutex<Self>> {{
+fn try_get_from_cache({0} : *mut {1}) -> Option<Arc<Mutex<Self>>> {{
     lazy_static! {{
         static ref {2}_CACHE: RwLock<HashMap<{1}Storage, sync::Weak<Mutex<{3}>>>> = RwLock::new(HashMap::new());
     }}
@@ -537,13 +544,13 @@ fn try_get_from_cache({0} : *mut {1}) -> Arc<Mutex<Self>> {{
     let storage = {1}Storage({0});
     if let Some(x) = hash_map.get(&storage) {{
         match x.upgrade() {{
-            Some(o) => {{ return o; }},
+            Some(o) => {{ return Some(o); }},
             None => {{ hash_map.remove(&storage); }},
         }}
     }}
-    let o = Self::cbg_create_raw({0});
+    let o = Self::cbg_create_raw({0})?;
     hash_map.insert(storage, Arc::downgrade(&o));
-    o
+    Some(o)
 }}
 '''.format(self.self_ptr_name, self.PtrEnumName, class_.name.upper(), class_.name)
 
@@ -587,6 +594,7 @@ fn try_get_from_cache({0} : *mut {1}) -> Arc<Mutex<Self>> {{
         code('use std::os::raw::*;')
         code('use std::ffi::{ c_void };')
         code('')
+        code('const NULLPTR : *mut RawPtr = 0 as *mut RawPtr;')
 
         body = '''
 #[allow(dead_code)]
