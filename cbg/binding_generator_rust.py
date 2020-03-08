@@ -82,7 +82,7 @@ class BindingGeneratorRust(BindingGenerator):
         self.self_ptr_name = 'self_ptr'
         self.lang = lang
         self.PtrEnumName = 'RawPtr'
-        self.structModName = 'structs'
+        self.structModName = 'crate::structs'
         self.structsReplaceMap = {}
 
     def __get_rs_type__(self, type_, is_return = False, is_property = False, called_by: ArgCalledBy = None) -> str:
@@ -266,8 +266,8 @@ class BindingGeneratorRust(BindingGenerator):
         code = Code()
         # extern unmanaged
 
-        # code('#[link(name = "{}")]'.format(self.dll_name))
         code('#[allow(dead_code)]')
+        code('#[link(name = "{}")]'.format(self.dll_name))
         with CodeBlock(code, 'extern'):
             release_func = Function('Release')
 
@@ -623,17 +623,17 @@ fn encode_string(s: &str) -> Vec<u16> {
             if len(enum_.values) > 0:
                 code(self.__generate_enum__(enum_))
         
-        for struct_ in self.define.structs:
-            if struct_ not in self.structsReplaceMap:
-                code(self.__generate_managed_struct__(struct_))
+        # for struct_ in self.define.structs:
+        #     if struct_ not in self.structsReplaceMap:
+        #         code(self.__generate_managed_struct__(struct_))
 
-        # if list is not empty
-        if self.define.structs:
-            with CodeBlock(code, 'pub mod {}'.format(self.structModName)):
-                code('#[allow(unused_imports)]')
-                code('use super::*;')
-                for struct_ in self.define.structs:
-                    code(self.__generate_unmanaged_struct__(struct_))
+        # # if list is not empty
+        # if self.define.structs:
+        #     with CodeBlock(code, 'pub mod {}'.format(self.structModName)):
+        #         code('#[allow(unused_imports)]')
+        #         code('use super::*;')
+        #         for struct_ in self.define.structs:
+        #             code(self.__generate_unmanaged_struct__(struct_))
 
 
         code(self.__generate_extern__(self.define.classes))
