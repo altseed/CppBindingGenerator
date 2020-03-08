@@ -463,8 +463,8 @@ unsafe impl Sync for {0} {{ }}
         
         if class_.cache_mode == CacheMode.ThreadSafeCache:
             code('''
-    unsafe impl Send for {0} {{ }}
-    unsafe impl Sync for {0} {{ }}
+unsafe impl Send for {0} {{ }}
+unsafe impl Sync for {0} {{ }}
     '''.format(class_.name))
 
         # with CodeBlock(code, 'impl Clone for {}'.format(class_.name)):
