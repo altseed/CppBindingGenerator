@@ -189,7 +189,7 @@ class BindingGeneratorRust(BindingGenerator):
                 return name
 
         if type_ == ctypes.c_wchar_p:
-            return 'encode_string(&{})'.format(name)
+            return 'encode_string(&{}).as_ptr()'.format(name)
 
         if type_ in self.define.classes:
             if is_property:
@@ -594,17 +594,15 @@ fn decode_string(source: *const u16) -> String {
     unsafe {
         let len = (0..).take_while(|&i| *source.offset(i) != 0).count();
         let slice = std::slice::from_raw_parts(source, len);
-        decode_utf16(slice.into_iter().map(|x| *x))
-            .map(|r| r.unwrap_or(REPLACEMENT_CHARACTER))
-            .collect()
+        String::from_utf16_lossy(slice)
     }
 }
 
 #[allow(dead_code)]
-fn encode_string(s: &str) -> *const u16 {
+fn encode_string(s: &str) -> Vec<u16> {
     let mut v: Vec<u16> = s.encode_utf16().collect();
     v.push(0);
-    v.as_ptr()
+    v
 }
 '''
 
