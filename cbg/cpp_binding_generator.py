@@ -550,12 +550,17 @@ class SharedObjectGenerator:
         code = ''
 
         header = '''\
-// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-// !!                                          !!
-// !!  THIS FILE IS AUTO GENERATED.            !!
-// !!  YOUR COMMIT ON THI FILE WILL BE WIPED.  !!
-// !!                                          !!
-// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+// !!                                               !!
+// !!  このファイルは自動生成されました。              !!
+// !!  このファイルへの変更は消失することがあります。   !!
+// !!                                               !!
+// !!  THIS FILE IS AUTO GENERATED.                 !!
+// !!  YOUR COMMITMENT ON THIS FILE WILL BE WIPED.  !!
+// !!                                               !!
+// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 #include <stdio.h>
 #include <stdint.h>
