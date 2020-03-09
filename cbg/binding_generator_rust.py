@@ -87,6 +87,7 @@ class BindingGeneratorRust(BindingGenerator):
         self.PtrEnumName = 'RawPtr'
         self.structModName = 'crate::structs'
         self.structsReplaceMap = {}
+        self.bitFlags: set = {}
 
     def __get_rs_type__(self, type_, is_return = False, is_property = False, called_by: ArgCalledBy = None) -> str:
         ptr = ''
@@ -214,7 +215,10 @@ class BindingGeneratorRust(BindingGenerator):
             return '{}.into()'.format(name)
 
         if type_ in self.define.enums:
-            return '{} as i32'.format(name)
+            if type_ in self.bitFlags:
+                return '{}.bits as i32'.format(name)
+            else:
+                return '{} as i32'.format(name)
 
         if type_ is None:
             return '()'
@@ -248,11 +252,11 @@ class BindingGeneratorRust(BindingGenerator):
         code = Code()
         fname = __get_c_func_name__(class_, func_)
 
-        args = [replaceKeyword(arg.name) + ' : ' + self.__get_rsc_type__(arg.type_, called_by=arg.called_by)
+        args = [replaceKeyword(arg.name) + ': ' + self.__get_rsc_type__(arg.type_, called_by=arg.called_by)
             for arg in func_.args]
 
         if not func_.is_static and not func_.is_constructor:
-            args = ['{} : *mut {}'.format(self.self_ptr_name, self.PtrEnumName)] + args
+            args = ['{}: *mut {}'.format(self.self_ptr_name, self.PtrEnumName)] + args
             
         code('fn {}({}) -> {};'.format(
             fname,
@@ -402,22 +406,44 @@ class BindingGeneratorRust(BindingGenerator):
     def __generate_enum__(self, enum_ : Enum) -> Code:
         code = Code()
 
-        # Markdown comment
-        if enum_.brief != None:
-            code('/// {}'.format(enum_.brief.descs[self.lang]))
-
         access = 'pub'
 
-        code('#[repr(C)]')
-        code('#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]')
-        with CodeBlock(code, "{} enum {}".format(access, enum_.name)):
-            for val in enum_.values:
-                if val.brief != None:
-                    code('/// {}'.format(val.brief.descs[self.lang]))
-                line = val.name
-                if val.value != None:
-                    line = '{} = {}'.format(line, val.value)
-                code(line + ',')
+        if enum_ in self.bitFlags:
+
+            with CodeBlock(code, "bitflags!"):
+                # Markdown comment
+                if enum_.brief != None:
+                    code('/// {}'.format(enum_.brief.descs[self.lang]))
+
+                with CodeBlock(code, "{} struct {}: i32".format(access, enum_.name)):
+                    int_value = 0
+                    for val in enum_.values:
+                        if val.brief != None:
+                            code('/// {}'.format(val.brief.descs[self.lang]))
+
+                        val_name = camelcase_to_underscore(val.name).upper()
+                        if val.value != None:
+                            code('const {} = {};'.format(val_name, val.value))
+                            int_value = val.value + 1
+                        else:
+                            code('const {} = {};'.format(val_name, int_value))
+                            int_value += 1
+        else:
+            # Markdown comment
+            if enum_.brief != None:
+                code('/// {}'.format(enum_.brief.descs[self.lang]))
+            
+            code('#[repr(C)]')
+            code('#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]')
+            with CodeBlock(code, "{} enum {}".format(access, enum_.name)):
+                int_value = 0
+                for val in enum_.values:
+                    if val.brief != None:
+                        code('/// {}'.format(val.brief.descs[self.lang]))
+                    if val.value != None:
+                        code('{} = {},'.format(val.name, val.value))
+                    else:
+                        code('{},'.format(val.name))
 
         return code
 
@@ -496,7 +522,7 @@ unsafe impl Sync for {0} {{ }}
             code('{} : *mut {},'.format(self.self_ptr_name, self.PtrEnumName))
             for prop_ in class_.properties:
                 if prop_.has_getter and prop_.has_setter:
-                    code('{} : Option<{}>,'.format(camelcase_to_underscore(prop_.name), self.__get_rs_type__(prop_.type_, is_property=True)))
+                    code('{}: Option<{}>,'.format(camelcase_to_underscore(prop_.name), self.__get_rs_type__(prop_.type_, is_property=True)))
         
         if class_.cache_mode == CacheMode.ThreadSafeCache:
             code('''
@@ -622,10 +648,10 @@ fn try_get_from_cache({0} : *mut {1}) -> Option<Arc<Mutex<Self>>> {{
 
         # declare use
         code('#[allow(unused_imports)]')
+        code('use std::ffi::c_void;')
         code('use std::os::raw::*;')
-        code('use std::ffi::{ c_void };')
         code('')
-        code('const NULLPTR : *mut RawPtr = 0 as *mut RawPtr;')
+        code('const NULLPTR: *mut RawPtr = 0 as *mut RawPtr;')
 
         body = '''
 #[allow(dead_code)]
