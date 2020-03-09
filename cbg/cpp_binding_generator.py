@@ -182,6 +182,12 @@ class EnumValue:
     def __str__(self):
         return self.name
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exit_type, exit_value, traceback):
+        return self
+
 
 class Enum:
     def __init__(self, namespace: str, name: str):
