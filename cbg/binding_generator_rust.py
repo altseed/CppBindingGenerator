@@ -329,7 +329,8 @@ class BindingGeneratorRust(BindingGenerator):
             code('/// {}'.format(func_.brief.descs[self.lang]))
 
             # not empty
-            if func_.args:
+            # if func_.args:
+            if any(map(lambda x: x.brief != None, func_.args)):
                 code('/// # Arguments')
 
             for arg in func_.args:
