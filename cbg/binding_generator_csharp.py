@@ -522,13 +522,15 @@ class BindingGeneratorCSharp(BindingGenerator):
 
         # add Waring
         code('// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-        code('// !!                                               !!')
-        code('// !!  このファイルは自動生成されました。              !!')
-        code('// !!  このファイルへの変更は消失することがあります。   !!')
-        code('// !!                                               !!')
-        code('// !!  THIS FILE IS AUTO GENERATED.                 !!')
-        code('// !!  YOUR COMMITMENT ON THIS FILE WILL BE WIPED.  !!')
-        code('// !!                                               !!')
+        code('// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+        code('//')
+        code('//   このファイルは自動生成されました。')
+        code('//   このファイルへの変更は消失することがあります。')
+        code('//')
+        code('//   THIS FILE IS AUTO GENERATED.')
+        code('//   YOUR COMMITMENT ON THIS FILE WILL BE WIPED. ')
+        code('//')
+        code('// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
         code('// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
 
         # declare using
