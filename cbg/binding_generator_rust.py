@@ -404,39 +404,39 @@ class BindingGeneratorRust(BindingGenerator):
         return code
 
 
-    def __generate_unmanaged_struct__(self, struct_ : Struct) -> Code:
-        code = Code()
+    # def __generate_unmanaged_struct__(self, struct_ : Struct) -> Code:
+    #     code = Code()
 
-        code('#[repr(C)]')
-        with CodeBlock(code, 'pub struct {}'.format(struct_.alias)):
-            for field_ in struct_.fields:
-                code('pub(crate) {} : {},'.format(camelcase_to_underscore(field_.name), self.__get_rsc_type__(field_.type_)))
-        return code
+    #     code('#[repr(C)]')
+    #     with CodeBlock(code, 'pub struct {}'.format(struct_.alias)):
+    #         for field_ in struct_.fields:
+    #             code('pub(crate) {} : {},'.format(camelcase_to_underscore(field_.name), self.__get_rsc_type__(field_.type_)))
+    #     return code
 
-    def __generate_managed_struct__(self, struct_ : Struct) -> Code:
-        code = Code()
-        code('#[derive(Debug, Clone, Copy, PartialEq, Default)]')
-        with CodeBlock(code, 'pub struct {}'.format(struct_.alias)):
-            for field_ in struct_.fields:
-                code('pub {} : {},'.format(camelcase_to_underscore(field_.name), self.__get_rs_type__(field_.type_, is_return=True, is_property=True)))
+    # def __generate_managed_struct__(self, struct_ : Struct) -> Code:
+    #     code = Code()
+    #     code('#[derive(Debug, Clone, Copy, PartialEq, Default)]')
+    #     with CodeBlock(code, 'pub struct {}'.format(struct_.alias)):
+    #         for field_ in struct_.fields:
+    #             code('pub {} : {},'.format(camelcase_to_underscore(field_.name), self.__get_rs_type__(field_.type_, is_return=True, is_property=True)))
         
-        unmanagedStructName = '{}::{}'.format(self.structModName, struct_.alias)
+    #     unmanagedStructName = '{}::{}'.format(self.structModName, struct_.alias)
 
-        with CodeBlock(code, 'impl From<{0}> for {1}'.format(unmanagedStructName, struct_.alias)):
-            with CodeBlock(code, 'fn from(item: {}) -> Self'.format(unmanagedStructName)):
-                with CodeBlock(code, 'Self'):
-                    for field_ in struct_.fields:
-                        name = camelcase_to_underscore(field_.name)
-                        code('{} : {},'.format(name, self.__convert_rsc_to_rs__(field_.type_, 'item.' + name)))
+    #     with CodeBlock(code, 'impl From<{0}> for {1}'.format(unmanagedStructName, struct_.alias)):
+    #         with CodeBlock(code, 'fn from(item: {}) -> Self'.format(unmanagedStructName)):
+    #             with CodeBlock(code, 'Self'):
+    #                 for field_ in struct_.fields:
+    #                     name = camelcase_to_underscore(field_.name)
+    #                     code('{} : {},'.format(name, self.__convert_rsc_to_rs__(field_.type_, 'item.' + name)))
 
-        with CodeBlock(code, 'impl Into<{}> for {}'.format(unmanagedStructName, struct_.alias)):
-            with CodeBlock(code, 'fn into(self) -> {}'.format(unmanagedStructName)):
-                with CodeBlock(code, unmanagedStructName):
-                    for field_ in struct_.fields:
-                        name = camelcase_to_underscore(field_.name)
-                        code('{} : {},'.format(name, self.__convert_ret__(field_.type_, 'self.' + name)))
+    #     with CodeBlock(code, 'impl Into<{}> for {}'.format(unmanagedStructName, struct_.alias)):
+    #         with CodeBlock(code, 'fn into(self) -> {}'.format(unmanagedStructName)):
+    #             with CodeBlock(code, unmanagedStructName):
+    #                 for field_ in struct_.fields:
+    #                     name = camelcase_to_underscore(field_.name)
+    #                     code('{} : {},'.format(name, self.__convert_ret__(field_.type_, 'self.' + name)))
 
-        return code
+    #     return code
 
 
     def __generate_cache__(self, classes: List[Class]) -> Code:
