@@ -333,19 +333,19 @@ class BindingGeneratorRust(BindingGenerator):
                 if arg.brief != None:
                     code('/// * `{}` - {}'.format(camelcase_to_underscore(replaceKeyword(arg.name)), arg.brief.descs[self.lang]))
 
-        # determine signature
-        determine = ''
+        # access signature
+        access = ''
 
         if func_.is_public:
-            determine = 'pub'
+            access = 'pub'
         else:
-            determine = 'pub(crate)'
+            access = 'pub(crate)'
 
         if func_.is_constructor:
-            func_title = '{} fn new({}) -> {}'.format(determine, ', '.join(args), self.__get_rs_type__(class_, is_return=True))
+            func_title = '{} fn new({}) -> {}'.format(access, ', '.join(args), self.__get_rs_type__(class_, is_return=True))
         else:
             func_title = '{} fn {}({}) -> {}'.format(
-                determine,
+                access,
                 camelcase_to_underscore(func_.name),
                 ', '.join(args),
                 self.__get_rs_type__(func_.return_value.type_, is_return=True))
@@ -371,9 +371,15 @@ class BindingGeneratorRust(BindingGenerator):
         type_name_return = self.__get_rs_type__(prop_.type_, is_return=True)
 
         field_name = camelcase_to_underscore(prop_.name)
-        # with CodeBlock(code, 'public {} {}'.format(type_name, prop_.name)):
+
+        access = 'pub'
+        # if prop_.is_public:
+        #     access = 'pub'
+        # else:
+        #     access = 'pub(crate)'
+        
         if prop_.has_getter:
-            with CodeBlock(code, 'pub fn get_{}(&mut self) -> {}'.format(field_name, type_name_return)):
+            with CodeBlock(code, '{} fn get_{}(&mut self) -> {}'.format(access, field_name, type_name_return)):
                 if prop_.has_setter:
                     if prop_.type_ in self.define.classes:
                         code('if let Some(value) = self.{0}.clone() {{ return Some(value) }}'.format(field_name))
@@ -381,7 +387,7 @@ class BindingGeneratorRust(BindingGenerator):
                         code('if let Some(value) = self.{0}.clone() {{ return value; }}'.format(field_name))
                 self.__write_managed_function_body__(code, class_, prop_.getter_as_func())
         if prop_.has_setter:
-            with CodeBlock(code, 'pub fn set_{}(&mut self, value : {})'.format(field_name, type_name)):
+            with CodeBlock(code, '{} fn set_{}(&mut self, value : {})'.format(access, field_name, type_name)):
                 if prop_.has_getter:
                     code('self.{} = Some(value.clone());'.format(field_name))
                 self.__write_managed_function_body__(code, class_, prop_.setter_as_func(), is_property=True)
@@ -392,9 +398,11 @@ class BindingGeneratorRust(BindingGenerator):
     def __generate_enum__(self, enum_ : Enum) -> Code:
         code = Code()
 
+        access = 'pub'
+
         code('#[repr(C)]')
         code('#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]')
-        with CodeBlock(code, "pub enum {}".format(enum_.name)):
+        with CodeBlock(code, "{} enum {}".format(access, enum_.name)):
             for val in enum_.values:
                 line = val.name
                 if val.value != None:
@@ -462,8 +470,14 @@ unsafe impl Sync for {0} {{ }}
     def __generate_class__(self, class_: Class) -> Code:
         code = Code()
 
+        access = ''
+        if class_.is_public:
+            access = 'pub'
+        else:
+            access = 'pub(crate)'
+
         code('#[derive(Debug)]')
-        with CodeBlock(code, 'pub struct {}'.format(class_.name)):
+        with CodeBlock(code, '{} struct {}'.format(access, class_.name)):
             # unmanaged pointer
             code('{} : *mut {},'.format(self.self_ptr_name, self.PtrEnumName))
             for prop_ in class_.properties:
