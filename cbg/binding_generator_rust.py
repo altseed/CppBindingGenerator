@@ -412,6 +412,8 @@ class BindingGeneratorRust(BindingGenerator):
         code('#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]')
         with CodeBlock(code, "{} enum {}".format(access, enum_.name)):
             for val in enum_.values:
+                if val.brief != None:
+                    code('/// {}'.format(val.brief.descs[self.lang]))
                 line = val.name
                 if val.value != None:
                     line = '{} = {}'.format(line, val.value)
