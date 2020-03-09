@@ -18,11 +18,14 @@ from .cpp_binding_generator import __get_c_release_func_name__
 def camelcase_to_underscore(value : str) -> str:
     result = []
     beforeCharacter = ''
+    value_len = len(value)
 
-    c = ''
-    for x in list(value):
+    for i in range(value_len):
+        c = ''
+        x = value[i]
         if x.isalnum() and x.isupper() and (beforeCharacter != '_'):
-            if result:
+            if result and beforeCharacter.islower():
+            # if result:
                 c = '_'
             c = c + x.lower()
         else:
