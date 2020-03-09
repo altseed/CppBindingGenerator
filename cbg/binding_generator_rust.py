@@ -87,7 +87,8 @@ class BindingGeneratorRust(BindingGenerator):
         self.PtrEnumName = 'RawPtr'
         self.structModName = 'crate::structs'
         self.structsReplaceMap = {}
-        self.bitFlags: set = {}
+        self.bitFlags: set = set()
+        self.baseClasses: set = set()
 
     def __get_rs_type__(self, type_, is_return = False, is_property = False, called_by: ArgCalledBy = None) -> str:
         ptr = ''
@@ -125,12 +126,20 @@ class BindingGeneratorRust(BindingGenerator):
                 else:
                     return type_.name
             elif is_property:
+                if type_ in self.baseClasses:
+                    if type_.cache_mode == CacheMode.Cache:
+                        return 'Rc<RefCell<dyn {}Trait>>'.format(type_.name)
+                    elif type_.cache_mode == CacheMode.ThreadSafeCache:
+                        return 'Arc<Mutex<dyn {}Trait>>'.format(type_.name)
+            
                 if type_.cache_mode == CacheMode.Cache:
                     return 'Rc<RefCell<{}>>'.format(type_.name)
                 elif type_.cache_mode == CacheMode.ThreadSafeCache:
                     return 'Arc<Mutex<{}>>'.format(type_.name)
-                else:
-                    return type_.name
+                
+                return type_.name
+            elif type_ in self.baseClasses:
+                return '&mut {}Trait'.format(type_.name)
             else:
                 return '&mut ' + type_.name
 
@@ -316,17 +325,8 @@ class BindingGeneratorRust(BindingGenerator):
                 code( 'let ret = {};'.format(func_code) )
                 code(self.__convert_ret__(func_.return_value.type_, 'ret'))
 
-
-
-    def __generate__managed_func__(self, class_: Class, func_: Function) -> Code:
+    def __generate_func_brief__(self, class_: Class, func_: Function) -> Code:
         code = Code()
-
-        args = [camelcase_to_underscore(replaceKeyword(arg.name)) + ' : ' + self.__get_rs_type__(arg.type_, is_return=False, is_property=False, called_by=arg.called_by)
-            for arg in func_.args]
-
-        if not func_.is_static and not func_.is_constructor:
-            args = [ "&mut self" ] + args
-
         # Markdown comment
         if func_.brief != None:
             code('/// {}'.format(func_.brief.descs[self.lang]))
@@ -339,53 +339,68 @@ class BindingGeneratorRust(BindingGenerator):
             for arg in func_.args:
                 if arg.brief != None:
                     code('/// * `{}` - {}'.format(camelcase_to_underscore(replaceKeyword(arg.name)), arg.brief.descs[self.lang]))
+        return code
 
-        # access signature
-        access = ''
+    def __managed_func_declare__(self, class_: Class, func_: Function) -> str:
+        args = [camelcase_to_underscore(replaceKeyword(arg.name)) + ' : ' + self.__get_rs_type__(arg.type_, is_return=False, is_property=False, called_by=arg.called_by)
+            for arg in func_.args]
 
-        if func_.is_public:
-            access = 'pub'
-        else:
-            access = 'pub(crate)'
+        if not func_.is_static and not func_.is_constructor:
+            args = [ "&mut self" ] + args
 
         if func_.is_constructor:
-            func_title = '{} fn new({}) -> {}'.format(access, ', '.join(args), self.__get_rs_type__(class_, is_return=True))
+            return 'fn new({}) -> {}'.format(', '.join(args), self.__get_rs_type__(class_, is_return=True))
         else:
-            func_title = '{} fn {}({}) -> {}'.format(
-                access,
+            return 'fn {}({}) -> {}'.format(
                 camelcase_to_underscore(func_.name),
                 ', '.join(args),
                 self.__get_rs_type__(func_.return_value.type_, is_return=True))
 
+
+    def __generate__managed_func__(self, class_: Class, func_: Function, add_accessor=True) -> Code:
+        code = Code()
+
+        code(self.__generate_func_brief__(class_, func_))
+
+        # access signature
+        access = ''
+        if add_accessor:
+            if func_.is_public:
+                access = 'pub '
+            else:
+                access = 'pub(crate) '
+
+        func_title = access + self.__managed_func_declare__(class_, func_)
         # function body
         with CodeBlock(code, func_title):
             self.__write_managed_function_body__(code, class_, func_)
 
         return code
 
-    def __generate__managed_property_(self, class_: Class, prop_:Property) -> Code:
+    def __generate__managed_property_(self, class_: Class, prop_:Property, add_accessor=True) -> Code:
         code = Code()
 
         # cannot generate property with no getter and no setter
         if not prop_.has_getter and not prop_.has_setter:
             return code
         
-        # Markdown comment
-        if prop_.brief != None:
-            code('/// {}'.format(prop_.brief.descs[self.lang]))
-        
         type_name = self.__get_rs_type__(prop_.type_, is_property=True)
         type_name_return = self.__get_rs_type__(prop_.type_, is_return=True)
 
         field_name = camelcase_to_underscore(prop_.name)
 
-        access = 'pub'
+        access = ''
+        if add_accessor:
+            access = 'pub'
         # if prop_.is_public:
         #     access = 'pub'
         # else:
         #     access = 'pub(crate)'
         
         if prop_.has_getter:
+            # Markdown comment
+            if prop_.brief != None:
+                code('/// {}'.format(prop_.brief.descs[self.lang]))
             with CodeBlock(code, '{} fn get_{}(&mut self) -> {}'.format(access, field_name, type_name_return)):
                 if prop_.has_setter:
                     if prop_.type_ in self.define.classes:
@@ -394,6 +409,9 @@ class BindingGeneratorRust(BindingGenerator):
                         code('if let Some(value) = self.{0}.clone() {{ return value; }}'.format(field_name))
                 self.__write_managed_function_body__(code, class_, prop_.getter_as_func())
         if prop_.has_setter:
+            # Markdown comment
+            if prop_.brief != None:
+                code('/// {}'.format(prop_.brief.descs[self.lang]))
             with CodeBlock(code, '{} fn set_{}(&mut self, value : {})'.format(access, field_name, type_name)):
                 if prop_.has_getter:
                     code('self.{} = Some(value.clone());'.format(field_name))
@@ -481,34 +499,38 @@ class BindingGeneratorRust(BindingGenerator):
 
     #     return code
 
-
-    def __generate_cache__(self, classes: List[Class]) -> Code:
-        code = Code()
-
-        ptr_storage_name = self.PtrEnumName + "Storage"
-        code('''
-use std::rc::{{self, Rc}};
-use std::cell::RefCell;
-use std::sync::{{self, Arc, RwLock, Mutex}};
-use std::collections::HashMap;
-
-#[derive(Debug, PartialEq, Eq, Hash)]
-struct {0}(*mut {1});
-
-unsafe impl Send for {0} {{ }}
-unsafe impl Sync for {0} {{ }}
-'''.format(ptr_storage_name, self.PtrEnumName))
-
-        return code
-
-
     def __generate_class__(self, class_: Class) -> Code:
         code = Code()
+
+        distincted_funcs = {}
+        distincted_props = {}
+
+        for f in class_.funcs:
+            distincted_funcs[f.name] = f
+
+        for p in class_.properties:
+            distincted_props[p.name] = p
+
+        base_classes = []
+        base_funcs = {}
+        base_props = {}
+        current = class_
+        while current.base_class != None:
+            if current.base_class == current:
+                assert('infinit inheritance')
+            base_classes.append(current.base_class)
+            for f in current.base_class.funcs:
+                distincted_funcs[f.name] = f
+                base_funcs[f.name] = f
+            for p in current.base_class.properties:
+                distincted_props[p.name] = p
+                base_props[p.name] = p
+            current = current.base_class
 
         # Markdown comment
         if class_.brief != None:
             code('/// {}'.format(class_.brief.descs[self.lang]))
-
+        
         access = ''
         if class_.is_public:
             access = 'pub'
@@ -519,7 +541,7 @@ unsafe impl Sync for {0} {{ }}
         with CodeBlock(code, '{} struct {}'.format(access, class_.name)):
             # unmanaged pointer
             code('{} : *mut {},'.format(self.self_ptr_name, self.PtrEnumName))
-            for prop_ in class_.properties:
+            for prop_ in distincted_props.values():
                 if prop_.has_getter and prop_.has_setter:
                     code('{}: Option<{}>,'.format(camelcase_to_underscore(prop_.name), self.__get_rs_type__(prop_.type_, is_property=True)))
         
@@ -529,16 +551,45 @@ unsafe impl Send for {0} {{ }}
 unsafe impl Sync for {0} {{ }}
     '''.format(class_.name))
 
-        # with CodeBlock(code, 'impl Clone for {}'.format(class_.name)):
-        #     with CodeBlock(code, 'fn clone(&self) -> Self'):
-        #         with CodeBlock(code, class_.name):
-        #             code('{0} : self.{0},'.format(self.self_ptr_name))
-        #             for prop_ in class_.properties:
-        #                 if prop_.has_getter and prop_.has_setter:
-        #                     name = camelcase_to_underscore(prop_.name)
-                            
-        #                     code('{} : self.{},'.format(name, name))
         code('')
+
+        if class_ in self.baseClasses:
+            inherits = ''
+            # not empty
+            if base_classes:
+                inherits = ': ' + ' + '.join(map(lambda x: x.name + 'Trait',base_classes))
+
+            with CodeBlock(code, 'pub trait {}Trait {}'.format(class_.name, inherits)):
+                for func_ in [f for f in distincted_funcs.values() if len(f.targets) == 0 or 'rust' in f.targets]:
+                    code(self.__generate_func_brief__(class_, func_))
+                    code(self.__managed_func_declare__(class_, func_) + ';')
+
+                for prop_ in distincted_props.values():
+                    type_name = self.__get_rs_type__(prop_.type_, is_property=True)
+                    type_name_return = self.__get_rs_type__(prop_.type_, is_return=True)
+                    field_name = camelcase_to_underscore(prop_.name)
+
+                    if prop_.has_getter:
+                        # Markdown comment
+                        if prop_.brief != None:
+                            code('/// {}'.format(prop_.brief.descs[self.lang]))
+                        code('fn get_{}(&mut self) -> {};'.format(field_name, type_name_return))
+
+                    if prop_.has_setter:
+                        # Markdown comment
+                        if prop_.brief != None:
+                            code('/// {}'.format(prop_.brief.descs[self.lang]))
+                        code('fn set_{}(&mut self, value : {});'.format(field_name, type_name))
+
+            base_classes.append(class_)
+
+        for base_class in base_classes:
+            with CodeBlock(code, 'impl {}Trait for {}'.format(base_class.name, class_.name)):
+                for func_ in [f for f in base_class.funcs if len(f.targets) == 0 or 'rust' in f.targets]:
+                    code(self.__generate__managed_func__(base_class, func_, add_accessor=False))
+
+                for prop_ in base_class.properties:
+                    code(self.__generate__managed_property_(base_class, prop_, add_accessor=False))
 
         with CodeBlock(code, 'impl {}'.format(class_.name)):
             # unmanaged constructor
@@ -554,7 +605,7 @@ unsafe impl Sync for {0} {{ }}
                 
                 with CodeBlock(code, class_.name):
                     code('{},'.format(self.self_ptr_name))
-                    for prop_ in class_.properties:
+                    for prop_ in distincted_props.values():
                         if prop_.has_getter and prop_.has_setter:
                             code('{} : None,'.format(camelcase_to_underscore(prop_.name)))
                 
@@ -609,11 +660,14 @@ fn try_get_from_cache({0} : *mut {1}) -> Option<Arc<Mutex<Self>>> {{
                 code(line)
 
             # managed functions
-            for func_ in [f for f in class_.funcs if len(f.targets) == 0 or 'rust' in f.targets]:
-                code(self.__generate__managed_func__(class_, func_))
+            if not (class_ in self.baseClasses):
+                for func_ in [f for f in class_.funcs if len(f.targets) == 0 or 'rust' in f.targets]:
+                    if not (func_.name in base_funcs):
+                        code(self.__generate__managed_func__(class_, func_))
 
-            for prop_ in class_.properties:
-                code(self.__generate__managed_property_(class_, prop_))
+                for prop_ in class_.properties:
+                    if not (prop_.name in base_props):
+                        code(self.__generate__managed_property_(class_, prop_))
 
         code('')
 
@@ -650,7 +704,7 @@ fn try_get_from_cache({0} : *mut {1}) -> Option<Arc<Mutex<Self>>> {{
         code('')
         code('const NULLPTR: *mut RawPtr = 0 as *mut RawPtr;')
 
-        body = '''
+        code('''
 fn decode_string(source: *const u16) -> String {
     unsafe {
         let len = (0..).take_while(|&i| *source.offset(i) != 0).count();
@@ -664,10 +718,21 @@ fn encode_string(s: &str) -> Vec<u16> {
     v.push(0);
     v
 }
-'''
+''')
 
-        for line in body.split('\n'):
-            code(line)
+        # for cache
+        code('''
+use std::rc::{{self, Rc}};
+use std::cell::RefCell;
+use std::sync::{{self, Arc, RwLock, Mutex}};
+use std::collections::HashMap;
+
+#[derive(Debug, PartialEq, Eq, Hash)]
+struct {0}Storage(*mut {0});
+
+unsafe impl Send for {0}Storage {{ }}
+unsafe impl Sync for {0}Storage {{ }}
+'''.format(self.PtrEnumName))
 
 
         # declare module
@@ -698,11 +763,9 @@ fn encode_string(s: &str) -> Vec<u16> {
 
         code(self.__generate_extern__(self.define.classes))
 
-        chached_classed = list(filter(is_cached, self.define.classes))
-
-        # Not Empty
-        if chached_classed:
-            code(self.__generate_cache__(chached_classed))
+        for class_ in self.define.classes:
+            if class_.base_class != None:
+                self.baseClasses.add(class_.base_class)
         
         # class group
         for class_ in self.define.classes:
