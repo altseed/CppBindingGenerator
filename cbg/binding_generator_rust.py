@@ -402,6 +402,10 @@ class BindingGeneratorRust(BindingGenerator):
     def __generate_enum__(self, enum_ : Enum) -> Code:
         code = Code()
 
+        # Markdown comment
+        if enum_.brief != None:
+            code('/// {}'.format(enum_.brief.descs[self.lang]))
+
         access = 'pub'
 
         code('#[repr(C)]')
@@ -473,6 +477,10 @@ unsafe impl Sync for {0} {{ }}
 
     def __generate_class__(self, class_: Class) -> Code:
         code = Code()
+
+        # Markdown comment
+        if class_.brief != None:
+            code('/// {}'.format(class_.brief.descs[self.lang]))
 
         access = ''
         if class_.is_public:
