@@ -280,7 +280,6 @@ class BindingGeneratorRust(BindingGenerator):
         code = Code()
         # extern unmanaged
 
-        code('#[allow(dead_code)]')
         code('#[link(name = "{}")]'.format(self.dll_name))
         with CodeBlock(code, 'extern'):
             release_func = Function('Release')
@@ -545,7 +544,6 @@ unsafe impl Sync for {0} {{ }}
             # unmanaged constructor
             ret_type = self.__get_rs_type__(class_, is_return=True)
             
-            code('#[allow(dead_code)]')
             with CodeBlock(code, 'fn cbg_create_raw({} : *mut {}) -> {}'.format(self.self_ptr_name, self.PtrEnumName, ret_type), True):
                 code('if {} == NULLPTR {{ return None; }}'.format(self.self_ptr_name))
 
@@ -566,7 +564,6 @@ unsafe impl Sync for {0} {{ }}
             body = ''
             if class_.cache_mode == CacheMode.Cache:
                 body = '''
-#[allow(dead_code)]
 fn try_get_from_cache({0} : *mut {1}) -> Option<Rc<RefCell<Self>>> {{
     thread_local! {{
         static {2}_CACHE: RefCell<HashMap<{1}Storage, rc::Weak<RefCell<{3}>>>> = RefCell::new(HashMap::new());
@@ -589,7 +586,6 @@ fn try_get_from_cache({0} : *mut {1}) -> Option<Rc<RefCell<Self>>> {{
 
             elif class_.cache_mode == CacheMode.ThreadSafeCache:
                 body = '''
-#[allow(dead_code)]
 fn try_get_from_cache({0} : *mut {1}) -> Option<Arc<Mutex<Self>>> {{
     lazy_static! {{
         static ref {2}_CACHE: RwLock<HashMap<{1}Storage, sync::Weak<Mutex<{3}>>>> = RwLock::new(HashMap::new());
@@ -647,6 +643,7 @@ fn try_get_from_cache({0} : *mut {1}) -> Option<Arc<Mutex<Self>>> {{
         code('')
 
         # declare use
+        code('#![allow(dead_code)]')
         code('#[allow(unused_imports)]')
         code('use std::ffi::c_void;')
         code('use std::os::raw::*;')
@@ -654,7 +651,6 @@ fn try_get_from_cache({0} : *mut {1}) -> Option<Arc<Mutex<Self>>> {{
         code('const NULLPTR: *mut RawPtr = 0 as *mut RawPtr;')
 
         body = '''
-#[allow(dead_code)]
 fn decode_string(source: *const u16) -> String {
     unsafe {
         let len = (0..).take_while(|&i| *source.offset(i) != 0).count();
@@ -663,7 +659,6 @@ fn decode_string(source: *const u16) -> String {
     }
 }
 
-#[allow(dead_code)]
 fn encode_string(s: &str) -> Vec<u16> {
     let mut v: Vec<u16> = s.encode_utf16().collect();
     v.push(0);
