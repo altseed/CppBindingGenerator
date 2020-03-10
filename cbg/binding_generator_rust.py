@@ -119,23 +119,24 @@ class BindingGeneratorRust(BindingGenerator):
 
         if type_ in self.define.classes:
             if is_return:
-                if type_.cache_mode == CacheMode.Cache:
-                    return 'Option<Rc<RefCell<{}>>>'.format(type_.name)
-                elif type_.cache_mode == CacheMode.ThreadSafeCache:
-                    return 'Option<Arc<Mutex<{}>>>'.format(type_.name)
-                else:
-                    return type_.name
+                type_name = type_.name
+                if type_.cache_mode == CacheMode.ThreadSafeCache:
+                    type_name = 'Arc<Mutex<{}>>'.format(type_.name)
+                elif type_.cache_mode == CacheMode.Cache:
+                    type_name = 'Rc<RefCell<{}>>'.format(type_.name)
+                
+                return 'Option<{}>'.format(type_name)
             elif is_property:
                 if type_ in self.baseClasses:
-                    if type_.cache_mode == CacheMode.Cache:
-                        return 'Rc<RefCell<dyn {}Trait>>'.format(type_.name)
-                    elif type_.cache_mode == CacheMode.ThreadSafeCache:
+                    if type_.cache_mode == CacheMode.ThreadSafeCache:
                         return 'Arc<Mutex<dyn {}Trait>>'.format(type_.name)
+                    elif type_.cache_mode == CacheMode.Cache:
+                        return 'Rc<RefCell<dyn {}Trait>>'.format(type_.name)
             
-                if type_.cache_mode == CacheMode.Cache:
-                    return 'Rc<RefCell<{}>>'.format(type_.name)
-                elif type_.cache_mode == CacheMode.ThreadSafeCache:
+                if type_.cache_mode == CacheMode.ThreadSafeCache:
                     return 'Arc<Mutex<{}>>'.format(type_.name)
+                elif type_.cache_mode == CacheMode.Cache:
+                    return 'Rc<RefCell<{}>>'.format(type_.name)
                 
                 return type_.name
             elif type_ in self.baseClasses:
@@ -213,10 +214,10 @@ class BindingGeneratorRust(BindingGenerator):
 
         if type_ in self.define.classes:
             if is_property:
-                if type_.cache_mode == CacheMode.Cache:
-                    return '{}.borrow_mut().{}'.format(name, self.self_ptr_name)
-                elif type_.cache_mode == CacheMode.ThreadSafeCache:
+                if type_.cache_mode == CacheMode.ThreadSafeCache:
                     return '{}.lock().expect("Failed to get lock of {}").{}'.format(name, type_.name, self.self_ptr_name)
+                elif type_.cache_mode == CacheMode.Cache:
+                    return '{}.borrow_mut().{}'.format(name, self.self_ptr_name)
             
             return '{}.{}'.format(name, self.self_ptr_name)
 
@@ -601,10 +602,11 @@ unsafe impl Sync for {0} {{ }}
             with CodeBlock(code, 'fn cbg_create_raw({} : *mut {}) -> {}'.format(self.self_ptr_name, self.PtrEnumName, ret_type), True):
                 code('if {} == NULLPTR {{ return None; }}'.format(self.self_ptr_name))
 
+                code('Some(')
                 if class_.cache_mode == CacheMode.Cache:
-                    code('Some(Rc::new(RefCell::new(')
+                    code('Rc::new(RefCell::new(')
                 elif class_.cache_mode == CacheMode.ThreadSafeCache:
-                    code('Some(Arc::new(Mutex::new(')
+                    code('Arc::new(Mutex::new(')
                 
                 with CodeBlock(code, class_.name):
                     code('{},'.format(self.self_ptr_name))
@@ -613,7 +615,8 @@ unsafe impl Sync for {0} {{ }}
                             code('{} : None,'.format(camelcase_to_underscore(prop_.name)))
                 
                 if is_cached(class_):
-                    code(')))')
+                    code('))')
+                code(')')
 
             body = ''
             if class_.cache_mode == CacheMode.Cache:
