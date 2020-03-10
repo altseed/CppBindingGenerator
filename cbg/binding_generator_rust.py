@@ -384,45 +384,77 @@ class BindingGeneratorRust(BindingGenerator):
 
         return code
 
-    def __generate__managed_property_(self, class_: Class, prop_:Property, add_accessor=True) -> Code:
+    def __generate__manaded_property_getter__(self, class_: Class, prop_:Property, is_trait=False) -> Code:
         code = Code()
-
-        # cannot generate property with no getter and no setter
-        if not prop_.has_getter and not prop_.has_setter:
+        if not prop_.has_getter:
             return code
         
-        type_name = self.__get_rs_type__(prop_.type_, is_property=True)
         type_name_return = self.__get_rs_type__(prop_.type_, is_return=True)
 
         field_name = camelcase_to_underscore(prop_.name)
 
         access = ''
-        if add_accessor:
-            access = 'pub'
+        if not is_trait:
+            access = 'pub '
+
+        # Markdown comment
+        if prop_.brief != None:
+            code('/// {}'.format(prop_.brief.descs[self.lang]))
+        with CodeBlock(code, '{}fn get_{}(&mut self) -> {}'.format(access, field_name, type_name_return)):
+            if prop_.has_setter:
+                if prop_.type_ in self.define.classes:
+                    code('if let Some(value) = self.{0}.clone() {{ return Some(value) }}'.format(field_name))
+                else:
+                    code('if let Some(value) = self.{0}.clone() {{ return value; }}'.format(field_name))
+            self.__write_managed_function_body__(code, class_, prop_.getter_as_func())
+
+        return code
+
+    def __generate__manaded_property_setter__(self, class_: Class, prop_:Property, is_trait=False) -> Code:
+        code = Code()
+        # cannot generate property with no getter and no setter
+        if not prop_.has_getter and not prop_.has_setter:
+            return code
+        
+        type_name = self.__get_rs_type__(prop_.type_, is_property=True)
+
+        field_name = camelcase_to_underscore(prop_.name)
+
+        access = ''
+        if not is_trait:
+            access = 'pub '
         # if prop_.is_public:
         #     access = 'pub'
         # else:
         #     access = 'pub(crate)'
-        
-        if prop_.has_getter:
-            # Markdown comment
-            if prop_.brief != None:
-                code('/// {}'.format(prop_.brief.descs[self.lang]))
-            with CodeBlock(code, '{} fn get_{}(&mut self) -> {}'.format(access, field_name, type_name_return)):
-                if prop_.has_setter:
-                    if prop_.type_ in self.define.classes:
-                        code('if let Some(value) = self.{0}.clone() {{ return Some(value) }}'.format(field_name))
-                    else:
-                        code('if let Some(value) = self.{0}.clone() {{ return value; }}'.format(field_name))
-                self.__write_managed_function_body__(code, class_, prop_.getter_as_func())
+
         if prop_.has_setter:
             # Markdown comment
             if prop_.brief != None:
                 code('/// {}'.format(prop_.brief.descs[self.lang]))
-            with CodeBlock(code, '{} fn set_{}(&mut self, value : {})'.format(access, field_name, type_name)):
+
+            head = '{}fn set_{}(&mut self, value : {}) -> &mut Self'.format(access, field_name, type_name)
+
+            if is_trait:
+                head = '{}fn base_set_{}(&mut self, value : {})'.format(access, field_name, type_name)
+
+            with CodeBlock(code, head):
                 if prop_.has_getter:
                     code('self.{} = Some(value.clone());'.format(field_name))
                 self.__write_managed_function_body__(code, class_, prop_.setter_as_func(), is_property=True)
+                if not is_trait:
+                    code('self')
+
+        return code
+
+
+    def __generate__managed_property_(self, class_: Class, prop_:Property, is_trait=False) -> Code:
+        code = Code()
+
+        if prop_.has_getter:
+            code(self.__generate__manaded_property_getter__(class_, prop_, is_trait=is_trait))
+        if prop_.has_setter:
+            code(self.__generate__manaded_property_setter__(class_, prop_, is_trait=is_trait))
 
         return code
 
@@ -513,10 +545,10 @@ class BindingGeneratorRust(BindingGenerator):
         distincted_props = {}
 
         for f in class_.funcs:
-            distincted_funcs[f.name] = f
+            distincted_funcs[f.name] = (class_, f)
 
         for p in class_.properties:
-            distincted_props[p.name] = p
+            distincted_props[p.name] = (class_, p)
 
         base_classes = []
         base_funcs = {}
@@ -527,10 +559,10 @@ class BindingGeneratorRust(BindingGenerator):
                 assert('infinit inheritance')
             base_classes.append(current.base_class)
             for f in current.base_class.funcs:
-                distincted_funcs[f.name] = f
+                distincted_funcs[f.name] = (current.base_class, f)
                 base_funcs[f.name] = f
             for p in current.base_class.properties:
-                distincted_props[p.name] = p
+                distincted_props[p.name] = (current.base_class, p)
                 base_props[p.name] = p
             current = current.base_class
 
@@ -548,7 +580,8 @@ class BindingGeneratorRust(BindingGenerator):
         with CodeBlock(code, '{} struct {}'.format(access, class_.name)):
             # unmanaged pointer
             code('{} : *mut {},'.format(self.self_ptr_name, self.PtrEnumName))
-            for prop_ in distincted_props.values():
+            for pair in distincted_props.values():
+                prop_ = pair[1]
                 if prop_.has_getter and prop_.has_setter:
                     code('{}: Option<{}>,'.format(camelcase_to_underscore(prop_.name), self.__get_rs_type__(prop_.type_, is_property=True)))
         
@@ -570,14 +603,14 @@ impl Has{1} for {0} {{
             inherits = ''
             # not empty
             if base_classes:
-                inherits = ': Has{} + '.format(self.PtrEnumName) + ' + '.join(map(lambda x: x.name + 'Trait',base_classes))
+                inherits = ': Has{} + '.format(self.PtrEnumName) + ' + '.join(map(lambda x: x.name + 'Trait', base_classes))
 
             with CodeBlock(code, 'pub trait {} {}'.format(get_base_trait_name(class_), inherits)):
-                for func_ in [f for f in distincted_funcs.values() if len(f.targets) == 0 or 'rust' in f.targets]:
+                for func_ in [pair[1] for pair in distincted_funcs.values() if (len(pair[1].targets) == 0) or ('rust' in pair[1].targets) and (not pair[1] in base_funcs)]:
                     code(self.__generate_func_brief__(class_, func_))
                     code(self.__managed_func_declare__(class_, func_) + ';')
 
-                for prop_ in distincted_props.values():
+                for prop_ in [pair[1] for pair in distincted_props.values() if (not pair[1] in base_props)]:
                     type_name = self.__get_rs_type__(prop_.type_, is_property=True)
                     type_name_return = self.__get_rs_type__(prop_.type_, is_return=True)
                     field_name = camelcase_to_underscore(prop_.name)
@@ -592,7 +625,7 @@ impl Has{1} for {0} {{
                         # Markdown comment
                         if prop_.brief != None:
                             code('/// {}'.format(prop_.brief.descs[self.lang]))
-                        code('fn set_{}(&mut self, value : {});'.format(field_name, type_name))
+                        code('fn base_set_{}(&mut self, value : {});'.format(field_name, type_name))
 
             base_classes.append(class_)
 
@@ -602,7 +635,7 @@ impl Has{1} for {0} {{
                     code(self.__generate__managed_func__(base_class, func_, add_accessor=False))
 
                 for prop_ in base_class.properties:
-                    code(self.__generate__managed_property_(base_class, prop_, add_accessor=False))
+                    code(self.__generate__managed_property_(base_class, prop_, is_trait=True))
 
         with CodeBlock(code, 'impl {}'.format(class_.name)):
             # unmanaged constructor
@@ -619,7 +652,8 @@ impl Has{1} for {0} {{
                 
                 with CodeBlock(code, class_.name):
                     code('{},'.format(self.self_ptr_name))
-                    for prop_ in distincted_props.values():
+                    for pair in distincted_props.values():
+                        prop_ = pair[1]
                         if prop_.has_getter and prop_.has_setter:
                             code('{} : None,'.format(camelcase_to_underscore(prop_.name)))
                 
@@ -682,7 +716,11 @@ fn try_get_from_cache({0} : *mut {1}) -> Option<Arc<Mutex<Self>>> {{
 
                 for prop_ in class_.properties:
                     if not (prop_.name in base_props):
-                        code(self.__generate__managed_property_(class_, prop_))
+                        code(self.__generate__manaded_property_getter__(class_, prop_))
+
+            for pair in distincted_props.values():
+                code(self.__generate__manaded_property_setter__(pair[0], pair[1]))
+            
 
         code('')
 
