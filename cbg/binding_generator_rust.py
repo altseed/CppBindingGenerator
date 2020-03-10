@@ -49,6 +49,9 @@ def replaceKeyword(name):
 def is_cached(class_ : Class):
     return (class_.cache_mode == CacheMode.Cache or class_.cache_mode == CacheMode.ThreadSafeCache)
 
+def get_base_trait_name(class_: Class):
+    return 'As{}'.format(class_.name)
+
 class CodeBlock:
     def __init__(self, coder: Code, title: str, after_space : bool = False):
         '''
@@ -129,9 +132,9 @@ class BindingGeneratorRust(BindingGenerator):
             elif is_property:
                 if type_ in self.baseClasses:
                     if type_.cache_mode == CacheMode.ThreadSafeCache:
-                        return 'Arc<Mutex<dyn {}Trait>>'.format(type_.name)
+                        return 'Arc<Mutex<dyn {}>>'.format(get_base_trait_name(type_))
                     elif type_.cache_mode == CacheMode.Cache:
-                        return 'Rc<RefCell<dyn {}Trait>>'.format(type_.name)
+                        return 'Rc<RefCell<dyn {}>>'.format(get_base_trait_name(type_))
             
                 if type_.cache_mode == CacheMode.ThreadSafeCache:
                     return 'Arc<Mutex<{}>>'.format(type_.name)
@@ -140,7 +143,7 @@ class BindingGeneratorRust(BindingGenerator):
                 
                 return type_.name
             elif type_ in self.baseClasses:
-                return '&mut {}Trait'.format(type_.name)
+                return '&mut {}'.format(get_base_trait_name(type_))
             else:
                 return '&mut ' + type_.name
 
@@ -215,9 +218,9 @@ class BindingGeneratorRust(BindingGenerator):
         if type_ in self.define.classes:
             if is_property:
                 if type_.cache_mode == CacheMode.ThreadSafeCache:
-                    return '{}.lock().expect("Failed to get lock of {}").{}'.format(name, type_.name, self.self_ptr_name)
+                    return '{}.lock().expect("Failed to get lock of {}").{}()'.format(name, type_.name, self.self_ptr_name)
                 elif type_.cache_mode == CacheMode.Cache:
-                    return '{}.borrow_mut().{}'.format(name, self.self_ptr_name)
+                    return '{}.borrow_mut().{}()'.format(name, self.self_ptr_name)
             
             return '{}.{}'.format(name, self.self_ptr_name)
 
@@ -555,15 +558,21 @@ unsafe impl Send for {0} {{ }}
 unsafe impl Sync for {0} {{ }}
     '''.format(class_.name))
 
-        code('')
+        code('''
+impl Has{1} for {0} {{
+    fn {2}(&mut self) -> *mut {1} {{
+        self.{2}.clone()
+    }}
+}}
+'''.format(class_.name, self.PtrEnumName, self.self_ptr_name))
 
         if class_ in self.baseClasses:
             inherits = ''
             # not empty
             if base_classes:
-                inherits = ': ' + ' + '.join(map(lambda x: x.name + 'Trait',base_classes))
+                inherits = ': Has{} + '.format(self.PtrEnumName) + ' + '.join(map(lambda x: x.name + 'Trait',base_classes))
 
-            with CodeBlock(code, 'pub trait {}Trait {}'.format(class_.name, inherits)):
+            with CodeBlock(code, 'pub trait {} {}'.format(get_base_trait_name(class_), inherits)):
                 for func_ in [f for f in distincted_funcs.values() if len(f.targets) == 0 or 'rust' in f.targets]:
                     code(self.__generate_func_brief__(class_, func_))
                     code(self.__managed_func_declare__(class_, func_) + ';')
@@ -588,7 +597,7 @@ unsafe impl Sync for {0} {{ }}
             base_classes.append(class_)
 
         for base_class in base_classes:
-            with CodeBlock(code, 'impl {}Trait for {}'.format(base_class.name, class_.name)):
+            with CodeBlock(code, 'impl {} for {}'.format(get_base_trait_name(base_class), class_.name)):
                 for func_ in [f for f in base_class.funcs if len(f.targets) == 0 or 'rust' in f.targets]:
                     code(self.__generate__managed_func__(base_class, func_, add_accessor=False))
 
@@ -702,6 +711,11 @@ fn try_get_from_cache({0} : *mut {1}) -> Option<Arc<Mutex<Self>>> {{
         code('// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
         code('')
 
+        # declare module
+        if self.module != '':
+            code('mod {} {{'.format(self.module))
+            code.inc_indent()
+
         # declare use
         code('#![allow(dead_code)]')
         code('#[allow(unused_imports)]')
@@ -733,21 +747,18 @@ use std::cell::RefCell;
 use std::sync::{{self, Arc, RwLock, Mutex}};
 use std::collections::HashMap;
 
+pub enum {0} {{ }}
+
+pub trait Has{0} {{
+    fn {1}(&mut self) -> *mut {0};
+}}
+
 #[derive(Debug, PartialEq, Eq, Hash)]
 struct {0}Storage(*mut {0});
 
 unsafe impl Send for {0}Storage {{ }}
 unsafe impl Sync for {0}Storage {{ }}
-'''.format(self.PtrEnumName))
-
-
-        # declare module
-        if self.module != '':
-            code('mod {} {{'.format(self.module))
-            code.inc_indent()
-
-        code('enum {} {{ }}'.format(self.PtrEnumName))
-        code('')
+'''.format(self.PtrEnumName, self.self_ptr_name))
 
         # enum group
         for enum_ in self.define.enums:
