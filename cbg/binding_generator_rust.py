@@ -252,7 +252,10 @@ class BindingGeneratorRust(BindingGenerator):
             return '{}.into()'.format(name)
 
         if type_ in self.define.enums:
-            return 'unsafe {{ std::mem::transmute({}) }}'.format(name)
+            if type_ in self.bitFlags:
+                return '{}::from_bits_truncate({})'.format(type_.name, name)
+            else:
+                return 'unsafe {{ std::mem::transmute({}) }}'.format(name)
 
         print('Type: {}'.format(type_))
         assert(False)
