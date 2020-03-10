@@ -1,7 +1,7 @@
 from typing import List
 import ctypes
 
-from .cpp_binding_generator import BindingGenerator, Define, Class, Struct, Enum, Code, Property, Function, EnumValue, __get_c_func_name__
+from .cpp_binding_generator import BindingGenerator, Define, CacheMode, ArgCalledBy, Class, Struct, Enum, Code, Property, Function, EnumValue, __get_c_func_name__
 from .cpp_binding_generator import __get_c_release_func_name__
 
 # A flow of generating code
@@ -18,11 +18,14 @@ from .cpp_binding_generator import __get_c_release_func_name__
 def camelcase_to_underscore(value : str) -> str:
     result = []
     beforeCharacter = ''
+    value_len = len(value)
 
-    c = ''
-    for x in list(value):
+    for i in range(value_len):
+        c = ''
+        x = value[i]
         if x.isalnum() and x.isupper() and (beforeCharacter != '_'):
-            if result:
+            if result and beforeCharacter.islower():
+            # if result:
                 c = '_'
             c = c + x.lower()
         else:
@@ -42,6 +45,12 @@ def replaceKeyword(name):
     if name in keywords:
         return name + '_'
     return name
+
+def is_cached(class_ : Class):
+    return (class_.cache_mode == CacheMode.Cache or class_.cache_mode == CacheMode.ThreadSafeCache)
+
+def get_base_trait_name(class_: Class):
+    return 'As{}'.format(class_.name)
 
 class CodeBlock:
     def __init__(self, coder: Code, title: str, after_space : bool = False):
@@ -79,34 +88,67 @@ class BindingGeneratorRust(BindingGenerator):
         self.self_ptr_name = 'self_ptr'
         self.lang = lang
         self.PtrEnumName = 'RawPtr'
-        self.structModName = 'structs'
+        self.structModName = 'crate::structs'
         self.structsReplaceMap = {}
+        self.bitFlags: set = set()
+        self.baseClasses: set = set()
 
-    def __get_rs_type__(self, type_, is_return = False) -> str:
+    def __get_rs_type__(self, type_, is_return = False, is_property = False, called_by: ArgCalledBy = None) -> str:
+        ptr = ''
+        if called_by == ArgCalledBy.Out:
+            ptr = '&mut '
+        elif called_by == ArgCalledBy.Ref:
+            ptr = '&'
+
+        if type_ == ctypes.c_byte:
+            return ptr + 'u8'
+
         if type_ == int:
-            return 'i32'
+            return ptr + 'i32'
 
         if type_ == float:
-            return 'f32'
+            return ptr + 'f32'
 
         if type_ == bool:
-            return 'bool'
+            return ptr + 'bool'
+
+        if type_ == ctypes.c_void_p:
+            return ptr + 'c_void'
 
         if type_ == ctypes.c_wchar_p:
-            if is_return:
+            if is_return or is_property:
                 return 'String'
             return '&str'
 
         if type_ in self.define.classes:
             if is_return:
-                if type_.do_cache:
+                type_name = type_.name
+                if type_.cache_mode == CacheMode.ThreadSafeCache:
+                    type_name = 'Arc<Mutex<{}>>'.format(type_.name)
+                elif type_.cache_mode == CacheMode.Cache:
+                    type_name = 'Rc<RefCell<{}>>'.format(type_.name)
+                
+                return 'Option<{}>'.format(type_name)
+            elif is_property:
+                if type_ in self.baseClasses:
+                    if type_.cache_mode == CacheMode.ThreadSafeCache:
+                        return 'Arc<Mutex<dyn {}>>'.format(get_base_trait_name(type_))
+                    elif type_.cache_mode == CacheMode.Cache:
+                        return 'Rc<RefCell<dyn {}>>'.format(get_base_trait_name(type_))
+            
+                if type_.cache_mode == CacheMode.ThreadSafeCache:
                     return 'Arc<Mutex<{}>>'.format(type_.name)
+                elif type_.cache_mode == CacheMode.Cache:
+                    return 'Rc<RefCell<{}>>'.format(type_.name)
+                
                 return type_.name
+            elif type_ in self.baseClasses:
+                return '&mut {}'.format(get_base_trait_name(type_))
             else:
                 return '&mut ' + type_.name
 
         if type_ in self.define.structs:
-            return self.structsReplaceMap.get(type_, type_.name)
+            return self.structsReplaceMap.get(type_, type_.alias)
 
         if type_ in self.define.enums:
             return type_.name
@@ -114,29 +156,42 @@ class BindingGeneratorRust(BindingGenerator):
         if type_ is None:
             return '()'
 
-        print('Type: {}'.format(type_.name))
+        print('Type: {}'.format(type_))
         assert(False)
 
-    def __get_rsc_type__(self, type_, is_return = False) -> str:
+    def __get_rsc_type__(self, type_, is_return = False, called_by: ArgCalledBy = None) -> str:
+        ptr = ''
+        if called_by == ArgCalledBy.Out:
+            ptr = '*mut '
+        elif called_by == ArgCalledBy.Ref:
+            ptr = '*const '
+
+        if type_ == ctypes.c_void_p:
+            return ptr + 'c_void'
+
+        if type_ == ctypes.c_byte:
+            return ptr + 'c_uchar'
+
         if type_ == int:
-            return 'c_int'
+            return ptr + 'c_int'
 
         if type_ == float:
-            return 'c_float'
+            return ptr + 'c_float'
 
         if type_ == bool:
-            return 'bool'
+            return ptr + 'bool'
 
         if type_ == ctypes.c_wchar_p:
-            if is_return:
-                return '*const c_char'
-            return '*const c_char'
+            return '*const u16'
+
+        if type_ == ctypes.c_void_p:
+            return self.PtrEnumName
 
         if type_ in self.define.classes:
             return '*mut {}'.format(self.PtrEnumName)
 
         if type_ in self.define.structs:
-            return '{}::{}'.format(self.structModName, type_.name)
+            return '{}::{}'.format(self.structModName, type_.alias)
 
         if type_ in self.define.enums:
             return 'c_int'
@@ -147,61 +202,77 @@ class BindingGeneratorRust(BindingGenerator):
             
             return ''
 
-        print('Type: {}'.format(type_.name))
+        print('Type: {}'.format(type_))
         assert(False)
 
-    def __convert_rsc_to_rs__(self, type_, name: str) -> str:
-        if type_ == int or type_ == float or type_ == bool:
-            return name
+    def __convert_rsc_to_rs__(self, type_, name: str, is_property = False, called_by: ArgCalledBy = None) -> str:
+        if type_ == int or type_ == float or type_ == bool or type_ == ctypes.c_byte or type_ == ctypes.c_void_p:
+            if called_by == ArgCalledBy.Out or called_by == ArgCalledBy.Ref:
+                return  '{} as {}'.format(name, self.__get_rsc_type__(type_, called_by=called_by))
+            else:
+                return name
 
         if type_ == ctypes.c_wchar_p:
-            return 'CString::new({0}).expect("CString::new({0}) failed").as_ptr()'.format(name)
+            return 'encode_string(&{}).as_ptr()'.format(name)
 
         if type_ in self.define.classes:
+            if is_property:
+                if type_.cache_mode == CacheMode.ThreadSafeCache:
+                    return '{}.lock().expect("Failed to get lock of {}").{}()'.format(name, type_.name, self.self_ptr_name)
+                elif type_.cache_mode == CacheMode.Cache:
+                    return '{}.borrow_mut().{}()'.format(name, self.self_ptr_name)
+            
             return '{}.{}'.format(name, self.self_ptr_name)
 
         if type_ in self.define.structs:
             return '{}.into()'.format(name)
 
         if type_ in self.define.enums:
-            return '{} as i32'.format(name)
+            if type_ in self.bitFlags:
+                return '{}.bits as i32'.format(name)
+            else:
+                return '{} as i32'.format(name)
 
         if type_ is None:
             return '()'
 
+        print('Type: {}'.format(type_))
         assert(False)
 
     def __convert_ret__(self, type_, name: str) -> str:
-        if type_ == int or type_ == float or type_ == bool:
+        if type_ == int or type_ == float or type_ == bool or type_ == ctypes.c_byte or type_ == ctypes.c_void_p:
             return name
 
         if type_ == ctypes.c_wchar_p:
-            x = 'unsafe{{ CString::from_raw({} as *mut i8) }}'.format(name)
-            return '{0}.into_string().expect("{0} failed")'.format(x)
+            return 'decode_string({})'.format(name)
 
         if type_ in self.define.classes:
-            if type_.do_cache:
+            if is_cached(type_):
                 return '{}::try_get_from_cache({})'.format(type_.name, name)
             else:
-                return '{}::create({})'.format(type_.name, name)
+                return '{}::cbg_create_raw({})'.format(type_.name, name)
 
         if type_ in self.define.structs:
-            return 'From::from({})'.format(name)
+            return '{}.into()'.format(name)
 
         if type_ in self.define.enums:
-            return 'unsafe {{ std::mem::transmute({}) }}'.format(name)
+            if type_ in self.bitFlags:
+                return '{}::from_bits_truncate({})'.format(type_.name, name)
+            else:
+                return 'unsafe {{ std::mem::transmute({}) }}'.format(name)
 
+        print('Type: {}'.format(type_))
         assert(False)
 
     def __generate__unmanaged_func__(self, class_: Class, func_: Function) -> Code:
         code = Code()
         fname = __get_c_func_name__(class_, func_)
 
-        args = [replaceKeyword(arg.name) + ' : ' + self.__get_rsc_type__(arg.type_)
+        args = [replaceKeyword(arg.name) + ': ' + self.__get_rsc_type__(arg.type_, called_by=arg.called_by)
             for arg in func_.args]
 
         if not func_.is_static and not func_.is_constructor:
-            args = ['{} : *mut {}'.format(self.self_ptr_name, self.PtrEnumName)] + args
+            args = ['{}: *mut {}'.format(self.self_ptr_name, self.PtrEnumName)] + args
             
         code('fn {}({}) -> {};'.format(
             fname,
@@ -242,17 +313,17 @@ class BindingGeneratorRust(BindingGenerator):
         return code
 
 
-    def __write_managed_function_body__(self, code: Code, class_: Class, func_: Function):
+    def __write_managed_function_body__(self, code: Code, class_: Class, func_: Function, is_property=False):
         fname = __get_c_func_name__(class_, func_)
         # call a function
         args = [self.__convert_rsc_to_rs__(
-                arg.type_, camelcase_to_underscore(replaceKeyword(arg.name))) for arg in func_.args]
+                arg.type_, camelcase_to_underscore(replaceKeyword(arg.name)), is_property=is_property, called_by=arg.called_by) for arg in func_.args]
 
         if not func_.is_static and not func_.is_constructor:
             args = ["self." + self.self_ptr_name] + args
 
         if func_.is_constructor:
-            code('Self::create(unsafe{{ {}({}) }})'.format(fname, ', '.join(args)))
+            code('Self::cbg_create_raw(unsafe{{ {}({}) }})'.format(fname, ', '.join(args)))
         else:
             func_code = 'unsafe {{ {}({}) }}'.format(fname, ', '.join(args))
             if func_.return_value.type_ is None:
@@ -261,75 +332,129 @@ class BindingGeneratorRust(BindingGenerator):
                 code( 'let ret = {};'.format(func_code) )
                 code(self.__convert_ret__(func_.return_value.type_, 'ret'))
 
-
-
-    def __generate__managed_func__(self, class_: Class, func_: Function) -> Code:
+    def __generate_func_brief__(self, class_: Class, func_: Function) -> Code:
         code = Code()
-
-        args = [camelcase_to_underscore(replaceKeyword(arg.name)) + ' : ' + self.__get_rs_type__(arg.type_)
-            for arg in func_.args]
-
-        if not func_.is_static and not func_.is_constructor:
-            args = [ "&mut self" ] + args
-
         # Markdown comment
         if func_.brief != None:
             code('/// {}'.format(func_.brief.descs[self.lang]))
 
             # not empty
-            if func_.args:
-                code('///')
+            # if func_.args:
+            if any(map(lambda x: x.brief != None, func_.args)):
                 code('/// # Arguments')
 
             for arg in func_.args:
-                code('///')
-                code('/// * `{}` - {}'.format(camelcase_to_underscore(replaceKeyword(arg.name)), arg.desc.descs[self.lang]))
+                if arg.brief != None:
+                    code('/// * `{}` - {}'.format(camelcase_to_underscore(replaceKeyword(arg.name)), arg.brief.descs[self.lang]))
+        return code
 
-        # determine signature
+    def __managed_func_declare__(self, class_: Class, func_: Function) -> str:
+        args = [camelcase_to_underscore(replaceKeyword(arg.name)) + ' : ' + self.__get_rs_type__(arg.type_, is_return=False, is_property=False, called_by=arg.called_by)
+            for arg in func_.args]
+
+        if not func_.is_static and not func_.is_constructor:
+            args = [ "&mut self" ] + args
+
         if func_.is_constructor:
-            ret_type = "Self"
-            if class_.do_cache:
-                ret_type = "Arc<Mutex<Self>>"
-            func_title = 'pub fn new({}) -> {}'.format(', '.join(args), ret_type)
+            return 'fn new({}) -> {}'.format(', '.join(args), self.__get_rs_type__(class_, is_return=True))
         else:
-            func_title = 'pub fn {}({}) -> {}'.format(
+            return 'fn {}({}) -> {}'.format(
                 camelcase_to_underscore(func_.name),
                 ', '.join(args),
                 self.__get_rs_type__(func_.return_value.type_, is_return=True))
 
+
+    def __generate__managed_func__(self, class_: Class, func_: Function, add_accessor=True) -> Code:
+        code = Code()
+
+        code(self.__generate_func_brief__(class_, func_))
+
+        # access signature
+        access = ''
+        if add_accessor:
+            if func_.is_public:
+                access = 'pub '
+            else:
+                access = 'pub(crate) '
+
+        func_title = access + self.__managed_func_declare__(class_, func_)
         # function body
         with CodeBlock(code, func_title):
             self.__write_managed_function_body__(code, class_, func_)
 
         return code
 
-    def __generate__managed_property_(self, class_: Class, prop_:Property) -> Code:
+    def __generate__manaded_property_getter__(self, class_: Class, prop_:Property, is_trait=False) -> Code:
         code = Code()
+        if not prop_.has_getter:
+            return code
+        
+        type_name_return = self.__get_rs_type__(prop_.type_, is_return=True)
 
+        field_name = camelcase_to_underscore(prop_.name)
+
+        access = ''
+        if not is_trait:
+            access = 'pub '
+
+        # Markdown comment
+        if prop_.brief != None:
+            code('/// {}'.format(prop_.brief.descs[self.lang]))
+        with CodeBlock(code, '{}fn get_{}(&mut self) -> {}'.format(access, field_name, type_name_return)):
+            if prop_.has_setter:
+                if prop_.type_ in self.define.classes:
+                    code('if let Some(value) = self.{0}.clone() {{ return Some(value) }}'.format(field_name))
+                else:
+                    code('if let Some(value) = self.{0}.clone() {{ return value; }}'.format(field_name))
+            self.__write_managed_function_body__(code, class_, prop_.getter_as_func())
+
+        return code
+
+    def __generate__manaded_property_setter__(self, class_: Class, prop_:Property, is_trait=False) -> Code:
+        code = Code()
         # cannot generate property with no getter and no setter
         if not prop_.has_getter and not prop_.has_setter:
             return code
         
-        # Markdown comment
-        if prop_.brief != None:
-            code('/// {}'.format(prop_.brief.descs[self.lang]))
-        
-        type_name = self.__get_rs_type__(prop_.type_)
-        type_name_return = self.__get_rs_type__(prop_.type_, is_return=True)
+        type_name = self.__get_rs_type__(prop_.type_, is_property=True)
 
         field_name = camelcase_to_underscore(prop_.name)
-        # with CodeBlock(code, 'public {} {}'.format(type_name, prop_.name)):
-        if prop_.has_getter:
-            with CodeBlock(code, 'pub fn get_{}(&mut self) -> {}'.format(field_name, type_name_return)):
-                if prop_.has_setter:
-                    with CodeBlock(code, 'if let Some(value) = self.{}'.format(field_name)):
-                        code('return value;')
-                self.__write_managed_function_body__(code, class_, prop_.getter_as_func())
+
+        access = ''
+        if not is_trait:
+            access = 'pub '
+        # if prop_.is_public:
+        #     access = 'pub'
+        # else:
+        #     access = 'pub(crate)'
+
         if prop_.has_setter:
-            with CodeBlock(code, 'pub fn set_{}(&mut self, value : {})'.format(field_name, type_name)):
+            # Markdown comment
+            if prop_.brief != None:
+                code('/// {}'.format(prop_.brief.descs[self.lang]))
+
+            head = '{}fn set_{}(&mut self, value : {}) -> &mut Self'.format(access, field_name, type_name)
+
+            if is_trait:
+                head = '{}fn base_set_{}(&mut self, value : {})'.format(access, field_name, type_name)
+
+            with CodeBlock(code, head):
                 if prop_.has_getter:
-                    code('self.{} = Some(value);'.format(field_name))
-                self.__write_managed_function_body__(code, class_, prop_.setter_as_func())
+                    code('self.{} = Some(value.clone());'.format(field_name))
+                self.__write_managed_function_body__(code, class_, prop_.setter_as_func(), is_property=True)
+                if not is_trait:
+                    code('self')
+
+        return code
+
+
+    def __generate__managed_property_(self, class_: Class, prop_:Property, is_trait=False) -> Code:
+        code = Code()
+
+        if prop_.has_getter:
+            code(self.__generate__manaded_property_getter__(class_, prop_, is_trait=is_trait))
+        if prop_.has_setter:
+            code(self.__generate__manaded_property_setter__(class_, prop_, is_trait=is_trait))
 
         return code
 
@@ -337,150 +462,265 @@ class BindingGeneratorRust(BindingGenerator):
     def __generate_enum__(self, enum_ : Enum) -> Code:
         code = Code()
 
-        code('#[repr(C)]')
-        code('#[derive(Debug, Clone, Copy, PartialEq)]')
-        with CodeBlock(code, "pub enum {}".format(enum_.name)):
-            for val in enum_.values:
-                line = val.name
-                if val.value != None:
-                    line = '{} = {}'.format(line, val.value)
-                code(line + ',')
+        access = 'pub'
+
+        if enum_ in self.bitFlags:
+
+            with CodeBlock(code, "bitflags!"):
+                # Markdown comment
+                if enum_.brief != None:
+                    code('/// {}'.format(enum_.brief.descs[self.lang]))
+
+                with CodeBlock(code, "{} struct {}: i32".format(access, enum_.name)):
+                    int_value = 0
+                    for val in enum_.values:
+                        if val.brief != None:
+                            code('/// {}'.format(val.brief.descs[self.lang]))
+
+                        val_name = camelcase_to_underscore(val.name).upper()
+                        if val.value != None:
+                            code('const {} = {};'.format(val_name, val.value))
+                            int_value = val.value + 1
+                        else:
+                            code('const {} = {};'.format(val_name, int_value))
+                            int_value += 1
+        else:
+            # Markdown comment
+            if enum_.brief != None:
+                code('/// {}'.format(enum_.brief.descs[self.lang]))
+            
+            code('#[repr(C)]')
+            code('#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]')
+            with CodeBlock(code, "{} enum {}".format(access, enum_.name)):
+                int_value = 0
+                for val in enum_.values:
+                    if val.brief != None:
+                        code('/// {}'.format(val.brief.descs[self.lang]))
+                    if val.value != None:
+                        code('{} = {},'.format(val.name, val.value))
+                    else:
+                        code('{},'.format(val.name))
 
         return code
 
 
-    def __generate_unmanaged_struct__(self, struct_ : Struct) -> Code:
-        code = Code()
+    # def __generate_unmanaged_struct__(self, struct_ : Struct) -> Code:
+    #     code = Code()
 
-        code('#[repr(C)]')
-        with CodeBlock(code, 'pub(crate) struct {}'.format(struct_.name)):
-            for field_ in struct_.fields:
-                code('pub(crate) {} : {},'.format(camelcase_to_underscore(field_.name), self.__get_rsc_type__(field_.type_)))
-        return code
+    #     code('#[repr(C)]')
+    #     with CodeBlock(code, 'pub struct {}'.format(struct_.alias)):
+    #         for field_ in struct_.fields:
+    #             code('pub(crate) {} : {},'.format(camelcase_to_underscore(field_.name), self.__get_rsc_type__(field_.type_)))
+    #     return code
 
-    def __generate_managed_struct__(self, struct_ : Struct) -> Code:
-        code = Code()
-        code('#[derive(Debug, Clone, Copy, PartialEq)]')
-        with CodeBlock(code, 'pub struct {}'.format(struct_.name)):
-            for field_ in struct_.fields:
-                code('{} : {},'.format(camelcase_to_underscore(field_.name), self.__get_rs_type__(field_.type_, is_return=True)))
+    # def __generate_managed_struct__(self, struct_ : Struct) -> Code:
+    #     code = Code()
+    #     code('#[derive(Debug, Clone, Copy, PartialEq, Default)]')
+    #     with CodeBlock(code, 'pub struct {}'.format(struct_.alias)):
+    #         for field_ in struct_.fields:
+    #             code('pub {} : {},'.format(camelcase_to_underscore(field_.name), self.__get_rs_type__(field_.type_, is_return=True, is_property=True)))
         
-        unmanagedStructName = '{}::{}'.format(self.structModName, struct_.name)
+    #     unmanagedStructName = '{}::{}'.format(self.structModName, struct_.alias)
 
-        with CodeBlock(code, 'impl From<{0}> for {1}'.format(unmanagedStructName, struct_.name)):
-            with CodeBlock(code, 'fn from(item: {}) -> Self'.format(unmanagedStructName)):
-                with CodeBlock(code, 'Self'):
-                    for field_ in struct_.fields:
-                        name = camelcase_to_underscore(field_.name)
-                        code('{} : {},'.format(name, self.__convert_rsc_to_rs__(field_.type_, 'item.' + name)))
+    #     with CodeBlock(code, 'impl From<{0}> for {1}'.format(unmanagedStructName, struct_.alias)):
+    #         with CodeBlock(code, 'fn from(item: {}) -> Self'.format(unmanagedStructName)):
+    #             with CodeBlock(code, 'Self'):
+    #                 for field_ in struct_.fields:
+    #                     name = camelcase_to_underscore(field_.name)
+    #                     code('{} : {},'.format(name, self.__convert_rsc_to_rs__(field_.type_, 'item.' + name)))
 
-        with CodeBlock(code, 'impl Into<{}> for {}'.format(unmanagedStructName, struct_.name)):
-            with CodeBlock(code, 'fn into(self) -> {}'.format(unmanagedStructName)):
-                with CodeBlock(code, unmanagedStructName):
-                    for field_ in struct_.fields:
-                        name = camelcase_to_underscore(field_.name)
-                        code('{} : {},'.format(name, self.__convert_ret__(field_.type_, 'self.' + name)))
+    #     with CodeBlock(code, 'impl Into<{}> for {}'.format(unmanagedStructName, struct_.alias)):
+    #         with CodeBlock(code, 'fn into(self) -> {}'.format(unmanagedStructName)):
+    #             with CodeBlock(code, unmanagedStructName):
+    #                 for field_ in struct_.fields:
+    #                     name = camelcase_to_underscore(field_.name)
+    #                     code('{} : {},'.format(name, self.__convert_ret__(field_.type_, 'self.' + name)))
 
-        return code
-
-
-    def __generate_cache__(self, classes: List[Class]) -> Code:
-        code = Code()
-
-        ptr_storage_name = self.PtrEnumName + "Storage"
-        code('''
-use std::sync::{{Arc, Weak, RwLock, Mutex}};
-use std::collections::HashMap;
-
-#[derive(Debug, PartialEq, Eq, Hash)]
-struct {0}(*mut {1});
-
-unsafe impl Send for {0} {{ }}
-unsafe impl Sync for {0} {{ }}
-'''.format(ptr_storage_name, self.PtrEnumName))
-
-        with CodeBlock(code, 'lazy_static!'):
-            for class_ in classes:
-                code('''static ref {}_CACHE: RwLock<HashMap<{}, Weak<Mutex<{}>>>> = RwLock::new(HashMap::new());'''.format(
-                    class_.name.upper(), ptr_storage_name, class_.name))
-
-        return code
-
+    #     return code
 
     def __generate_class__(self, class_: Class) -> Code:
         code = Code()
 
-        code('#[derive(Debug, PartialEq, Eq, Hash)]')
-        with CodeBlock(code, 'pub struct {}'.format(class_.name)):
+        distincted_funcs = {}
+        distincted_props = {}
+
+        for f in class_.funcs:
+            distincted_funcs[f.name] = (class_, f)
+
+        for p in class_.properties:
+            distincted_props[p.name] = (class_, p)
+
+        base_classes = []
+        base_funcs = {}
+        base_props = {}
+        current = class_
+        while current.base_class != None:
+            if current.base_class == current:
+                assert('infinit inheritance')
+            base_classes.append(current.base_class)
+            for f in current.base_class.funcs:
+                distincted_funcs[f.name] = (current.base_class, f)
+                base_funcs[f.name] = f
+            for p in current.base_class.properties:
+                distincted_props[p.name] = (current.base_class, p)
+                base_props[p.name] = p
+            current = current.base_class
+
+        # Markdown comment
+        if class_.brief != None:
+            code('/// {}'.format(class_.brief.descs[self.lang]))
+        
+        access = ''
+        if class_.is_public:
+            access = 'pub'
+        else:
+            access = 'pub(crate)'
+
+        code('#[derive(Debug)]')
+        with CodeBlock(code, '{} struct {}'.format(access, class_.name)):
             # unmanaged pointer
             code('{} : *mut {},'.format(self.self_ptr_name, self.PtrEnumName))
-            for prop_ in class_.properties:
+            for pair in distincted_props.values():
+                prop_ = pair[1]
                 if prop_.has_getter and prop_.has_setter:
-                    code('{} : Option<{}>,'.format(camelcase_to_underscore(prop_.name), self.__get_rs_type__(prop_.type_)))
-
-        code('''
+                    code('{}: Option<{}>,'.format(camelcase_to_underscore(prop_.name), self.__get_rs_type__(prop_.type_, is_property=True)))
+        
+        if class_.cache_mode == CacheMode.ThreadSafeCache:
+            code('''
 unsafe impl Send for {0} {{ }}
 unsafe impl Sync for {0} {{ }}
-'''.format(class_.name))
+    '''.format(class_.name))
 
-        with CodeBlock(code, 'impl Clone for {}'.format(class_.name)):
-            with CodeBlock(code, 'fn clone(&self) -> Self'):
-                with CodeBlock(code, class_.name):
-                    code('{0} : self.{0},'.format(self.self_ptr_name))
-                    for prop_ in class_.properties:
-                        if prop_.has_getter and prop_.has_setter:
-                            name = camelcase_to_underscore(prop_.name)
-                            code('{} : self.{},'.format(name, name))
-        code('')
+        code('''
+impl Has{1} for {0} {{
+    fn {2}(&mut self) -> *mut {1} {{
+        self.{2}.clone()
+    }}
+}}
+'''.format(class_.name, self.PtrEnumName, self.self_ptr_name))
+
+        if class_ in self.baseClasses:
+            inherits = ''
+            # not empty
+            if base_classes:
+                inherits = ': Has{} + '.format(self.PtrEnumName) + ' + '.join(map(lambda x: x.name + 'Trait', base_classes))
+
+            with CodeBlock(code, 'pub trait {} {}'.format(get_base_trait_name(class_), inherits)):
+                for func_ in [pair[1] for pair in distincted_funcs.values() if (len(pair[1].targets) == 0) or ('rust' in pair[1].targets) and (not pair[1] in base_funcs)]:
+                    code(self.__generate_func_brief__(class_, func_))
+                    code(self.__managed_func_declare__(class_, func_) + ';')
+
+                for prop_ in [pair[1] for pair in distincted_props.values() if (not pair[1] in base_props)]:
+                    type_name = self.__get_rs_type__(prop_.type_, is_property=True)
+                    type_name_return = self.__get_rs_type__(prop_.type_, is_return=True)
+                    field_name = camelcase_to_underscore(prop_.name)
+
+                    if prop_.has_getter:
+                        # Markdown comment
+                        if prop_.brief != None:
+                            code('/// {}'.format(prop_.brief.descs[self.lang]))
+                        code('fn get_{}(&mut self) -> {};'.format(field_name, type_name_return))
+
+                    if prop_.has_setter:
+                        # Markdown comment
+                        if prop_.brief != None:
+                            code('/// {}'.format(prop_.brief.descs[self.lang]))
+                        code('fn base_set_{}(&mut self, value : {});'.format(field_name, type_name))
+
+            base_classes.append(class_)
+
+        for base_class in base_classes:
+            with CodeBlock(code, 'impl {} for {}'.format(get_base_trait_name(base_class), class_.name)):
+                for func_ in [f for f in base_class.funcs if len(f.targets) == 0 or 'rust' in f.targets]:
+                    code(self.__generate__managed_func__(base_class, func_, add_accessor=False))
+
+                for prop_ in base_class.properties:
+                    code(self.__generate__managed_property_(base_class, prop_, is_trait=True))
 
         with CodeBlock(code, 'impl {}'.format(class_.name)):
             # unmanaged constructor
-            ret_type = "Self"
-            if class_.do_cache:
-                ret_type = "Arc<Mutex<Self>>"
+            ret_type = self.__get_rs_type__(class_, is_return=True)
             
-            code('#[allow(dead_code)]')
-            with CodeBlock(code, 'fn create({} : *mut {}) -> {}'.format(self.self_ptr_name, self.PtrEnumName, ret_type), True):
-                if class_.do_cache:
+            with CodeBlock(code, 'fn cbg_create_raw({} : *mut {}) -> {}'.format(self.self_ptr_name, self.PtrEnumName, ret_type), True):
+                code('if {} == NULLPTR {{ return None; }}'.format(self.self_ptr_name))
+
+                code('Some(')
+                if class_.cache_mode == CacheMode.Cache:
+                    code('Rc::new(RefCell::new(')
+                elif class_.cache_mode == CacheMode.ThreadSafeCache:
                     code('Arc::new(Mutex::new(')
                 
                 with CodeBlock(code, class_.name):
                     code('{},'.format(self.self_ptr_name))
-                    for prop_ in class_.properties:
+                    for pair in distincted_props.values():
+                        prop_ = pair[1]
                         if prop_.has_getter and prop_.has_setter:
                             code('{} : None,'.format(camelcase_to_underscore(prop_.name)))
                 
-                if class_.do_cache:
+                if is_cached(class_):
                     code('))')
+                code(')')
 
-            if class_.do_cache:
-                body ='''
-#[allow(dead_code)]
-fn try_get_from_cache({0} : *mut RawPtr) -> Arc<Mutex<Self>> {{
-    let mut hash_map = {1}_CACHE.write().unwrap();
-    let storage = RawPtrStorage({0});
+            body = ''
+            if class_.cache_mode == CacheMode.Cache:
+                body = '''
+fn try_get_from_cache({0} : *mut {1}) -> Option<Rc<RefCell<Self>>> {{
+    thread_local! {{
+        static {2}_CACHE: RefCell<HashMap<{1}Storage, rc::Weak<RefCell<{3}>>>> = RefCell::new(HashMap::new());
+    }}
+    {2}_CACHE.with(|hash_map| {{
+        let mut hash_map = hash_map.borrow_mut();
+        let storage = {1}Storage({0});
+        if let Some(x) = hash_map.get(&storage) {{
+            match x.upgrade() {{
+                Some(o) => {{ return Some(o); }},
+                None => {{ hash_map.remove(&storage); }},
+            }}
+        }}
+        let o = Self::cbg_create_raw({0})?;
+        hash_map.insert(storage, Rc::downgrade(&o));
+        Some(o)
+    }})
+}}
+'''.format(self.self_ptr_name, self.PtrEnumName, class_.name.upper(), class_.name)
+
+            elif class_.cache_mode == CacheMode.ThreadSafeCache:
+                body = '''
+fn try_get_from_cache({0} : *mut {1}) -> Option<Arc<Mutex<Self>>> {{
+    lazy_static! {{
+        static ref {2}_CACHE: RwLock<HashMap<{1}Storage, sync::Weak<Mutex<{3}>>>> = RwLock::new(HashMap::new());
+    }}
+    let mut hash_map = {2}_CACHE.write().unwrap();
+    let storage = {1}Storage({0});
     if let Some(x) = hash_map.get(&storage) {{
         match x.upgrade() {{
-            Some(o) => {{ return o; }},
+            Some(o) => {{ return Some(o); }},
             None => {{ hash_map.remove(&storage); }},
         }}
     }}
-    let o = Self::create({0});
+    let o = Self::cbg_create_raw({0})?;
     hash_map.insert(storage, Arc::downgrade(&o));
-    o
+    Some(o)
 }}
-'''.format(self.self_ptr_name, class_.name.upper())
+'''.format(self.self_ptr_name, self.PtrEnumName, class_.name.upper(), class_.name)
 
-                lines = body.split('\n')
-                for line in lines:
-                    code(line)
+            lines = body.split('\n')
+            for line in lines:
+                code(line)
 
             # managed functions
-            for func_ in [f for f in class_.funcs if len(f.targets) == 0 or 'rust' in f.targets]:
-                code(self.__generate__managed_func__(class_, func_))
+            if not (class_ in self.baseClasses):
+                for func_ in [f for f in class_.funcs if len(f.targets) == 0 or 'rust' in f.targets]:
+                    if not (func_.name in base_funcs):
+                        code(self.__generate__managed_func__(class_, func_))
 
-            for prop_ in class_.properties:
-                code(self.__generate__managed_property_(class_, prop_))
+                for prop_ in class_.properties:
+                    if not (prop_.name in base_props):
+                        code(self.__generate__manaded_property_getter__(class_, prop_))
+
+            for pair in distincted_props.values():
+                code(self.__generate__manaded_property_setter__(pair[0], pair[1]))
+            
 
         code('')
 
@@ -497,12 +737,16 @@ fn try_get_from_cache({0} : *mut RawPtr) -> Arc<Mutex<Self>> {{
     def generate(self):
         code = Code()
 
-        # declare use
-        code('#[allow(unused_imports)]')
-        code('use std::os::raw::*;')
-        code('#[allow(unused_imports)]')
-        code('use std::ffi::CString;')
-        code('')
+        # add Waring
+        code('// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+        code('//')
+        code('//   このファイルは自動生成されました。')
+        code('//   このファイルへの変更は消失することがあります。')
+        code('//')
+        code('//   THIS FILE IS AUTO GENERATED.')
+        code('//   YOUR COMMITMENT ON THIS FILE WILL BE WIPED. ')
+        code('//')
+        code('// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
         code('')
 
         # declare module
@@ -510,33 +754,73 @@ fn try_get_from_cache({0} : *mut RawPtr) -> Arc<Mutex<Self>> {{
             code('mod {} {{'.format(self.module))
             code.inc_indent()
 
-        code('enum {} {{ }}'.format(self.PtrEnumName))
+        # declare use
+        code('#![allow(dead_code)]')
+        code('#[allow(unused_imports)]')
+        code('use std::ffi::c_void;')
+        code('use std::os::raw::*;')
         code('')
+        code('const NULLPTR: *mut RawPtr = 0 as *mut RawPtr;')
+
+        code('''
+fn decode_string(source: *const u16) -> String {
+    unsafe {
+        let len = (0..).take_while(|&i| *source.offset(i) != 0).count();
+        let slice = std::slice::from_raw_parts(source, len);
+        String::from_utf16_lossy(slice)
+    }
+}
+
+fn encode_string(s: &str) -> Vec<u16> {
+    let mut v: Vec<u16> = s.encode_utf16().collect();
+    v.push(0);
+    v
+}
+''')
+
+        # for cache
+        code('''
+use std::rc::{{self, Rc}};
+use std::cell::RefCell;
+use std::sync::{{self, Arc, RwLock, Mutex}};
+use std::collections::HashMap;
+
+pub enum {0} {{ }}
+
+pub trait Has{0} {{
+    fn {1}(&mut self) -> *mut {0};
+}}
+
+#[derive(Debug, PartialEq, Eq, Hash)]
+struct {0}Storage(*mut {0});
+
+unsafe impl Send for {0}Storage {{ }}
+unsafe impl Sync for {0}Storage {{ }}
+'''.format(self.PtrEnumName, self.self_ptr_name))
 
         # enum group
         for enum_ in self.define.enums:
-            code(self.__generate_enum__(enum_))
+            if len(enum_.values) > 0:
+                code(self.__generate_enum__(enum_))
         
-        for struct_ in self.define.structs:
-            if struct_ not in self.structsReplaceMap:
-                code(self.__generate_managed_struct__(struct_))
+        # for struct_ in self.define.structs:
+        #     if struct_ not in self.structsReplaceMap:
+        #         code(self.__generate_managed_struct__(struct_))
 
-        # if list is not empty
-        if self.define.structs:
-            with CodeBlock(code, 'pub(crate) mod {}'.format(self.structModName)):
-                code('#[allow(unused_imports)]')
-                code('use super::*;')
-                for struct_ in self.define.structs:
-                    code(self.__generate_unmanaged_struct__(struct_))
+        # # if list is not empty
+        # if self.define.structs:
+        #     with CodeBlock(code, 'pub mod {}'.format(self.structModName)):
+        #         code('#[allow(unused_imports)]')
+        #         code('use super::*;')
+        #         for struct_ in self.define.structs:
+        #             code(self.__generate_unmanaged_struct__(struct_))
 
 
         code(self.__generate_extern__(self.define.classes))
 
-        chached_classed = list(filter(lambda x: x.do_cache, self.define.classes))
-
-        # Not Empty
-        if chached_classed:
-            code(self.__generate_cache__(chached_classed))
+        for class_ in self.define.classes:
+            if class_.base_class != None:
+                self.baseClasses.add(class_.base_class)
         
         # class group
         for class_ in self.define.classes:

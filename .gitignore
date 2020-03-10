@@ -11,9 +11,9 @@ tests/build/**
 
 **/rust**/target
 **/*.rs.bk
-!tests/results/rust/build.rs
+!tests/results/rust**/build.rs
 !tests/results/rust/src/lib.rs
-!tests/results/rust/src/main.rs
+!tests/results/rust_caller/src/main.rs
 !tests/results/rust/Cargo.toml
 Cargo.lock
 
