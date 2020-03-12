@@ -148,7 +148,7 @@ class BindingGeneratorRust(BindingGenerator):
                 return '&mut ' + type_.name
 
         if type_ in self.define.structs:
-            return self.structsReplaceMap.get(type_, type_.alias)
+            return self.structsReplaceMap.get(type_, '{}::{}'.format(self.structModName, type_.alias))
 
         if type_ in self.define.enums:
             return type_.name
@@ -222,10 +222,13 @@ class BindingGeneratorRust(BindingGenerator):
                 elif type_.cache_mode == CacheMode.Cache:
                     return '{}.borrow_mut().{}()'.format(name, self.self_ptr_name)
             
-            return '{}.{}'.format(name, self.self_ptr_name)
+            return '{}.{}()'.format(name, self.self_ptr_name)
 
         if type_ in self.define.structs:
-            return '{}.into()'.format(name)
+            if type_ in self.structsReplaceMap:
+                return '{}.into()'.format(name)
+            else:
+                return name
 
         if type_ in self.define.enums:
             if type_ in self.bitFlags:
@@ -253,7 +256,10 @@ class BindingGeneratorRust(BindingGenerator):
                 return '{}::cbg_create_raw({})'.format(type_.name, name)
 
         if type_ in self.define.structs:
-            return '{}.into()'.format(name)
+            if type_ in self.structsReplaceMap:
+                return '{}.into()'.format(name)
+            else:
+                return name
 
         if type_ in self.define.enums:
             if type_ in self.bitFlags:
