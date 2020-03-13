@@ -514,41 +514,6 @@ class BindingGeneratorRust(BindingGenerator):
 
         return code
 
-
-    # def __generate_unmanaged_struct__(self, struct_ : Struct) -> Code:
-    #     code = Code()
-
-    #     code('#[repr(C)]')
-    #     with CodeBlock(code, 'pub struct {}'.format(struct_.alias)):
-    #         for field_ in struct_.fields:
-    #             code('pub(crate) {} : {},'.format(camelcase_to_underscore(field_.name), self.__get_rsc_type__(field_.type_)))
-    #     return code
-
-    # def __generate_managed_struct__(self, struct_ : Struct) -> Code:
-    #     code = Code()
-    #     code('#[derive(Debug, Clone, Copy, PartialEq, Default)]')
-    #     with CodeBlock(code, 'pub struct {}'.format(struct_.alias)):
-    #         for field_ in struct_.fields:
-    #             code('pub {} : {},'.format(camelcase_to_underscore(field_.name), self.__get_rs_type__(field_.type_, is_return=True, is_property=True)))
-        
-    #     unmanagedStructName = '{}::{}'.format(self.structModName, struct_.alias)
-
-    #     with CodeBlock(code, 'impl From<{0}> for {1}'.format(unmanagedStructName, struct_.alias)):
-    #         with CodeBlock(code, 'fn from(item: {}) -> Self'.format(unmanagedStructName)):
-    #             with CodeBlock(code, 'Self'):
-    #                 for field_ in struct_.fields:
-    #                     name = camelcase_to_underscore(field_.name)
-    #                     code('{} : {},'.format(name, self.__convert_rsc_to_rs__(field_.type_, 'item.' + name)))
-
-    #     with CodeBlock(code, 'impl Into<{}> for {}'.format(unmanagedStructName, struct_.alias)):
-    #         with CodeBlock(code, 'fn into(self) -> {}'.format(unmanagedStructName)):
-    #             with CodeBlock(code, unmanagedStructName):
-    #                 for field_ in struct_.fields:
-    #                     name = camelcase_to_underscore(field_.name)
-    #                     code('{} : {},'.format(name, self.__convert_ret__(field_.type_, 'self.' + name)))
-
-    #     return code
-
     def __generate_class__(self, class_: Class) -> Code:
         code = Code()
 
@@ -814,19 +779,6 @@ unsafe impl Sync for {0}Storage {{ }}
             if len(enum_.values) > 0:
                 code(self.__generate_enum__(enum_))
         
-        # for struct_ in self.define.structs:
-        #     if struct_ not in self.structsReplaceMap:
-        #         code(self.__generate_managed_struct__(struct_))
-
-        # # if list is not empty
-        # if self.define.structs:
-        #     with CodeBlock(code, 'pub mod {}'.format(self.structModName)):
-        #         code('#[allow(unused_imports)]')
-        #         code('use super::*;')
-        #         for struct_ in self.define.structs:
-        #             code(self.__generate_unmanaged_struct__(struct_))
-
-
         code(self.__generate_extern__(self.define.classes))
 
         for class_ in self.define.classes:
