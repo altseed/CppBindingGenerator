@@ -535,11 +535,15 @@ class BindingGeneratorRust(BindingGenerator):
                 assert('infinit inheritance')
             base_classes.append(current.base_class)
             for f in current.base_class.funcs:
-                distincted_funcs[f.name] = (current.base_class, f)
-                base_funcs[f.name] = f
+                if not f.name in distincted_funcs:
+                    distincted_funcs[f.name] = (current.base_class, f)
+                if not f.name in base_funcs:
+                    base_funcs[f.name] = f
             for p in current.base_class.properties:
-                distincted_props[p.name] = (current.base_class, p)
-                base_props[p.name] = p
+                if not p.name in distincted_props:
+                    distincted_props[p.name] = (current.base_class, p)
+                if not p.name in base_props:
+                    base_props[p.name] = p
             current = current.base_class
 
         # Markdown comment
@@ -778,7 +782,7 @@ unsafe impl Sync for {0}Storage {{ }}
         for enum_ in self.define.enums:
             if len(enum_.values) > 0:
                 code(self.__generate_enum__(enum_))
-        
+
         code(self.__generate_extern__(self.define.classes))
 
         for class_ in self.define.classes:
