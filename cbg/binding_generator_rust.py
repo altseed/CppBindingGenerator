@@ -148,7 +148,7 @@ class BindingGeneratorRust(BindingGenerator):
                 return '&mut ' + type_.name
 
         if type_ in self.define.structs:
-            return self.structsReplaceMap.get(type_, type_.alias)
+            return self.structsReplaceMap.get(type_, '{}::{}'.format(self.structModName, type_.alias))
 
         if type_ in self.define.enums:
             return type_.name
@@ -191,7 +191,10 @@ class BindingGeneratorRust(BindingGenerator):
             return '*mut {}'.format(self.PtrEnumName)
 
         if type_ in self.define.structs:
-            return '{}::{}'.format(self.structModName, type_.alias)
+            value_ = '{}::{}'.format(self.structModName, type_.alias)
+            if not is_return:
+                return '*mut ' + value_
+            return value_
 
         if type_ in self.define.enums:
             return 'c_int'
@@ -222,10 +225,13 @@ class BindingGeneratorRust(BindingGenerator):
                 elif type_.cache_mode == CacheMode.Cache:
                     return '{}.borrow_mut().{}()'.format(name, self.self_ptr_name)
             
-            return '{}.{}'.format(name, self.self_ptr_name)
+            return '{}.{}()'.format(name, self.self_ptr_name)
 
         if type_ in self.define.structs:
-            return '{}.into()'.format(name)
+            if type_ in self.structsReplaceMap:
+                return '&mut {}.into() as *mut _'.format(name)
+            else:
+                return '&mut {} as *mut _'.format(name)
 
         if type_ in self.define.enums:
             if type_ in self.bitFlags:
@@ -253,7 +259,10 @@ class BindingGeneratorRust(BindingGenerator):
                 return '{}::cbg_create_raw({})'.format(type_.name, name)
 
         if type_ in self.define.structs:
-            return '{}.into()'.format(name)
+            if type_ in self.structsReplaceMap:
+                return '{}.into()'.format(name)
+            else:
+                return name
 
         if type_ in self.define.enums:
             if type_ in self.bitFlags:
@@ -349,7 +358,7 @@ class BindingGeneratorRust(BindingGenerator):
         return code
 
     def __managed_func_declare__(self, class_: Class, func_: Function) -> str:
-        args = [camelcase_to_underscore(replaceKeyword(arg.name)) + ' : ' + self.__get_rs_type__(arg.type_, is_return=False, is_property=False, called_by=arg.called_by)
+        args = [('mut ' if arg.type_ in self.define.structs else '') + camelcase_to_underscore(replaceKeyword(arg.name)) + ' : ' + self.__get_rs_type__(arg.type_, is_return=False, is_property=False, called_by=arg.called_by)
             for arg in func_.args]
 
         if not func_.is_static and not func_.is_constructor:
@@ -433,10 +442,12 @@ class BindingGeneratorRust(BindingGenerator):
             if prop_.brief != None:
                 code('/// {}'.format(prop_.brief.descs[self.lang]))
 
-            head = '{}fn set_{}(&mut self, value : {}) -> &mut Self'.format(access, field_name, type_name)
+            mut_ = 'mut ' if prop_.type_ in self.define.structs else ''
+
+            head = '{}fn set_{}(&mut self, {}value : {}) -> &mut Self'.format(access, field_name, mut_, type_name)
 
             if is_trait:
-                head = '{}fn base_set_{}(&mut self, value : {})'.format(access, field_name, type_name)
+                head = '{}fn base_set_{}(&mut self, {}value : {})'.format(access, field_name, mut_, type_name)
 
             with CodeBlock(code, head):
                 if prop_.has_getter:
