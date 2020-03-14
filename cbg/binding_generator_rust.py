@@ -113,7 +113,7 @@ class BindingGeneratorRust(BindingGenerator):
             return ptr + 'bool'
 
         if type_ == ctypes.c_void_p:
-            return ptr + 'c_void'
+            return '*mut {}'.format(self.PtrEnumName)
 
         if type_ == ctypes.c_wchar_p:
             if is_return or is_property:
@@ -167,7 +167,7 @@ class BindingGeneratorRust(BindingGenerator):
             ptr = '*const '
 
         if type_ == ctypes.c_void_p:
-            return ptr + 'c_void'
+            return '*mut {}'.format(self.PtrEnumName)
 
         if type_ == ctypes.c_byte:
             return ptr + 'c_uchar'
@@ -185,7 +185,7 @@ class BindingGeneratorRust(BindingGenerator):
             return '*const u16'
 
         if type_ == ctypes.c_void_p:
-            return self.PtrEnumName
+            return '*mut {}'.format(self.PtrEnumName)
 
         if type_ in self.define.classes:
             return '*mut {}'.format(self.PtrEnumName)
@@ -209,11 +209,14 @@ class BindingGeneratorRust(BindingGenerator):
         assert(False)
 
     def __convert_rsc_to_rs__(self, type_, name: str, is_property = False, called_by: ArgCalledBy = None) -> str:
-        if type_ == int or type_ == float or type_ == bool or type_ == ctypes.c_byte or type_ == ctypes.c_void_p:
+        if type_ == int or type_ == float or type_ == bool or type_ == ctypes.c_byte:
             if called_by == ArgCalledBy.Out or called_by == ArgCalledBy.Ref:
                 return  '{} as {}'.format(name, self.__get_rsc_type__(type_, called_by=called_by))
             else:
                 return name
+
+        if type_ == ctypes.c_void_p:
+            return name
 
         if type_ == ctypes.c_wchar_p:
             return 'encode_string(&{}).as_ptr()'.format(name)
