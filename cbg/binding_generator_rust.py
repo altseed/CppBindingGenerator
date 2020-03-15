@@ -121,29 +121,43 @@ class BindingGeneratorRust(BindingGenerator):
             return '&str'
 
         if type_ in self.define.classes:
-            if is_return:
+            if is_property:
                 type_name = type_.name
+                
+                if type_ in self.baseClasses:
+                    if type_.cache_mode == CacheMode.ThreadSafeCache:
+                        type_name = 'Arc<Mutex<dyn {}>>'.format(get_base_trait_name(type_))
+                    elif type_.cache_mode == CacheMode.Cache:
+                        type_name = 'Rc<RefCell<dyn {}>>'.format(get_base_trait_name(type_))
+                else:
+                    if type_.cache_mode == CacheMode.ThreadSafeCache:
+                        type_name = 'Arc<Mutex<{}>>'.format(type_.name)
+                    elif type_.cache_mode == CacheMode.Cache:
+                        type_name = 'Rc<RefCell<{}>>'.format(type_.name)
+
+                if is_return:
+                    type_name = 'Option<{}>'.format(type_name)
+                
+                return type_name
+
+            elif is_return:
+                type_name = type_.name
+                
                 if type_.cache_mode == CacheMode.ThreadSafeCache:
+                    # if type_ in self.baseClasses:
+                    #     type_name = 'Arc<Mutex<dyn {}>>'.format(get_base_trait_name(type_))
+                    # else:
                     type_name = 'Arc<Mutex<{}>>'.format(type_.name)
                 elif type_.cache_mode == CacheMode.Cache:
+                    # if type_ in self.baseClasses:
+                    #     type_name = 'Rc<RefCell<dyn {}>>'.format(get_base_trait_name(type_))
+                    # else:
                     type_name = 'Rc<RefCell<{}>>'.format(type_.name)
                 
                 return 'Option<{}>'.format(type_name)
-            elif is_property:
-                if type_ in self.baseClasses:
-                    if type_.cache_mode == CacheMode.ThreadSafeCache:
-                        return 'Arc<Mutex<dyn {}>>'.format(get_base_trait_name(type_))
-                    elif type_.cache_mode == CacheMode.Cache:
-                        return 'Rc<RefCell<dyn {}>>'.format(get_base_trait_name(type_))
-            
-                if type_.cache_mode == CacheMode.ThreadSafeCache:
-                    return 'Arc<Mutex<{}>>'.format(type_.name)
-                elif type_.cache_mode == CacheMode.Cache:
-                    return 'Rc<RefCell<{}>>'.format(type_.name)
-                
-                return type_.name
+
             elif type_ in self.baseClasses:
-                return '&mut {}'.format(get_base_trait_name(type_))
+                return '&mut dyn {}'.format(get_base_trait_name(type_))
             else:
                 return '&mut ' + type_.name
 
@@ -257,7 +271,7 @@ class BindingGeneratorRust(BindingGenerator):
 
         if type_ in self.define.classes:
             if is_cached(type_):
-                return '{}::try_get_from_cache({})'.format(type_.name, name)
+                return '{{ let ret = {}::try_get_from_cache({})?; Some(ret) }}'.format(type_.name, name)
             else:
                 return '{}::cbg_create_raw({})'.format(type_.name, name)
 
@@ -361,17 +375,26 @@ class BindingGeneratorRust(BindingGenerator):
         return code
 
     def __managed_func_declare__(self, class_: Class, func_: Function) -> str:
-        args = [('mut ' if arg.type_ in self.define.structs else '') + camelcase_to_underscore(replaceKeyword(arg.name)) + ' : ' + self.__get_rs_type__(arg.type_, is_return=False, is_property=False, called_by=arg.called_by)
-            for arg in func_.args]
+        args = []
+        index_ = 0
+        generic_ = []
+        for arg in func_.args:
+            if arg.type_ in self.baseClasses:
+                args.append('{}: &mut T{}'.format(camelcase_to_underscore(replaceKeyword(arg.name)), index_))
+                generic_.append('T{}: {}'.format(index_, get_base_trait_name(arg.type_)))
+                index_ += 1
+            else:
+                args.append(('mut ' if arg.type_ in self.define.structs else '') + camelcase_to_underscore(replaceKeyword(arg.name)) + ' : ' + self.__get_rs_type__(arg.type_, is_return=False, is_property=False, called_by=arg.called_by))
 
         if not func_.is_static and not func_.is_constructor:
             args = [ "&mut self" ] + args
 
         if func_.is_constructor:
-            return 'fn new({}) -> {}'.format(', '.join(args), self.__get_rs_type__(class_, is_return=True))
+            return 'fn new<{}>({}) -> {}'.format(', '.join(generic_), ', '.join(args), self.__get_rs_type__(class_, is_return=True))
         else:
-            return 'fn {}({}) -> {}'.format(
+            return 'fn {}<{}>({}) -> {}'.format(
                 camelcase_to_underscore(func_.name),
+                ', '.join(generic_),
                 ', '.join(args),
                 self.__get_rs_type__(func_.return_value.type_, is_return=True))
 
@@ -401,7 +424,7 @@ class BindingGeneratorRust(BindingGenerator):
         if not prop_.has_getter:
             return code
         
-        type_name_return = self.__get_rs_type__(prop_.type_, is_return=True)
+        type_name_return = self.__get_rs_type__(prop_.type_, is_return=True, is_property=True)
 
         field_name = camelcase_to_underscore(prop_.name)
 
@@ -447,10 +470,19 @@ class BindingGeneratorRust(BindingGenerator):
 
             mut_ = 'mut ' if prop_.type_ in self.define.structs else ''
 
-            head = '{}fn set_{}(&mut self, {}value : {}) -> &mut Self'.format(access, field_name, mut_, type_name)
+            generic_ = ''
+            if prop_.type_ in self.baseClasses:
+                type_name = '&T'
+                if prop_.type_.cache_mode == CacheMode.Cache:
+                    type_name = '&Rc<RefCell<T>>'
+                elif prop_.type_.cache_mode == CacheMode.ThreadSafeCache:
+                    type_name = '&Arc<RefCell<T>>'
+                generic_ = 'T: {} + \'static'.format(get_base_trait_name(prop_.type_))
+
+            head = '{}fn set_{}<{}>(&mut self, {}value : {}) -> &mut Self'.format(access, field_name, generic_, mut_, type_name)
 
             if is_trait:
-                head = '{}fn base_set_{}(&mut self, {}value : {})'.format(access, field_name, mut_, type_name)
+                head = '{}fn base_set_{}<{}>(&mut self, {}value : {})'.format(access, field_name, generic_, mut_, type_name)
 
             with CodeBlock(code, head):
                 if prop_.has_getter:
@@ -583,15 +615,16 @@ impl Has{1} for {0} {{
 '''.format(class_.name, self.PtrEnumName, self.self_ptr_name))
 
         if class_ in self.baseClasses:
-            inherits = ''
+            inherits = ': std::fmt::Debug + Has{}'.format(self.PtrEnumName)
             # not empty
             if base_classes:
-                inherits = ': Has{} + '.format(self.PtrEnumName) + ' + '.join(map(lambda x: x.name + 'Trait', base_classes))
+                inherits = inherits + ' + ' + ' + '.join(map(lambda x: x.name + 'Trait', base_classes))
 
             with CodeBlock(code, 'pub trait {} {}'.format(get_base_trait_name(class_), inherits)):
                 for func_ in [pair[1] for pair in distincted_funcs.values() if (len(pair[1].targets) == 0) or ('rust' in pair[1].targets) and (not pair[1] in base_funcs)]:
-                    code(self.__generate_func_brief__(class_, func_))
-                    code(self.__managed_func_declare__(class_, func_) + ';')
+                    if not func_.is_static:
+                        code(self.__generate_func_brief__(class_, func_))
+                        code(self.__managed_func_declare__(class_, func_) + ';')
 
                 for prop_ in [pair[1] for pair in distincted_props.values() if (not pair[1] in base_props)]:
                     type_name = self.__get_rs_type__(prop_.type_, is_property=True)
@@ -615,16 +648,21 @@ impl Has{1} for {0} {{
         for base_class in base_classes:
             with CodeBlock(code, 'impl {} for {}'.format(get_base_trait_name(base_class), class_.name)):
                 for func_ in [f for f in base_class.funcs if len(f.targets) == 0 or 'rust' in f.targets]:
-                    code(self.__generate__managed_func__(base_class, func_, add_accessor=False))
+                    if not func_.is_static:
+                        code(self.__generate__managed_func__(base_class, func_, add_accessor=False))
 
                 for prop_ in base_class.properties:
                     code(self.__generate__managed_property_(base_class, prop_, is_trait=True))
 
         with CodeBlock(code, 'impl {}'.format(class_.name)):
             # unmanaged constructor
-            ret_type = self.__get_rs_type__(class_, is_return=True)
+            ret_type = 'Self'
+            if class_.cache_mode == CacheMode.Cache:
+                ret_type = 'Rc<RefCell<Self>>'
+            elif class_.cache_mode == CacheMode.ThreadSafeCache:
+                ret_type = 'Arc<Mutex<Self>>'
             
-            with CodeBlock(code, 'fn cbg_create_raw({} : *mut {}) -> {}'.format(self.self_ptr_name, self.PtrEnumName, ret_type), True):
+            with CodeBlock(code, 'fn cbg_create_raw({} : *mut {}) -> Option<{}>'.format(self.self_ptr_name, self.PtrEnumName, ret_type), True):
                 code('if {} == NULLPTR {{ return None; }}'.format(self.self_ptr_name))
 
                 code('Some(')
@@ -690,6 +728,11 @@ fn try_get_from_cache({0} : *mut {1}) -> Option<Arc<Mutex<Self>>> {{
             lines = body.split('\n')
             for line in lines:
                 code(line)
+
+            if class_ in self.baseClasses:
+                for func_ in [f for f in class_.funcs if len(f.targets) == 0 or 'rust' in f.targets]:
+                    if func_.is_static:
+                        code(self.__generate__managed_func__(class_, func_))
 
             # managed functions
             if not (class_ in self.baseClasses):
