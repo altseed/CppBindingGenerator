@@ -112,7 +112,7 @@ class BindingGeneratorCSharp(BindingGenerator):
             if is_return:
                 return '{}'.format(type_.alias)
             else:
-                return 'ref {}'.format(type_.alias)
+                return '{}{}'.format(ptr, type_.alias)
 
         if type_ in self.define.enums:
             return type_.name
@@ -159,7 +159,7 @@ class BindingGeneratorCSharp(BindingGenerator):
             if is_return:
                 return '{}'.format(type_.alias)
             else:
-                return 'ref {}'.format(type_.alias)
+                return '{}{}'.format(ptr, type_.alias)
 
         if type_ in self.define.enums:
             return 'int'
@@ -172,19 +172,20 @@ class BindingGeneratorCSharp(BindingGenerator):
         assert(False)
 
     def __convert_csc_to_cs__(self, type_, name: str, called_by: ArgCalledBy = None) -> str:
+        ptr = ''
+        if called_by == ArgCalledBy.Out:
+            ptr = 'out '
+        elif called_by == ArgCalledBy.Ref:
+            ptr = 'ref '
+
         if type_ == ctypes.c_byte or type_ == int or type_ == float or type_ == bool or type_ == ctypes.c_wchar_p or type_ == ctypes.c_void_p:
-            if called_by == ArgCalledBy.Out:
-                return 'out ' + name
-            if called_by == ArgCalledBy.Ref:
-                return 'ref ' + name
-            else:
-                return name
+            return ptr + name
 
         if type_ in self.define.classes:
             return '{} != null ? {}.{} : IntPtr.Zero'.format(name, name, self.self_ptr_name)
 
         if type_ in self.define.structs:
-            return 'ref {}'.format(name)
+            return ptr + name
 
         if type_ in self.define.enums:
             return '(int){}'.format(name)
