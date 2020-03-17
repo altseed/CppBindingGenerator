@@ -438,9 +438,9 @@ class BindingGeneratorRust(BindingGenerator):
         with CodeBlock(code, '{}fn get_{}(&mut self) -> {}'.format(access, field_name, type_name_return)):
             if prop_.has_setter:
                 if prop_.type_ in self.define.classes:
-                    code('if let Some(value) = self.{0}.clone() {{ return Some(value) }}'.format(field_name))
+                    code('if let Some(value) = &self.{0} {{ return Some(value.clone()) }}'.format(field_name))
                 else:
-                    code('if let Some(value) = self.{0}.clone() {{ return value; }}'.format(field_name))
+                    code('if let Some(value) = &self.{0} {{ return value.clone(); }}'.format(field_name))
             self.__write_managed_function_body__(code, class_, prop_.getter_as_func())
 
         return code
