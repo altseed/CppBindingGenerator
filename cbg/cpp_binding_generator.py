@@ -401,7 +401,7 @@ class SharedObjectGenerator:
             return 'std::shared_ptr<{}>'.format(self.__get_class_fullname__(type_))
 
         if type_ in self.define.structs:
-            return type_.cpp_fullname()
+            return type_.cpp_fullname() + ptr
 
         if type_ in self.define.enums:
             return '{}::{}'.format(type_.namespace, type_.name)
@@ -438,10 +438,7 @@ class SharedObjectGenerator:
             return 'void*'
 
         if type_ in self.define.structs:
-            if is_return:
-                return type_.cpp_fullname()
-            else:
-                return "void*"
+            return type_.cpp_fullname() + ptr
 
         if type_ in self.define.enums:
             return 'int32_t'
@@ -452,14 +449,11 @@ class SharedObjectGenerator:
         raise ValueError("{} is not supported in cpp.".format(str(type_)))
 
     def __convert_c_to_cpp__(self, type_, name: str) -> str:
-        if type_ == ctypes.c_byte or type_ == int or type_ == float or type_ == bool or type_ == ctypes.c_wchar_p or type_ == ctypes.c_void_p:
+        if type_ == ctypes.c_byte or type_ == int or type_ == float or type_ == bool or type_ == ctypes.c_wchar_p or type_ == ctypes.c_void_p or type_ in self.define.structs:
             return name
 
         if type_ in self.define.classes:
             return '{}<{}>(({}*){})'.format(self.func_name_create_and_add_shared_ptr, self.__get_class_fullname__(type_), self.__get_class_fullname__(type_), name)
-
-        if type_ in self.define.structs:
-            return '(*(({}*){}))'.format(type_.cpp_fullname(), name)
 
         if type_ in self.define.enums:
             return '({}::{}){}'.format(type_.namespace, type_.name, name)
