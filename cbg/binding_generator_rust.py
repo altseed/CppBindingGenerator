@@ -162,7 +162,7 @@ class BindingGeneratorRust(BindingGenerator):
                 return '&mut ' + type_.name
 
         if type_ in self.define.structs:
-            return self.structsReplaceMap.get(type_, '{}::{}'.format(self.structModName, type_.alias))
+            return ptr + self.structsReplaceMap.get(type_, '{}::{}'.format(self.structModName, type_.alias))
 
         if type_ in self.define.enums:
             return type_.name
@@ -205,10 +205,11 @@ class BindingGeneratorRust(BindingGenerator):
             return '*mut {}'.format(self.PtrEnumName)
 
         if type_ in self.define.structs:
-            value_ = '{}::{}'.format(self.structModName, type_.alias)
-            if not is_return:
-                return '*mut ' + value_
-            return value_
+            value_ = self.structsReplaceMap.get(type_, '{}::{}'.format(self.structModName, type_.alias))
+            if is_return:
+                return value_
+            else:
+                return ('*const ' if ptr == '' else ptr) + value_
 
         if type_ in self.define.enums:
             return 'c_int'
@@ -245,10 +246,12 @@ class BindingGeneratorRust(BindingGenerator):
             return '{}.{}()'.format(name, self.self_ptr_name)
 
         if type_ in self.define.structs:
-            if type_ in self.structsReplaceMap:
-                return '&mut {}.into() as *mut _'.format(name)
+            if called_by == ArgCalledBy.Out:
+                return '{} as *mut _'.format(name)
+            elif called_by == ArgCalledBy.Ref:
+                return '{} as *const _'.format(name)
             else:
-                return '&mut {} as *mut _'.format(name)
+                return '&{} as *const _'.format(name)
 
         if type_ in self.define.enums:
             if type_ in self.bitFlags:
@@ -276,10 +279,7 @@ class BindingGeneratorRust(BindingGenerator):
                 return '{}::cbg_create_raw({})'.format(type_.name, name)
 
         if type_ in self.define.structs:
-            if type_ in self.structsReplaceMap:
-                return '{}.into()'.format(name)
-            else:
-                return name
+            return name
 
         if type_ in self.define.enums:
             if type_ in self.bitFlags:
