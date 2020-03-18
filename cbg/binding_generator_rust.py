@@ -209,7 +209,7 @@ class BindingGeneratorRust(BindingGenerator):
             if is_return:
                 return value_
             else:
-                return ('*const ' if ptr == '' else ptr) + value_
+                return ptr + value_
 
         if type_ in self.define.enums:
             return 'c_int'
@@ -246,12 +246,10 @@ class BindingGeneratorRust(BindingGenerator):
             return '{}.{}()'.format(name, self.self_ptr_name)
 
         if type_ in self.define.structs:
-            if called_by == ArgCalledBy.Out:
-                return '{} as *mut _'.format(name)
-            elif called_by == ArgCalledBy.Ref:
-                return '{} as *const _'.format(name)
+            if called_by == ArgCalledBy.Out or called_by == ArgCalledBy.Ref:
+                return  '{} as {}'.format(name, self.__get_rsc_type__(type_, called_by=called_by))
             else:
-                return '&{} as *const _'.format(name)
+                return name
 
         if type_ in self.define.enums:
             if type_ in self.bitFlags:
