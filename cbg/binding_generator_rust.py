@@ -247,9 +247,9 @@ class BindingGeneratorRust(BindingGenerator):
 
         if type_ in self.define.structs:
             if called_by == ArgCalledBy.Out or called_by == ArgCalledBy.Ref:
-                return  '{} as {}'.format(name, self.__get_rsc_type__(type_, called_by=called_by))
+                return  '{}.clone() as {}'.format(name, self.__get_rsc_type__(type_, called_by=called_by))
             else:
-                return name
+                return '{}.clone()'.format(name)
 
         if type_ in self.define.enums:
             if type_ in self.bitFlags:
@@ -470,11 +470,11 @@ class BindingGeneratorRust(BindingGenerator):
 
             generic_ = ''
             if prop_.type_ in self.baseClasses:
-                type_name = '&T'
+                type_name = 'T'
                 if prop_.type_.cache_mode == CacheMode.Cache:
-                    type_name = '&Rc<RefCell<T>>'
+                    type_name = 'Rc<RefCell<T>>'
                 elif prop_.type_.cache_mode == CacheMode.ThreadSafeCache:
-                    type_name = '&Arc<RefCell<T>>'
+                    type_name = 'Arc<RefCell<T>>'
                 generic_ = 'T: {} + \'static'.format(get_base_trait_name(prop_.type_))
 
             head = '{}fn set_{}<{}>(&mut self, {}value : {}) -> &mut Self'.format(access, field_name, generic_, mut_, type_name)
@@ -483,9 +483,9 @@ class BindingGeneratorRust(BindingGenerator):
                 head = '{}fn base_set_{}<{}>(&mut self, {}value : {})'.format(access, field_name, generic_, mut_, type_name)
 
             with CodeBlock(code, head):
+                self.__write_managed_function_body__(code, class_, prop_.setter_as_func(), is_property=True)
                 if prop_.has_getter:
                     code('self.{} = Some(value.clone());'.format(field_name))
-                self.__write_managed_function_body__(code, class_, prop_.setter_as_func(), is_property=True)
                 if not is_trait:
                     code('self')
 
