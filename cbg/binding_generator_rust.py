@@ -576,7 +576,7 @@ class BindingGeneratorRust(BindingGenerator):
                 if not p.name in distincted_props:
                     distincted_props[p.name] = (current.base_class, p)
                 if not p.name in base_props:
-                    base_props[p.name] = p
+                    base_props[p.name] = (current.base_class, p)
             current = current.base_class
 
         # Markdown comment
@@ -732,19 +732,24 @@ fn try_get_from_cache({0} : *mut {1}) -> Option<Arc<Mutex<Self>>> {{
                     if func_.is_static:
                         code(self.__generate__managed_func__(class_, func_))
 
-            # managed functions
-            if not (class_ in self.baseClasses):
+                # setter
+                for pair in distincted_props.values():
+                    code(self.__generate__manaded_property_setter__(pair[0], pair[1]))
+
+            else:
                 for func_ in [f for f in class_.funcs if len(f.targets) == 0 or 'rust' in f.targets]:
                     if not (func_.name in base_funcs):
                         code(self.__generate__managed_func__(class_, func_))
 
+                for pair in base_props.values():
+                    code(self.__generate__manaded_property_setter__(pair[0], pair[1]))
+
                 for prop_ in class_.properties:
                     if not (prop_.name in base_props):
                         code(self.__generate__manaded_property_getter__(class_, prop_))
+                        code(self.__generate__manaded_property_setter__(class_, prop_))
 
-            for pair in distincted_props.values():
-                code(self.__generate__manaded_property_setter__(pair[0], pair[1]))
-            
+
 
         code('')
 
