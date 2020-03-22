@@ -569,5 +569,5 @@ class BindingGeneratorCSharp(BindingGenerator):
         if self.output_path == '':
             print('please specify an output path')
         else:
-            with open(self.output_path, mode='w', encoding='utf-8') as f:
+            with open(self.output_path, mode='w', encoding='utf-8', newline="\r\n") as f:
                 f.write(str(code))

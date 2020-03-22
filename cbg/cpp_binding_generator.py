@@ -645,7 +645,7 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
         if self.output_path == '':
             print('please specify an output path')
         else:
-            with open(self.output_path, mode='w', encoding='utf-8') as f:
+            with open(self.output_path, mode='w', encoding='utf-8', newline="\n") as f:
                 f.write(code)
 
 
