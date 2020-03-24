@@ -303,7 +303,7 @@ class BindingGeneratorCSharp(BindingGenerator):
         # determine signature
         determines = []
 
-        if func_.is_public:
+        if func_.is_public and class_.is_public:
             determines += ['public']
         else:
             determines += ['internal']
