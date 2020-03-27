@@ -274,6 +274,7 @@ class Class:
         self.SerializeType = SerializeType.Disable
         self.CallBackType = CallBackType.Disable
         self.is_Sealed = False
+        self.handleCache = True
 
     def add_constructor(self) -> Function:
         func = Function('Constructor_' + str(self.constructor_count))

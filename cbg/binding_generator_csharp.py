@@ -471,8 +471,12 @@ class BindingGeneratorCSharp(BindingGenerator):
                 inheritance += ' : '
             else:
                 inheritance += ', '
-            inheritance += 'ISerializable, ICacheKeeper<{}>'.format(class_.name)
-            inheritCount += 2
+            inheritance += 'ISerializable'
+            inheritCount += 1
+
+            if class_.handleCache:
+                inheritance += ', ICacheKeeper<{}>'.format(class_.name)
+                inheritCount += 1
 
 
         # IDeserializationCallBack
@@ -567,7 +571,7 @@ class BindingGeneratorCSharp(BindingGenerator):
                 else:
                     title_Const = 'protected ' + title_Const
                         
-                if class_.base_class != None and class_.base_class.SerializeType == 2:
+                if class_.base_class != None and class_.base_class.SerializeType >= 2:
                     title_Const += ' : base(info, context)'
                     title_GetObj = 'protected override void '
                 else:
@@ -621,17 +625,19 @@ class BindingGeneratorCSharp(BindingGenerator):
                 
                 code('partial void OnGetObjectData(SerializationInfo info, StreamingContext context);')
                 code('partial void OnDeserialize_Constructor(SerializationInfo info, StreamingContext context);')
+                code('partial void Deserialize_GetPtr(ref IntPtr ptr, SerializationInfo info);')
                 code('')
 
                 # ICacheKeeper
-                code('#region ICacheKeeper')
+                if class_.handleCache:
+                    code('#region ICacheKeeper')
 
-                code('IDictionary<IntPtr, WeakReference<{}>> ICacheKeeper<{}>.CacheRepo => cacheRepo;'.format(class_.name, class_.name))
-                code('IntPtr ICacheKeeper<{}>.Self {{ get => selfPtr; set => selfPtr = value; }}'.format(class_.name))
-                code('void ICacheKeeper<{}>.Release(IntPtr native) => cbg_{}_Release(native);'.format(class_.name, class_.name))
+                    code('IDictionary<IntPtr, WeakReference<{}>> ICacheKeeper<{}>.CacheRepo => cacheRepo;'.format(class_.name, class_.name))
+                    code('IntPtr ICacheKeeper<{}>.Self {{ get => selfPtr; set => selfPtr = value; }}'.format(class_.name))
+                    code('void ICacheKeeper<{}>.Release(IntPtr native) => cbg_{}_Release(native);'.format(class_.name, class_.name))
 
-                code('#endregion')
-                code('')
+                    code('#endregion')
+                    code('')
 
                 code('#endregion')
                 code('')
@@ -656,7 +662,8 @@ class BindingGeneratorCSharp(BindingGenerator):
                     code('if (seInfo == null) return;')
                     code('')
                     
-                    self.__deserialize__(class_, code, 'seInfo')
+                    if class_.SerializeType >= 2:
+                        self.__deserialize__(class_, code, 'seInfo')
 
                     code('OnDeserialize_Method(sender);')
                     code('')
@@ -682,6 +689,16 @@ class BindingGeneratorCSharp(BindingGenerator):
         return code
     
     def __deserialize__(self, class_ : Class, code : Code, info : str) -> str:
+        if class_.handleCache:
+            code('var ptr = IntPtr.Zero;')
+            code('Deserialize_GetPtr(ref ptr, {});'.format(info))
+            code('')
+            code('if (ptr == IntPtr.Zero) throw new SerializationException("インスタンス生成に失敗しました");')
+            if class_.cache_mode == CacheMode.ThreadSafeCache:
+                code('CacheHelper.CacheHandlingConcurrent(this, ptr);')
+            else:
+                code('CacheHelper.CacheHandling(this, ptr);')
+            code('')
         for p in class_.properties:
             if p.serialized and p.has_setter:
                 code('{} = {}.{}'.format(p.name, info, self.__write_getvalue__(p)))
