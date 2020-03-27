@@ -626,7 +626,20 @@ class BindingGeneratorCSharp(BindingGenerator):
                 code('partial void OnGetObjectData(SerializationInfo info, StreamingContext context);')
                 code('partial void OnDeserialize_Constructor(SerializationInfo info, StreamingContext context);')
                 code('partial void Deserialize_GetPtr(ref IntPtr ptr, SerializationInfo info);')
-                code('')
+                                
+                if class_.handleCache:
+                    title_get = ''
+                    if class_.base_class != None and class_.base_class.SerializeType >= 2:
+                        title_get = 'protected override '
+                    else:
+                        if class_.is_Sealed:
+                            title_get = 'private '
+                        else:
+                            title_get = 'protected virtual '
+                    title_get += 'void Call_GetPtr(ref IntPtr ptr, SerializationInfo info)'
+                    code('{} => Deserialize_GetPtr(ref ptr, info);'.format(title_get))
+
+                    code('')
 
                 # ICacheKeeper
                 if class_.handleCache:
@@ -691,7 +704,7 @@ class BindingGeneratorCSharp(BindingGenerator):
     def __deserialize__(self, class_ : Class, code : Code, info : str) -> str:
         if class_.handleCache:
             code('var ptr = IntPtr.Zero;')
-            code('Deserialize_GetPtr(ref ptr, {});'.format(info))
+            code('Call_GetPtr(ref ptr, {});'.format(info))
             code('')
             code('if (ptr == IntPtr.Zero) throw new SerializationException("インスタンス生成に失敗しました");')
             if class_.cache_mode == CacheMode.ThreadSafeCache:
