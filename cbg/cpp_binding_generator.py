@@ -269,6 +269,8 @@ class Class:
         self.cache_mode = cache_mode
         self.brief = None  # type: Description
         self.is_public = True
+        self.SerializeType = SerializeType.Disable
+        self.DeserializationCallback = False
 
     def add_constructor(self) -> Function:
         func = Function('Constructor_' + str(self.constructor_count))
@@ -655,3 +657,8 @@ class BindingGenerator:
 
     def generate(self):
         return
+
+class SerializeType(enum.IntEnum):
+    Disable = 0
+    AttributeOnly = 1
+    Interface = 2

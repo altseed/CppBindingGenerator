@@ -448,11 +448,35 @@ class BindingGeneratorCSharp(BindingGenerator):
             code('/// <summary>')
             code('/// {}'.format(class_.brief.descs[self.lang]))
             code('/// </summary>')
+        
+        # SerializableAttribute
+        if class_.SerializeType > 0:
+            code('[Serializable]')
 
         # inheritance
         inheritance = ""
+        inheritCount = 0
         if class_.base_class != None:
+            inheritCount += 1
             inheritance = ' : {}'.format(class_.base_class.name)
+
+        # ISerializable
+        if (class_.SerializeType == 2):
+            if (inheritCount == 0):
+                inheritance += ' : '
+            else:
+                inheritance += ', '
+            inheritance += 'ISerializable'
+            inheritCount += 1
+
+        # IDeserializationCallBack
+        if (class_.DeserializationCallback):
+            if (inheritCount == 0):
+                inheritance += ' : '
+            else:
+                inheritance += ', '
+            inheritance += 'IDeserializationCallback'
+            inheritCount += 1
 
         # class body
 
@@ -539,6 +563,7 @@ class BindingGeneratorCSharp(BindingGenerator):
         code('using System.Runtime.InteropServices;')
         code('using System.Collections.Generic;')
         code('using System.Collections.Concurrent;')
+        code('using System.Runtime.Serialization;')
         code('')
 
         # declare namespace
