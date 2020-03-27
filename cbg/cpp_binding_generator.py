@@ -271,6 +271,7 @@ class Class:
         self.is_public = True
         self.SerializeType = SerializeType.Disable
         self.DeserializationCallback = False
+        self.is_Sealed = False
 
     def add_constructor(self) -> Function:
         func = Function('Constructor_' + str(self.constructor_count))

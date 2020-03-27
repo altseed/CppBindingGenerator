@@ -483,8 +483,12 @@ class BindingGeneratorCSharp(BindingGenerator):
         access = 'internal'
         if class_.is_public:
             access = 'public'
+        
+        sealed = ''
+        if (class_.is_Sealed):
+            sealed = 'sealed '
 
-        with CodeBlock(code, '{} partial class {}{}'.format(access, class_.name, inheritance)):
+        with CodeBlock(code, '{} {}partial class {}{}'.format(access, sealed, class_.name, inheritance)):
             code('#region unmanaged')
             code('')
 
