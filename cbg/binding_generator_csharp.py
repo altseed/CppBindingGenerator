@@ -581,6 +581,10 @@ class BindingGeneratorCSharp(BindingGenerator):
                         title_GetObj = 'protected virtual void '
                     if class_.constructor_count == 1:
                         title_Const += ' : this()'
+                    else:
+                         if class_.base_class != None:
+                            title_Const += ' : this(new MemoryHandle(IntPtr.Zero))'
+
 
                 title_GetObj += 'GetObjectData(SerializationInfo info, StreamingContext context)'
 
@@ -731,7 +735,9 @@ class BindingGeneratorCSharp(BindingGenerator):
             return 'GetString(S_{}) ?? throw new SerializationException("デシリアライズに失敗しました。");'.format(p.name)
         if p.type_ in self.define.classes:
             return 'GetValue<{}>(S_{}) ?? throw new SerializationException("デシリアライズに失敗しました。");'.format(p.type_.name, p.name)
-        return 'Value<{}>(S_{})'.format(p.type_.name, p.name)
+        if p.type_ in self.define.structs:
+            return 'GetValue<{}>(S_{});'.format(p.type_.alias, p.name)
+        return 'GetValue<{}>(S_{});'.format(p.type_.name, p.name)
 
     def generate(self):
         code = Code()
