@@ -151,6 +151,7 @@ class Property:
         self.has_setter = has_setter
         self.brief = None  # type: Description
         self.cache_set_value = False
+        self.is_public = True
 
     def getter_as_func(self) -> Function:
         f = Function('Get' + self.name)

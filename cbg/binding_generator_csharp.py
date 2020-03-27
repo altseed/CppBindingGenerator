@@ -356,7 +356,12 @@ class BindingGeneratorCSharp(BindingGenerator):
             code('/// </summary>')
 
         type_name = self.__get_cs_type__(prop_.type_, is_return=True)
-        with CodeBlock(code, 'public {} {}'.format(type_name, prop_.name)):
+        access = ''
+        if (prop_.is_public):
+            access = 'public'
+        else:
+            access = 'internal'
+        with CodeBlock(code, '{} {} {}'.format(access, type_name, prop_.name)):
             if prop_.has_getter:
                 self.__write_getter_(code, class_, prop_)
             if prop_.has_setter:
