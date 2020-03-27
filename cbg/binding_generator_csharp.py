@@ -471,7 +471,7 @@ class BindingGeneratorCSharp(BindingGenerator):
 
 
         # IDeserializationCallBack
-        if (class_.DeserializationCallback):
+        if (class_.CallBackType > 0):
             if (inheritCount == 0):
                 inheritance += ' : '
             else:
@@ -542,7 +542,7 @@ class BindingGeneratorCSharp(BindingGenerator):
             if class_.SerializeType >= 2:
                 code('#region ISerialiable')
 
-                if class_.DeserializationCallback:
+                if class_.CallBackType > 0:
                     code('private SerializationInfo seInfo;')
                     code('')
 
@@ -572,7 +572,7 @@ class BindingGeneratorCSharp(BindingGenerator):
                 code('/// <param name="info">シリアライズされたデータを格納するオブジェクト</param>')
                 code('/// <param name="context">送信元の情報</param>')
                 with CodeBlock(code, title_Const, True):
-                    if class_.DeserializationCallback:
+                    if class_.CallBackType > 0:
                         code('seInfo = info;')
                     code('OnDeserialize_Constructor(info, context);')
 
@@ -612,9 +612,9 @@ class BindingGeneratorCSharp(BindingGenerator):
                 code('')
 
             # OnDeserializationCallback
-            if class_.DeserializationCallback:
+            if class_.CallBackType > 0:
                 title = ''
-                if class_.base_class != None and class_.base_class.DeserializationCallback:
+                if class_.base_class != None and class_.base_class.CallBackType > 0:
                     title = 'protected override void '
                 else:
                     if class_.is_Sealed:
@@ -630,6 +630,8 @@ class BindingGeneratorCSharp(BindingGenerator):
                 with CodeBlock(code, title, True):
                     code('if (seInfo == null) return;')
                     code('OnDeserialize_Method(sender);')
+                    if (class_.CallBackType == 2):
+                        code('base.OnDeserialization(sender);')
                     code('seInfo = null;')
                 
                 if class_.base_class == None and not class_.is_Sealed:

@@ -1,4 +1,4 @@
-from .cpp_binding_generator import SharedObjectGenerator, Class, Description, Argument, Function, Property, SerializeType
+from .cpp_binding_generator import SharedObjectGenerator, Class, Description, Argument, Function, Property, SerializeType, CallBackType
 from .cpp_binding_generator import Struct
 from .cpp_binding_generator import Enum, EnumValue
 from .cpp_binding_generator import Define

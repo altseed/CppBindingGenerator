@@ -270,7 +270,7 @@ class Class:
         self.brief = None  # type: Description
         self.is_public = True
         self.SerializeType = SerializeType.Disable
-        self.DeserializationCallback = False
+        self.CallBackType = CallBackType.Disable
         self.is_Sealed = False
 
     def add_constructor(self) -> Function:
@@ -664,3 +664,8 @@ class SerializeType(enum.IntEnum):
     AttributeOnly = 1
     Interface = 2
     Interface_Usebase = 3
+
+class CallBackType(enum.IntEnum):
+    Disable = 0
+    Enable = 1
+    Enable_Usebase = 2
