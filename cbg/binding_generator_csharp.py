@@ -547,6 +547,14 @@ class BindingGeneratorCSharp(BindingGenerator):
             if class_.SerializeType >= 2:
                 code('#region ISerialiable')
 
+                # names
+                code('#region SerializeName')
+                for p in class_.properties:
+                    if p.serialized:
+                        code('private const string S_{} = "S_{}";'.format(p.name, p.name))
+                code('#endregion')
+                code('')
+
                 if class_.CallBackType > 0:
                     code('private SerializationInfo seInfo;')
                     code('')
@@ -579,6 +587,10 @@ class BindingGeneratorCSharp(BindingGenerator):
                 with CodeBlock(code, title_Const, True):
                     if class_.CallBackType > 0:
                         code('seInfo = info;')
+                    else:
+                        self.__deserialize__(class_, code, 'info')
+
+                    code('')
                     code('OnDeserialize_Constructor(info, context);')
 
                 # GetObjectData
@@ -593,6 +605,14 @@ class BindingGeneratorCSharp(BindingGenerator):
                     else:
                         code('if (info == null) throw new ArgumentNullException("引数がnullです", nameof(info));')
                     
+                    code('')
+
+                    for p in class_.properties:
+                        if p.serialized:
+                            code('info.AddValue(S_{}, {});'.format(p.name, p.name))
+
+                    code('')
+
                     code('OnGetObjectData(info, context);')
                 if (class_.base_class == None or class_.base_class.SerializeType < 2) and not class_.is_Sealed:
                     code('void ISerializable.GetObjectData(SerializationInfo info, StreamingContext context) => GetObjectData(info, context);')
@@ -634,7 +654,12 @@ class BindingGeneratorCSharp(BindingGenerator):
                 code('/// <param name="sender">現在はサポートされていない 常にnullを返す</param>')
                 with CodeBlock(code, title, True):
                     code('if (seInfo == null) return;')
+                    code('')
+                    
+                    self.__deserialize__(class_, code, 'seInfo')
+
                     code('OnDeserialize_Method(sender);')
+                    code('')
                     if (class_.CallBackType == 2):
                         code('base.OnDeserialization(sender);')
                     code('seInfo = null;')
@@ -655,6 +680,26 @@ class BindingGeneratorCSharp(BindingGenerator):
                 
 
         return code
+    
+    def __deserialize__(self, class_ : Class, code : Code, info : str) -> str:
+        for p in class_.properties:
+            if p.serialized and p.has_setter:
+                code('{} = {}.{}'.format(p.name, info, self.__write_getvalue__(p)))
+
+    def __write_getvalue__(self, p : Property) -> str:
+        if p.type_ == ctypes.c_byte:
+            return 'GetByte(S_{});'.format(p.name)
+        if p.type_ == int:
+            return 'GetInt32(S_{});'.format(p.name)
+        if p.type_ == bool:
+            return 'GetBoolean(S_{});'.format(p.name)
+        if p.type_ == float:
+            return 'GetSingle(S_{});'.format(p.name)
+        if p.type_ == ctypes.c_wchar_p:
+            return 'GetString(S_{}) ?? throw new SerializationException("デシリアライズに失敗しました。");'.format(p.name)
+        if p.type_ in self.define.classes:
+            return 'GetValue<{}>(S_{}) ?? throw new SerializationException("デシリアライズに失敗しました。");'.format(p.type_.name, p.name)
+        return 'Value<{}>(S_{})'.format(p.type_.name, p.name)
 
     def generate(self):
         code = Code()
