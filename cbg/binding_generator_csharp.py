@@ -579,6 +579,8 @@ class BindingGeneratorCSharp(BindingGenerator):
                         title_GetObj = 'void ISerializable.'
                     else:
                         title_GetObj = 'protected virtual void '
+                    if class_.constructor_count == 1:
+                        title_Const += ' : this()'
 
                 title_GetObj += 'GetObjectData(SerializationInfo info, StreamingContext context)'
 
