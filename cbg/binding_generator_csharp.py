@@ -673,7 +673,7 @@ class BindingGeneratorCSharp(BindingGenerator):
                 code('/// デシリアライズ時に実行')
                 code('/// </summary>')
                 code('/// <param name="sender">現在はサポートされていない 常にnullを返す</param>')
-                with CodeBlock(code, title, True):
+                with CodeBlock(code, title):
                     code('if (seInfo == null) return;')
                     code('')
                     
