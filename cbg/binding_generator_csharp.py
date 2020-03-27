@@ -356,7 +356,12 @@ class BindingGeneratorCSharp(BindingGenerator):
             code('/// </summary>')
 
         type_name = self.__get_cs_type__(prop_.type_, is_return=True)
-        with CodeBlock(code, 'public {} {}'.format(type_name, prop_.name)):
+        access = ''
+        if (prop_.is_public):
+            access = 'public'
+        else:
+            access = 'internal'
+        with CodeBlock(code, '{} {} {}'.format(access, type_name, prop_.name)):
             if prop_.has_getter:
                 self.__write_getter_(code, class_, prop_)
             if prop_.has_setter:
@@ -448,19 +453,52 @@ class BindingGeneratorCSharp(BindingGenerator):
             code('/// <summary>')
             code('/// {}'.format(class_.brief.descs[self.lang]))
             code('/// </summary>')
+        
+        # SerializableAttribute
+        if class_.SerializeType > 0:
+            code('[Serializable]')
 
         # inheritance
         inheritance = ""
+        inheritCount = 0
         if class_.base_class != None:
+            inheritCount += 1
             inheritance = ' : {}'.format(class_.base_class.name)
+
+        # ISerializable
+        if (class_.SerializeType >= 2):
+            if (inheritCount == 0):
+                inheritance += ' : '
+            else:
+                inheritance += ', '
+            inheritance += 'ISerializable'
+            inheritCount += 1
+
+            if class_.handleCache:
+                inheritance += ', ICacheKeeper<{}>'.format(class_.name)
+                inheritCount += 1
+
+
+        # IDeserializationCallBack
+        if (class_.CallBackType > 0):
+            if (inheritCount == 0):
+                inheritance += ' : '
+            else:
+                inheritance += ', '
+            inheritance += 'IDeserializationCallback'
+            inheritCount += 1
 
         # class body
 
         access = 'internal'
         if class_.is_public:
             access = 'public'
+        
+        sealed = ''
+        if (class_.is_Sealed):
+            sealed = 'sealed '
 
-        with CodeBlock(code, '{} partial class {}{}'.format(access, class_.name, inheritance)):
+        with CodeBlock(code, '{} {}partial class {}{}'.format(access, sealed, class_.name, inheritance)):
             code('#region unmanaged')
             code('')
 
@@ -508,6 +546,156 @@ class BindingGeneratorCSharp(BindingGenerator):
             for func_ in [f for f in class_.funcs if len(f.targets) == 0 or 'csharp' in f.targets]:
                 code(self.__generate__managed_func__(class_, func_))
 
+            
+            # ISerializable
+            if class_.SerializeType >= 2:
+                code('#region ISerialiable')
+
+                # names
+                code('#region SerializeName')
+                for p in class_.properties:
+                    if p.serialized:
+                        code('private const string S_{} = "S_{}";'.format(p.name, p.name))
+                code('#endregion')
+                code('')
+
+                if class_.CallBackType > 0:
+                    code('private SerializationInfo seInfo;')
+                    code('')
+
+                title_GetObj = ''
+                title_Const = '{}(SerializationInfo info, StreamingContext context)'.format(class_.name)
+                
+                if class_.is_Sealed:
+                    title_Const = 'private ' + title_Const
+                else:
+                    title_Const = 'protected ' + title_Const
+                        
+                if class_.base_class != None and class_.base_class.SerializeType >= 2:
+                    title_Const += ' : base(info, context)'
+                    title_GetObj = 'protected override void '
+                else:
+                    if class_.is_Sealed:
+                        title_GetObj = 'void ISerializable.'
+                    else:
+                        title_GetObj = 'protected virtual void '
+                    if class_.constructor_count == 1:
+                        title_Const += ' : this()'
+                    else:
+                         if class_.base_class != None:
+                            title_Const += ' : this(new MemoryHandle(IntPtr.Zero))'
+
+
+                title_GetObj += 'GetObjectData(SerializationInfo info, StreamingContext context)'
+
+                # Deserialize Constructor
+                code('/// <summary>')
+                code('/// シリアライズされたデータをもとに<see cref="{}"/>のインスタンスを生成する'.format(class_.name))
+                code('/// </summary>')
+                code('/// <param name="info">シリアライズされたデータを格納するオブジェクト</param>')
+                code('/// <param name="context">送信元の情報</param>')
+                with CodeBlock(code, title_Const, True):
+                    if class_.CallBackType > 0:
+                        code('seInfo = info;')
+                    else:
+                        self.__deserialize__(class_, code, 'info')
+
+                    code('')
+                    code('OnDeserialize_Constructor(info, context);')
+
+                # GetObjectData
+                code('/// <summary>')
+                code('/// シリアライズするデータを設定します。')
+                code('/// </summary>')
+                code('/// <param name="info">シリアライズされるデータを格納するオブジェクト</param>')
+                code('/// <param name="context">送信先のデータ</param>')
+                with CodeBlock(code, title_GetObj):
+                    if class_.SerializeType == 3:
+                        code('base.GetObjectData(info, context);')
+                    else:
+                        code('if (info == null) throw new ArgumentNullException("引数がnullです", nameof(info));')
+                    
+                    code('')
+
+                    for p in class_.properties:
+                        if p.serialized:
+                            code('info.AddValue(S_{}, {});'.format(p.name, p.name))
+
+                    code('')
+
+                    code('OnGetObjectData(info, context);')
+                if (class_.base_class == None or class_.base_class.SerializeType < 2) and not class_.is_Sealed:
+                    code('void ISerializable.GetObjectData(SerializationInfo info, StreamingContext context) => GetObjectData(info, context);')
+
+                code('')
+                
+                code('partial void OnGetObjectData(SerializationInfo info, StreamingContext context);')
+                code('partial void OnDeserialize_Constructor(SerializationInfo info, StreamingContext context);')
+                code('partial void Deserialize_GetPtr(ref IntPtr ptr, SerializationInfo info);')
+                                
+                if class_.handleCache:
+                    title_get = ''
+                    if class_.base_class != None and class_.base_class.SerializeType >= 2:
+                        title_get = 'protected override '
+                    else:
+                        if class_.is_Sealed:
+                            title_get = 'private '
+                        else:
+                            title_get = 'protected virtual '
+                    title_get += 'void Call_GetPtr(ref IntPtr ptr, SerializationInfo info)'
+                    code('{} => Deserialize_GetPtr(ref ptr, info);'.format(title_get))
+
+                    code('')
+
+                # ICacheKeeper
+                if class_.handleCache:
+                    code('#region ICacheKeeper')
+
+                    code('IDictionary<IntPtr, WeakReference<{}>> ICacheKeeper<{}>.CacheRepo => cacheRepo;'.format(class_.name, class_.name))
+                    code('IntPtr ICacheKeeper<{}>.Self {{ get => selfPtr; set => selfPtr = value; }}'.format(class_.name))
+                    code('void ICacheKeeper<{}>.Release(IntPtr native) => cbg_{}_Release(native);'.format(class_.name, class_.name))
+
+                    code('#endregion')
+                    code('')
+
+                code('#endregion')
+                code('')
+
+            # OnDeserializationCallback
+            if class_.CallBackType > 0:
+                title = ''
+                if class_.base_class != None and class_.base_class.CallBackType > 0:
+                    title = 'protected override void '
+                else:
+                    if class_.is_Sealed:
+                        title = 'void IDeserializationCallback.'
+                    else:
+                        title = 'protected virtual void '
+                title += 'OnDeserialization(object sender)'
+
+                code('/// <summary>')
+                code('/// デシリアライズ時に実行')
+                code('/// </summary>')
+                code('/// <param name="sender">現在はサポートされていない 常にnullを返す</param>')
+                with CodeBlock(code, title):
+                    code('if (seInfo == null) return;')
+                    code('')
+                    
+                    if class_.SerializeType >= 2:
+                        self.__deserialize__(class_, code, 'seInfo')
+
+                    code('OnDeserialize_Method(sender);')
+                    code('')
+                    if (class_.CallBackType == 2):
+                        code('base.OnDeserialization(sender);')
+                    code('seInfo = null;')
+                
+                if class_.base_class == None and not class_.is_Sealed:
+                    code('void IDeserializationCallback.OnDeserialization(object sender) => OnDeserialization(sender);')
+
+                code('partial void OnDeserialize_Method(object sender);')
+                code('')
+
             # destructor
             with CodeBlock(code, '~{}()'.format(class_.name)):
                 with CodeBlock(code, 'lock (this) '):
@@ -515,8 +703,41 @@ class BindingGeneratorCSharp(BindingGenerator):
                         code('{}({});'.format(__get_c_release_func_name__(
                             class_), self.self_ptr_name))
                         code('{} = IntPtr.Zero;'.format(self.self_ptr_name))
+                
 
         return code
+    
+    def __deserialize__(self, class_ : Class, code : Code, info : str) -> str:
+        if class_.handleCache:
+            code('var ptr = IntPtr.Zero;')
+            code('Call_GetPtr(ref ptr, {});'.format(info))
+            code('')
+            code('if (ptr == IntPtr.Zero) throw new SerializationException("インスタンス生成に失敗しました");')
+            if class_.cache_mode == CacheMode.ThreadSafeCache:
+                code('CacheHelper.CacheHandlingConcurrent(this, ptr);')
+            else:
+                code('CacheHelper.CacheHandling(this, ptr);')
+            code('')
+        for p in class_.properties:
+            if p.serialized and p.has_setter:
+                code('{} = {}.{}'.format(p.name, info, self.__write_getvalue__(p)))
+
+    def __write_getvalue__(self, p : Property) -> str:
+        if p.type_ == ctypes.c_byte:
+            return 'GetByte(S_{});'.format(p.name)
+        if p.type_ == int:
+            return 'GetInt32(S_{});'.format(p.name)
+        if p.type_ == bool:
+            return 'GetBoolean(S_{});'.format(p.name)
+        if p.type_ == float:
+            return 'GetSingle(S_{});'.format(p.name)
+        if p.type_ == ctypes.c_wchar_p:
+            return 'GetString(S_{}) ?? throw new SerializationException("デシリアライズに失敗しました。");'.format(p.name)
+        if p.type_ in self.define.classes:
+            return 'GetValue<{}>(S_{}) ?? throw new SerializationException("デシリアライズに失敗しました。");'.format(p.type_.name, p.name)
+        if p.type_ in self.define.structs:
+            return 'GetValue<{}>(S_{});'.format(p.type_.alias, p.name)
+        return 'GetValue<{}>(S_{});'.format(p.type_.name, p.name)
 
     def generate(self):
         code = Code()
@@ -539,6 +760,7 @@ class BindingGeneratorCSharp(BindingGenerator):
         code('using System.Runtime.InteropServices;')
         code('using System.Collections.Generic;')
         code('using System.Collections.Concurrent;')
+        code('using System.Runtime.Serialization;')
         code('')
 
         # declare namespace

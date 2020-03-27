@@ -151,6 +151,8 @@ class Property:
         self.has_setter = has_setter
         self.brief = None  # type: Description
         self.cache_set_value = False
+        self.serialized = False
+        self.is_public = True
 
     def getter_as_func(self) -> Function:
         f = Function('Get' + self.name)
@@ -269,6 +271,10 @@ class Class:
         self.cache_mode = cache_mode
         self.brief = None  # type: Description
         self.is_public = True
+        self.SerializeType = SerializeType.Disable
+        self.CallBackType = CallBackType.Disable
+        self.is_Sealed = False
+        self.handleCache = True
 
     def add_constructor(self) -> Function:
         func = Function('Constructor_' + str(self.constructor_count))
@@ -655,3 +661,14 @@ class BindingGenerator:
 
     def generate(self):
         return
+
+class SerializeType(enum.IntEnum):
+    Disable = 0
+    AttributeOnly = 1
+    Interface = 2
+    Interface_Usebase = 3
+
+class CallBackType(enum.IntEnum):
+    Disable = 0
+    Enable = 1
+    Enable_Usebase = 2
