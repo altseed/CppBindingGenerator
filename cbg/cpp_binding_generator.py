@@ -663,3 +663,4 @@ class SerializeType(enum.IntEnum):
     Disable = 0
     AttributeOnly = 1
     Interface = 2
+    Interface_Usebase = 3

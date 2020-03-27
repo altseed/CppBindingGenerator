@@ -461,13 +461,14 @@ class BindingGeneratorCSharp(BindingGenerator):
             inheritance = ' : {}'.format(class_.base_class.name)
 
         # ISerializable
-        if (class_.SerializeType == 2):
+        if (class_.SerializeType >= 2):
             if (inheritCount == 0):
                 inheritance += ' : '
             else:
                 inheritance += ', '
-            inheritance += 'ISerializable'
-            inheritCount += 1
+            inheritance += 'ISerializable, ICacheKeeper<{}>'.format(class_.name)
+            inheritCount += 2
+
 
         # IDeserializationCallBack
         if (class_.DeserializationCallback):
@@ -536,6 +537,107 @@ class BindingGeneratorCSharp(BindingGenerator):
             for func_ in [f for f in class_.funcs if len(f.targets) == 0 or 'csharp' in f.targets]:
                 code(self.__generate__managed_func__(class_, func_))
 
+            
+            # ISerializable
+            if class_.SerializeType >= 2:
+                code('#region ISerialiable')
+
+                if class_.DeserializationCallback:
+                    code('private SerializationInfo seInfo;')
+                    code('')
+
+                title_GetObj = ''
+                title_Const = '{}(SerializationInfo info, StreamingContext context)'.format(class_.name)
+                
+                if class_.is_Sealed:
+                    title_Const = 'private ' + title_Const
+                else:
+                    title_Const = 'protected ' + title_Const
+                        
+                if class_.base_class != None and class_.base_class.SerializeType == 2:
+                    title_Const += ' : base(info, context)'
+                    title_GetObj = 'protected override void '
+                else:
+                    if class_.is_Sealed:
+                        title_GetObj = 'void ISerializable.'
+                    else:
+                        title_GetObj = 'protected virtual void '
+
+                title_GetObj += 'GetObjectData(SerializationInfo info, StreamingContext context)'
+
+                # Deserialize Constructor
+                code('/// <summary>')
+                code('/// シリアライズされたデータをもとに<see cref="{}"/>のインスタンスを生成する'.format(class_.name))
+                code('/// </summary>')
+                code('/// <param name="info">シリアライズされたデータを格納するオブジェクト</param>')
+                code('/// <param name="context">送信元の情報</param>')
+                with CodeBlock(code, title_Const, True):
+                    if class_.DeserializationCallback:
+                        code('seInfo = info;')
+                    code('OnDeserialize_Constructor(info, context);')
+
+                # GetObjectData
+                code('/// <summary>')
+                code('/// シリアライズするデータを設定します。')
+                code('/// </summary>')
+                code('/// <param name="info">シリアライズされるデータを格納するオブジェクト</param>')
+                code('/// <param name="context">送信先のデータ</param>')
+                with CodeBlock(code, title_GetObj):
+                    if class_.SerializeType == 3:
+                        code('base.GetObjectData(info, context);')
+                    else:
+                        code('if (info == null) throw new ArgumentNullException("引数がnullです", nameof(info));')
+                    
+                    code('OnGetObjectData(info, context);')
+                if (class_.base_class == None or class_.base_class.SerializeType < 2) and not class_.is_Sealed:
+                    code('void ISerializable.GetObjectData(SerializationInfo info, StreamingContext context) => GetObjectData(info, context);')
+
+                code('')
+                
+                code('partial void OnGetObjectData(SerializationInfo info, StreamingContext context);')
+                code('partial void OnDeserialize_Constructor(SerializationInfo info, StreamingContext context);')
+                code('')
+
+                # ICacheKeeper
+                code('#region ICacheKeeper')
+
+                code('IDictionary<IntPtr, WeakReference<{}>> ICacheKeeper<{}>.CacheRepo => cacheRepo;'.format(class_.name, class_.name))
+                code('IntPtr ICacheKeeper<{}>.Self {{ get => selfPtr; set => selfPtr = value; }}'.format(class_.name))
+                code('void ICacheKeeper<{}>.Release(IntPtr native) => cbg_{}_Release(native);'.format(class_.name, class_.name))
+
+                code('#endregion')
+                code('')
+
+                code('#endregion')
+                code('')
+
+            # OnDeserializationCallback
+            if class_.DeserializationCallback:
+                title = ''
+                if class_.base_class != None and class_.base_class.DeserializationCallback:
+                    title = 'protected override void '
+                else:
+                    if class_.is_Sealed:
+                        title = 'void IDeserializationCallback.'
+                    else:
+                        title = 'protected virtual void '
+                title += 'OnDeserialization(object sender)'
+
+                code('/// <summary>')
+                code('/// デシリアライズ時に実行')
+                code('/// </summary>')
+                code('/// <param name="sender">現在はサポートされていない 常にnullを返す</param>')
+                with CodeBlock(code, title, True):
+                    code('if (seInfo == null) return;')
+                    code('OnDeserialize_Method(sender);')
+                    code('seInfo = null;')
+                
+                if class_.base_class == None and not class_.is_Sealed:
+                    code('void IDeserializationCallback.OnDeserialization(object sender) => OnDeserialization(sender);')
+
+                code('partial void OnDeserialize_Method(object sender);')
+                code('')
+
             # destructor
             with CodeBlock(code, '~{}()'.format(class_.name)):
                 with CodeBlock(code, 'lock (this) '):
@@ -543,6 +645,7 @@ class BindingGeneratorCSharp(BindingGenerator):
                         code('{}({});'.format(__get_c_release_func_name__(
                             class_), self.self_ptr_name))
                         code('{} = IntPtr.Zero;'.format(self.self_ptr_name))
+                
 
         return code
 
