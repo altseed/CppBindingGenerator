@@ -635,7 +635,7 @@ class BindingGeneratorCSharp(BindingGenerator):
                                 
                 if class_.handleCache:
                     title_get = ''
-                    if class_.base_class != None and class_.base_class.SerializeType >= 2:
+                    if class_.base_class != None and class_.base_class.SerializeType >= 2 and class_.base_class.handleCache:
                         title_get = 'protected override '
                     else:
                         if class_.is_Sealed:
@@ -647,8 +647,33 @@ class BindingGeneratorCSharp(BindingGenerator):
                         code('var ptr = IntPtr.Zero;')
                         code('Deserialize_GetPtr(ref ptr, info);')
                         code('return ptr;')
-
-                    code('')
+                
+                title_des = ''
+                if (class_.is_Sealed):
+                    title_des = 'private'
+                else:
+                    title_des = 'protected'
+                title_des += ' void {}_Unsetter_Deserialize(SerializationInfo info'.format(class_.name)
+                
+                title_des_args = ''
+                for p in class_.properties:
+                    if p.serialized and not p.has_setter:
+                        title_des_args += ', out {} {}'.format(self.__get_cs_type__(p.type_), p.name)
+                
+                title_des_args += ')'
+                if title_des_args != ')':
+                    code('/// <summary>')
+                    if class_.CallBackType > 0:
+                        code('/// <see cref="OnDeserialization(object)"/>でデシリアライズされなかったオブジェクトを呼び出す')
+                    else:
+                        code('/// <see cref="{}(SerializationInfo, StreamingContext)"/>でデシリアライズされなかったオブジェクトを呼び出す'.format(class_.name))
+                    code('/// </summary>')
+                    code('/// <param name="info">シリアライズされたデータを格納するオブジェクト</param>')
+                    for p in class_.properties:
+                        if p.serialized and not p.has_setter:
+                            code('/// <param name="{}"><see cref="{}.{}"/></param>'.format(p.name, class_.name, p.name))
+                    with CodeBlock(code, title_des + title_des_args, True):
+                        self.__deserialize_nosetter__(class_, code)
 
                 # ICacheKeeper
                 if class_.handleCache:
@@ -723,6 +748,12 @@ class BindingGeneratorCSharp(BindingGenerator):
         for p in class_.properties:
             if p.serialized and p.has_setter:
                 code('{} = {}.{}'.format(p.name, info, self.__write_getvalue__(p)))
+
+    def __deserialize_nosetter__(self, class_ : Class, code : Code) -> str:
+        for p in class_.properties:
+            if p.serialized and not p.has_setter:
+                code('{} = info.{}'.format(p.name, self.__write_getvalue__(p)))
+
 
     def __write_getvalue__(self, p : Property) -> str:
         if p.type_ == ctypes.c_byte:
