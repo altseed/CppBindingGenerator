@@ -642,8 +642,11 @@ class BindingGeneratorCSharp(BindingGenerator):
                             title_get = 'private '
                         else:
                             title_get = 'protected virtual '
-                    title_get += 'void Call_GetPtr(ref IntPtr ptr, SerializationInfo info)'
-                    code('{} => Deserialize_GetPtr(ref ptr, info);'.format(title_get))
+                    title_get += 'IntPtr Call_GetPtr(SerializationInfo info)'
+                    with CodeBlock(code, title_get, True):
+                        code('var ptr = IntPtr.Zero;')
+                        code('Deserialize_GetPtr(ref ptr, info);')
+                        code('return ptr;')
 
                     code('')
 
@@ -709,8 +712,7 @@ class BindingGeneratorCSharp(BindingGenerator):
     
     def __deserialize__(self, class_ : Class, code : Code, info : str) -> str:
         if class_.handleCache:
-            code('var ptr = IntPtr.Zero;')
-            code('Call_GetPtr(ref ptr, {});'.format(info))
+            code('var ptr = Call_GetPtr({});'.format(info))
             code('')
             code('if (ptr == IntPtr.Zero) throw new SerializationException("インスタンス生成に失敗しました");')
             if class_.cache_mode == CacheMode.ThreadSafeCache:
