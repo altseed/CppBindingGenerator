@@ -153,6 +153,7 @@ class Property:
         self.cache_set_value = False
         self.serialized = False
         self.is_public = True
+        self.null_deserialized = True
 
     def getter_as_func(self) -> Function:
         f = Function('Get' + self.name)

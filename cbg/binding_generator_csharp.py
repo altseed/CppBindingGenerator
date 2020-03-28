@@ -732,11 +732,14 @@ class BindingGeneratorCSharp(BindingGenerator):
         if p.type_ == float:
             return 'GetSingle(S_{});'.format(p.name)
         if p.type_ == ctypes.c_wchar_p:
-            return 'GetString(S_{}) ?? throw new SerializationException("デシリアライズに失敗しました。");'.format(p.name)
-        if p.type_ in self.define.classes:
-            return 'GetValue<{}>(S_{}) ?? throw new SerializationException("デシリアライズに失敗しました。");'.format(p.type_.name, p.name)
+            if p.null_deserialized:
+                return 'GetString(S_{});'.format(p.name)
+            else:
+                return 'GetString(S_{}) ?? throw new SerializationException("デシリアライズに失敗しました");'.format(p.name)
         if p.type_ in self.define.structs:
             return 'GetValue<{}>(S_{});'.format(p.type_.alias, p.name)
+        if p.type_ in self.define.classes and not p.null_deserialized:
+            return 'GetValue<{}>(S_{}) ?? throw new SerializationException("デシリアライズに失敗しました");'.format(p.type_.name, p.name)
         return 'GetValue<{}>(S_{});'.format(p.type_.name, p.name)
 
     def generate(self):
