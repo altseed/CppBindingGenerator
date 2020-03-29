@@ -256,6 +256,10 @@ class BindingGeneratorCSharp(BindingGenerator):
 
         if not func_.is_static and not func_.is_constructor:
             args = [self.self_ptr_name] + args
+        
+        for a in func_.args:
+            if not a.nullable and (a.type_ in self.define.classes or a.type_ == ctypes.c_wchar_p):
+                code('if ({} == null) throw new ArgumentNullException("引数がnullです", nameof({}));'.format(a.name, a.name))
 
         if func_.is_constructor:
             code('{} = {}({});'.format(self.self_ptr_name, fname, ', '.join(args)))
@@ -283,6 +287,20 @@ class BindingGeneratorCSharp(BindingGenerator):
                 if arg.brief != None:
                     code('/// <param name="{}">{}</param>'.format(arg.name,
                                                                   arg.brief.descs[self.lang]))
+
+            argcount = 0
+            exc_message = '/// <exception cref="ArgumentNullException">'
+            for a in func_.args:
+                if not a.nullable and (a.type_ in self.define.classes or a.type_ == ctypes.c_wchar_p):
+                    if argcount > 0:
+                        exc_message += ', '
+                    exc_message += '<paramref name="{}"/>'.format(a.name)
+                    argcount += 1
+            if argcount == 1:
+                code(exc_message + 'がnull</exception>')
+            else:
+                if argcount > 1:
+                    code(exc_message + 'のいずれかがnull</exception>')
 
             if func_.return_value.brief != None:
                 code(
@@ -338,7 +356,10 @@ class BindingGeneratorCSharp(BindingGenerator):
     def __write_setter_(self, code: Code, class_: Class, prop_: Property):
         with CodeBlock(code, 'set'):
             if prop_.has_getter:
-                code('_{} = value;'.format(prop_.name))
+                if not prop_.nullable and (prop_.type_ in self.define.classes or prop_.type_ == ctypes.c_wchar_p):
+                    code('_{} = value ?? throw new ArgumentNullException("設定しようとした値がnullです", nameof(value));'.format(prop_.name))
+                else:
+                    code('_{} = value;'.format(prop_.name))
             self.__write_managed_function_body__(
                 code, class_, prop_.setter_as_func())
 
@@ -354,6 +375,9 @@ class BindingGeneratorCSharp(BindingGenerator):
             code('/// <summary>')
             code('/// {}'.format(prop_.brief.descs[self.lang]))
             code('/// </summary>')
+
+            if not prop_.nullable and (prop_.type_ in self.define.classes or prop_.type_ == ctypes.c_wchar_p):
+                code('/// <exception cref="ArgumentNullException">設定しようとした値がnull</exception>')            
 
         type_name = self.__get_cs_type__(prop_.type_, is_return=True)
         access = ''

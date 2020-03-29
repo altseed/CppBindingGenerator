@@ -72,6 +72,7 @@ class Argument:
         self.name = name
         self.brief = None  # type: Description
         self.called_by = called_by
+        self.nullable = True
 
     def __enter__(self):
         return self
@@ -154,6 +155,7 @@ class Property:
         self.serialized = False
         self.is_public = True
         self.null_deserialized = True
+        self.nullable = True
 
     def getter_as_func(self) -> Function:
         f = Function('Get' + self.name)
