@@ -256,6 +256,10 @@ class BindingGeneratorCSharp(BindingGenerator):
 
         if not func_.is_static and not func_.is_constructor:
             args = [self.self_ptr_name] + args
+        
+        for a in func_.args:
+            if not a.nullable and (a.type_ in self.define.classes or a.type_ == ctypes.c_wchar_p):
+                code('if ({} == null) throw new ArgumentNullException("引数がnullです", nameof({}));'.format(a.name, a.name))
 
         if func_.is_constructor:
             code('{} = {}({});'.format(self.self_ptr_name, fname, ', '.join(args)))
@@ -338,7 +342,10 @@ class BindingGeneratorCSharp(BindingGenerator):
     def __write_setter_(self, code: Code, class_: Class, prop_: Property):
         with CodeBlock(code, 'set'):
             if prop_.has_getter:
-                code('_{} = value;'.format(prop_.name))
+                if not prop_.nullable and (prop_.type_ in self.define.classes or prop_.type_ == ctypes.c_wchar_p):
+                    code('_{} = value ?? throw new ArgumentNullException("設定しようとした値がnullです", nameof(value));'.format(prop_.name))
+                else:
+                    code('_{} = value;'.format(prop_.name))
             self.__write_managed_function_body__(
                 code, class_, prop_.setter_as_func())
 
