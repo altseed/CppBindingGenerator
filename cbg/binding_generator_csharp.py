@@ -288,6 +288,20 @@ class BindingGeneratorCSharp(BindingGenerator):
                     code('/// <param name="{}">{}</param>'.format(arg.name,
                                                                   arg.brief.descs[self.lang]))
 
+            argcount = 0
+            exc_message = '/// <exception cref="ArgumentNullException">'
+            for a in func_.args:
+                if not a.nullable and (a.type_ in self.define.classes or a.type_ == ctypes.c_wchar_p):
+                    if argcount > 0:
+                        exc_message += ', '
+                    exc_message += '<paramref name="{}"/>'.format(a.name)
+                    argcount += 1
+            if argcount == 1:
+                code(exc_message + 'がnull</exception>')
+            else:
+                if argcount > 1:
+                    code(exc_message + 'のいずれかがnull</exception>')
+
             if func_.return_value.brief != None:
                 code(
                     '/// <returns>{}</returns>'.format(func_.return_value.brief.descs[self.lang]))
@@ -361,6 +375,9 @@ class BindingGeneratorCSharp(BindingGenerator):
             code('/// <summary>')
             code('/// {}'.format(prop_.brief.descs[self.lang]))
             code('/// </summary>')
+
+            if not prop_.nullable and (prop_.type_ in self.define.classes or prop_.type_ == ctypes.c_wchar_p):
+                code('/// <exception cref="ArgumentNullException">設定しようとした値がnull</exception>')            
 
         type_name = self.__get_cs_type__(prop_.type_, is_return=True)
         access = ''
