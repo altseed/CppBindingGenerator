@@ -474,7 +474,7 @@ class BindingGeneratorRust(BindingGenerator):
                 if prop_.type_.cache_mode == CacheMode.Cache:
                     type_name = 'Rc<RefCell<T>>'
                 elif prop_.type_.cache_mode == CacheMode.ThreadSafeCache:
-                    type_name = 'Arc<RefCell<T>>'
+                    type_name = 'Arc<Mutex<T>>'
                 generic_ = 'T: {} + \'static'.format(get_base_trait_name(prop_.type_))
 
             head = '{}fn set_{}<{}>(&mut self, {}value : {}) -> &mut Self'.format(access, field_name, generic_, mut_, type_name)
