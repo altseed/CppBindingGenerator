@@ -634,10 +634,10 @@ class BindingGeneratorCSharp(BindingGenerator):
                 code('/// <param name="info">シリアライズされるデータを格納するオブジェクト</param>')
                 code('/// <param name="context">送信先の情報</param>')
                 with CodeBlock(code, title_GetObj):
-                    if class_.SerializeType == 3:
+                    if class_.SerializeType == 3 and class_.base_class != None and class_.base_class.SerializeType >= 2:
                         code('base.GetObjectData(info, context);')
                     else:
-                        code('if (info == null) throw new ArgumentNullException("引数がnullです", nameof(info));')
+                        code('if (info == null) throw new ArgumentNullException(nameof(info), "引数がnullです");')
                     
                     code('')
 
@@ -757,24 +757,29 @@ class BindingGeneratorCSharp(BindingGenerator):
                 code('/// </summary>')
                 code('/// <param name="sender">現在はサポートされていない 常にnullを返す</param>')
                 with CodeBlock(code, title):
-                    code('if (seInfo == null) return;')
-                    code('')
-                    
                     if class_.SerializeType >= 2:
+                        code('if (seInfo == null) return;')
+                        code('')
                         self.__deserialize__(class_, code, 'seInfo')
 
-                    if (class_.CallBackType == 2):
-                        code('base.OnDeserialization(sender);')
-                    code('')
+                        if (class_.base_class != None and class_.base_class.CallBackType > 0):
+                            code('base.OnDeserialization(sender);')
+                        code('')
+                    
                     code('OnDeserialize_Method(sender);')
-                    code('')
-                    code('seInfo = null;')
+
+                    if class_.SerializeType >= 2:
+                        code('')
+                        code('seInfo = null;')
                 
                 if class_.base_class == None and not class_.is_Sealed:
                     code('void IDeserializationCallback.OnDeserialization(object sender) => OnDeserialization(sender);')
 
                 code('/// <summary>')
-                code('/// <see cref="OnDeserialization(object)"/>中で実行される')
+                if (class_.base_class == None or class_.base_class.CallBackType == 0) and class_.is_Sealed:
+                    code('/// <see cref="IDeserializationCallback.OnDeserialization(object)"/>中で実行される')
+                else:
+                    code('/// <see cref="OnDeserialization(object)"/>中で実行される')
                 code('/// </summary>')
                 code('/// <param name="sender">現在はサポートされていない 常にnullを返す</param>')
                 code('partial void OnDeserialize_Method(object sender);')
