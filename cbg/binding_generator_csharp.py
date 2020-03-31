@@ -259,7 +259,7 @@ class BindingGeneratorCSharp(BindingGenerator):
         
         for a in func_.args:
             if not a.nullable and (a.type_ in self.define.classes or a.type_ == ctypes.c_wchar_p):
-                code('if ({} == null) throw new ArgumentNullException("引数がnullです", nameof({}));'.format(a.name, a.name))
+                code('if ({} == null) throw new ArgumentNullException(nameof({}), "引数がnullです");'.format(a.name, a.name))
 
         if func_.is_constructor:
             code('{} = {}({});'.format(self.self_ptr_name, fname, ', '.join(args)))
@@ -357,7 +357,7 @@ class BindingGeneratorCSharp(BindingGenerator):
         with CodeBlock(code, 'set'):
             if prop_.has_getter:
                 if not prop_.nullable and (prop_.type_ in self.define.classes or prop_.type_ == ctypes.c_wchar_p):
-                    code('_{} = value ?? throw new ArgumentNullException("設定しようとした値がnullです", nameof(value));'.format(prop_.name))
+                    code('_{} = value ?? throw new ArgumentNullException(nameof(value), "設定しようとした値がnullです");'.format(prop_.name))
                 else:
                     code('_{} = value;'.format(prop_.name))
             self.__write_managed_function_body__(
