@@ -372,7 +372,7 @@ class BindingGeneratorRust(BindingGenerator):
                     code('/// * `{}` - {}'.format(camelcase_to_underscore(replaceKeyword(arg.name)), arg.brief.descs[self.lang]))
         return code
 
-    def __managed_func_declare__(self, class_: Class, func_: Function) -> str:
+    def __managed_func_declare__(self, class_: Class, func_: Function, add_accessor=True) -> str:
         args = []
         index_ = 0
         generic_ = []
@@ -387,11 +387,23 @@ class BindingGeneratorRust(BindingGenerator):
         if not func_.is_static and not func_.is_constructor:
             args = [ "&mut self" ] + args
 
+        # access signature
+        access = ''
+        func_name = camelcase_to_underscore(func_.name)
+        if add_accessor:
+            if func_.is_public:
+                access = 'pub '
+            else:
+                access = 'pub(crate) '
+                if class_.is_public:
+                    func_name = '__' + func_name
+
         if func_.is_constructor:
-            return 'fn new<{}>({}) -> {}'.format(', '.join(generic_), ', '.join(args), self.__get_rs_type__(class_, is_return=True))
+            return '{}fn new<{}>({}) -> {}'.format(access, ', '.join(generic_), ', '.join(args), self.__get_rs_type__(class_, is_return=True))
         else:
-            return 'fn {}<{}>({}) -> {}'.format(
-                camelcase_to_underscore(func_.name),
+            return '{}fn {}<{}>({}) -> {}'.format(
+                access,
+                func_name,
                 ', '.join(generic_),
                 ', '.join(args),
                 self.__get_rs_type__(func_.return_value.type_, is_return=True))
@@ -402,15 +414,7 @@ class BindingGeneratorRust(BindingGenerator):
 
         code(self.__generate_func_brief__(class_, func_))
 
-        # access signature
-        access = ''
-        if add_accessor:
-            if func_.is_public:
-                access = 'pub '
-            else:
-                access = 'pub(crate) '
-
-        func_title = access + self.__managed_func_declare__(class_, func_)
+        func_title = self.__managed_func_declare__(class_, func_, add_accessor=add_accessor)
         # function body
         with CodeBlock(code, func_title):
             self.__write_managed_function_body__(code, class_, func_)
@@ -427,13 +431,19 @@ class BindingGeneratorRust(BindingGenerator):
         field_name = camelcase_to_underscore(prop_.name)
 
         access = ''
+        prop_name = 'get_' + field_name
         if not is_trait:
-            access = 'pub '
+            if prop_.is_public:
+                access = 'pub '
+            else:
+                access = 'pub(crate) '
+                if class_.is_public:
+                    prop_name = '__get_' + field_name
 
         # Markdown comment
         if prop_.brief != None:
             code('/// {}'.format(prop_.brief.descs[self.lang]))
-        with CodeBlock(code, '{}fn get_{}(&mut self) -> {}'.format(access, field_name, type_name_return)):
+        with CodeBlock(code, '{}fn {}(&mut self) -> {}'.format(access, prop_name, type_name_return)):
             if prop_.has_setter:
                 if prop_.type_ in self.define.classes:
                     code('if let Some(value) = &self.{0} {{ return Some(value.clone()) }}'.format(field_name))
@@ -454,12 +464,14 @@ class BindingGeneratorRust(BindingGenerator):
         field_name = camelcase_to_underscore(prop_.name)
 
         access = ''
+        prop_name = 'set_' + field_name
         if not is_trait:
-            access = 'pub '
-        # if prop_.is_public:
-        #     access = 'pub'
-        # else:
-        #     access = 'pub(crate)'
+            if prop_.is_public:
+                access = 'pub '
+            else:
+                access = 'pub(crate) '
+                if class_.is_public:
+                    prop_name = '__set_' + field_name
 
         if prop_.has_setter:
             # Markdown comment
@@ -477,17 +489,15 @@ class BindingGeneratorRust(BindingGenerator):
                     type_name = 'Arc<Mutex<T>>'
                 generic_ = 'T: {} + \'static'.format(get_base_trait_name(prop_.type_))
 
-            head = '{}fn set_{}<{}>(&mut self, {}value : {}) -> &mut Self'.format(access, field_name, generic_, mut_, type_name)
+            head = '{}fn {}<{}>(&mut self, {}value : {})'.format(access, prop_name, generic_, mut_, type_name)
 
             if is_trait:
-                head = '{}fn base_set_{}<{}>(&mut self, {}value : {})'.format(access, field_name, generic_, mut_, type_name)
+                head = '{}fn {}<{}>(&mut self, {}value : {})'.format(access, prop_name, generic_, mut_, type_name)
 
             with CodeBlock(code, head):
                 self.__write_managed_function_body__(code, class_, prop_.setter_as_func(), is_property=True)
                 if prop_.has_getter:
                     code('self.{} = Some(value.clone());'.format(field_name))
-                if not is_trait:
-                    code('self')
 
         return code
 
@@ -620,7 +630,7 @@ impl Has{1} for {0} {{
 
             with CodeBlock(code, 'pub trait {} {}'.format(get_base_trait_name(class_), inherits)):
                 for func_ in [pair[1] for pair in distincted_funcs.values() if (len(pair[1].targets) == 0) or ('rust' in pair[1].targets) and (not pair[1] in base_funcs)]:
-                    if not func_.is_static:
+                    if not (func_.is_static or func_.is_constructor):
                         code(self.__generate_func_brief__(class_, func_))
                         code(self.__managed_func_declare__(class_, func_) + ';')
 
@@ -639,14 +649,14 @@ impl Has{1} for {0} {{
                         # Markdown comment
                         if prop_.brief != None:
                             code('/// {}'.format(prop_.brief.descs[self.lang]))
-                        code('fn base_set_{}(&mut self, value : {});'.format(field_name, type_name))
+                        code('fn set_{}(&mut self, value : {});'.format(field_name, type_name))
 
             base_classes.append(class_)
 
         for base_class in base_classes:
             with CodeBlock(code, 'impl {} for {}'.format(get_base_trait_name(base_class), class_.name)):
                 for func_ in [f for f in base_class.funcs if len(f.targets) == 0 or 'rust' in f.targets]:
-                    if not func_.is_static:
+                    if not (func_.is_static or func_.is_constructor):
                         code(self.__generate__managed_func__(base_class, func_, add_accessor=False))
 
                 for prop_ in base_class.properties:
@@ -729,7 +739,7 @@ fn try_get_from_cache({0} : *mut {1}) -> Option<Arc<Mutex<Self>>> {{
 
             if class_ in self.baseClasses:
                 for func_ in [f for f in class_.funcs if len(f.targets) == 0 or 'rust' in f.targets]:
-                    if func_.is_static:
+                    if func_.is_static or func_.is_constructor:
                         code(self.__generate__managed_func__(class_, func_))
 
                 # setter
@@ -740,9 +750,6 @@ fn try_get_from_cache({0} : *mut {1}) -> Option<Arc<Mutex<Self>>> {{
                 for func_ in [f for f in class_.funcs if len(f.targets) == 0 or 'rust' in f.targets]:
                     if not (func_.name in base_funcs):
                         code(self.__generate__managed_func__(class_, func_))
-
-                for pair in base_props.values():
-                    code(self.__generate__manaded_property_setter__(pair[0], pair[1]))
 
                 for prop_ in class_.properties:
                     if not (prop_.name in base_props):
