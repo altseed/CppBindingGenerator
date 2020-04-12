@@ -580,7 +580,7 @@ class BindingGeneratorRust(BindingGenerator):
             for f in current.base_class.funcs:
                 if not f.name in distincted_funcs:
                     distincted_funcs[f.name] = (current.base_class, f)
-                if not f.name in base_funcs:
+                if not f.name in base_funcs and not (f.is_static or f.is_constructor):
                     base_funcs[f.name] = f
             for p in current.base_class.properties:
                 if not p.name in distincted_props:
