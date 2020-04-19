@@ -521,10 +521,16 @@ class SharedObjectGenerator:
         # convert ctype into c++type
         for arg in func_.args:
             ex_name = 'cbg_arg' + str(count)
-            cpp_type = self.__get_cpp_type__(arg.type_, arg.called_by)
-            c_value = self.__convert_c_to_cpp__(
-                arg.type_, arg.name)
-            code('{} {} = {};'.format(cpp_type, ex_name, c_value))
+            
+            if arg.type_ in self.define.structs and arg.called_by != ArgCalledBy.Default:
+                cpp_type = '{}::{}*'.format(arg.type_.namespace, arg.type_.alias)
+                c_value = '({})'.format(cpp_type) + arg.name
+                code('{} {} = {};'.format(cpp_type, ex_name, c_value))
+            else:
+                cpp_type = self.__get_cpp_type__(arg.type_, arg.called_by)
+                c_value = self.__convert_c_to_cpp__(
+                    arg.type_, arg.name)
+                code('{} {} = {};'.format(cpp_type, ex_name, c_value))
             args.append(ex_name)
             count += 1
 
