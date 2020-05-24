@@ -256,10 +256,11 @@ class BindingGeneratorCSharp(BindingGenerator):
 
         if not func_.is_static and not func_.is_constructor:
             args = [self.self_ptr_name] + args
-        
+
         for a in func_.args:
             if not a.nullable and (a.type_ in self.define.classes or a.type_ == ctypes.c_wchar_p):
-                code('if ({} == null) throw new ArgumentNullException(nameof({}), "引数がnullです");'.format(a.name, a.name))
+                code('if ({} == null) throw new ArgumentNullException(nameof({}), "引数がnullです");'.format(
+                    a.name, a.name))
 
         if func_.is_constructor:
             code('{} = {}({});'.format(self.self_ptr_name, fname, ', '.join(args)))
@@ -357,7 +358,8 @@ class BindingGeneratorCSharp(BindingGenerator):
         with CodeBlock(code, 'set'):
             if prop_.has_getter:
                 if not prop_.nullable and (prop_.type_ in self.define.classes or prop_.type_ == ctypes.c_wchar_p):
-                    code('_{} = value ?? throw new ArgumentNullException(nameof(value), "設定しようとした値がnullです");'.format(prop_.name))
+                    code('_{} = value ?? throw new ArgumentNullException(nameof(value), "設定しようとした値がnullです");'.format(
+                        prop_.name))
                 else:
                     code('_{} = value;'.format(prop_.name))
             self.__write_managed_function_body__(
@@ -377,7 +379,8 @@ class BindingGeneratorCSharp(BindingGenerator):
             code('/// </summary>')
 
             if not prop_.nullable and (prop_.type_ in self.define.classes or prop_.type_ == ctypes.c_wchar_p):
-                code('/// <exception cref="ArgumentNullException">設定しようとした値がnull</exception>')            
+                code(
+                    '/// <exception cref="ArgumentNullException">設定しようとした値がnull</exception>')
 
         type_name = self.__get_cs_type__(prop_.type_, is_return=True)
         access = ''
@@ -477,7 +480,7 @@ class BindingGeneratorCSharp(BindingGenerator):
             code('/// <summary>')
             code('/// {}'.format(class_.brief.descs[self.lang]))
             code('/// </summary>')
-        
+
         # SerializableAttribute
         if class_.SerializeType > 0:
             code('[Serializable]')
@@ -502,7 +505,6 @@ class BindingGeneratorCSharp(BindingGenerator):
                 inheritance += ', ICacheKeeper<{}>'.format(class_.name)
                 inheritCount += 1
 
-
         # IDeserializationCallBack
         if (class_.CallBackType > 0):
             if (inheritCount == 0):
@@ -517,7 +519,7 @@ class BindingGeneratorCSharp(BindingGenerator):
         access = 'internal'
         if class_.is_public:
             access = 'public'
-        
+
         sealed = ''
         if (class_.is_Sealed):
             sealed = 'sealed '
@@ -570,16 +572,18 @@ class BindingGeneratorCSharp(BindingGenerator):
             for func_ in [f for f in class_.funcs if len(f.targets) == 0 or 'csharp' in f.targets]:
                 code(self.__generate__managed_func__(class_, func_))
 
-            
             # ISerializable
             if class_.SerializeType >= 2:
+                code('')
                 code('#region ISerialiable')
 
                 # names
+                code('')
                 code('#region SerializeName')
                 for p in class_.properties:
                     if p.serialized:
-                        code('private const string S_{} = "S_{}";'.format(p.name, p.name))
+                        code('private const string S_{} = "S_{}";'.format(
+                            p.name, p.name))
                 code('#endregion')
                 code('')
 
@@ -588,13 +592,14 @@ class BindingGeneratorCSharp(BindingGenerator):
                     code('')
 
                 title_GetObj = ''
-                title_Const = '{}(SerializationInfo info, StreamingContext context)'.format(class_.name)
-                
+                title_Const = '{}(SerializationInfo info, StreamingContext context)'.format(
+                    class_.name)
+
                 if class_.is_Sealed:
                     title_Const = 'private ' + title_Const
                 else:
                     title_Const = 'protected ' + title_Const
-                        
+
                 if class_.base_class != None and class_.base_class.SerializeType >= 2:
                     title_Const += ' : base(info, context)'
                     title_GetObj = 'protected override void '
@@ -606,15 +611,15 @@ class BindingGeneratorCSharp(BindingGenerator):
                     if class_.constructor_count == 1:
                         title_Const += ' : this()'
                     else:
-                         if class_.base_class != None:
+                        if class_.base_class != None:
                             title_Const += ' : this(new MemoryHandle(IntPtr.Zero))'
-
 
                 title_GetObj += 'GetObjectData(SerializationInfo info, StreamingContext context)'
 
                 # Deserialize Constructor
                 code('/// <summary>')
-                code('/// シリアライズされたデータをもとに<see cref="{}"/>のインスタンスを生成する'.format(class_.name))
+                code(
+                    '/// シリアライズされたデータをもとに<see cref="{}"/>のインスタンスを生成する'.format(class_.name))
                 code('/// </summary>')
                 code('/// <param name="info">シリアライズされたデータを格納するオブジェクト</param>')
                 code('/// <param name="context">送信元の情報</param>')
@@ -637,8 +642,9 @@ class BindingGeneratorCSharp(BindingGenerator):
                     if class_.SerializeType == 3 and class_.base_class != None and class_.base_class.SerializeType >= 2:
                         code('base.GetObjectData(info, context);')
                     else:
-                        code('if (info == null) throw new ArgumentNullException(nameof(info), "引数がnullです");')
-                    
+                        code(
+                            'if (info == null) throw new ArgumentNullException(nameof(info), "引数がnullです");')
+
                     code('')
 
                     for p in class_.properties:
@@ -649,38 +655,47 @@ class BindingGeneratorCSharp(BindingGenerator):
 
                     code('OnGetObjectData(info, context);')
                 if (class_.base_class == None or class_.base_class.SerializeType < 2) and not class_.is_Sealed:
-                    code('void ISerializable.GetObjectData(SerializationInfo info, StreamingContext context) => GetObjectData(info, context);')
+                    code(
+                        'void ISerializable.GetObjectData(SerializationInfo info, StreamingContext context) => GetObjectData(info, context);')
 
                 code('')
-
                 code('/// <summary>')
                 if class_.is_Sealed and (class_.base_class == None or class_.base_class.SerializeType < 2):
-                    code('/// <see cref="ISerializable.GetObjectData(SerializationInfo, StreamingContext)"/>内で実行')
+                    code(
+                        '/// <see cref="ISerializable.GetObjectData(SerializationInfo, StreamingContext)"/>内で実行')
                 else:
-                    code('/// <see cref="GetObjectData(SerializationInfo, StreamingContext)"/>内で実行')
+                    code(
+                        '/// <see cref="GetObjectData(SerializationInfo, StreamingContext)"/>内で実行')
                 code('/// </summary>')
                 code('/// <param name="info">シリアライズされるデータを格納するオブジェクト</param>')
                 code('/// <param name="context">送信先の情報</param>')
-                code('partial void OnGetObjectData(SerializationInfo info, StreamingContext context);')
+                code(
+                    'partial void OnGetObjectData(SerializationInfo info, StreamingContext context);')
 
+                code('')
                 code('/// <summary>')
-                code('/// <see cref="{}(SerializationInfo, StreamingContext)"/>内で実行'.format(class_.name))
+                code(
+                    '/// <see cref="{}(SerializationInfo, StreamingContext)"/>内で実行'.format(class_.name))
                 code('/// </summary>')
                 code('/// <param name="info">シリアライズされたデータを格納するオブジェクト</param>')
                 code('/// <param name="context">送信元の情報</param>')
-                code('partial void OnDeserialize_Constructor(SerializationInfo info, StreamingContext context);')
+                code(
+                    'partial void OnDeserialize_Constructor(SerializationInfo info, StreamingContext context);')
 
+                code('')
                 code('/// <summary>')
                 if class_.CallBackType > 0:
                     code('/// <see cref="OnDeserialization(object)"/>内で呼び出される')
                 else:
-                    code('/// <see cref="{}(SerializationInfo, StreamingContext)"/>内で呼び出される'.format(class_.name))
+                    code(
+                        '/// <see cref="{}(SerializationInfo, StreamingContext)"/>内で呼び出される'.format(class_.name))
                 code('/// デシリアライズ時にselfPtrを取得する操作をここに必ず書くこと')
                 code('/// </summary>')
                 code('/// <param name="ptr"/>selfPtrとなる値 初期値である<see cref="IntPtr.Zero"/>のままだと<see cref="SerializationException"/>がスローされる')
-                code('/// <param name="info"/>シリアライズされたデータを格納するオブジェクト</param>')                
-                code('partial void Deserialize_GetPtr(ref IntPtr ptr, SerializationInfo info);')
-                                
+                code('/// <param name="info"/>シリアライズされたデータを格納するオブジェクト</param>')
+                code(
+                    'partial void Deserialize_GetPtr(ref IntPtr ptr, SerializationInfo info);')
+
                 if class_.handleCache:
                     title_get = ''
                     if class_.base_class != None and class_.base_class.SerializeType >= 2 and class_.base_class.handleCache:
@@ -691,52 +706,70 @@ class BindingGeneratorCSharp(BindingGenerator):
                         else:
                             title_get = 'protected private virtual '
                     title_get += 'IntPtr Call_GetPtr(SerializationInfo info)'
+                    
+                    code('')
                     code('/// <summary>')
                     code('/// 呼び出し禁止')
-                    code('/// </summary>')                    
+                    code('/// </summary>')
                     with CodeBlock(code, title_get, True):
                         code('var ptr = IntPtr.Zero;')
                         code('Deserialize_GetPtr(ref ptr, info);')
                         code('return ptr;')
-                
+
                 title_des = ''
                 if (class_.is_Sealed):
                     title_des = 'private'
                 else:
                     title_des = 'protected private'
-                title_des += ' void {}_Unsetter_Deserialize(SerializationInfo info'.format(class_.name)
-                
+                title_des += ' void {}_Unsetter_Deserialize(SerializationInfo info'.format(
+                    class_.name)
+
                 title_des_args = ''
                 for p in class_.properties:
                     if p.serialized and not p.has_setter:
-                        title_des_args += ', out {} {}'.format(self.__get_cs_type__(p.type_), p.name)
-                
+                        title_des_args += ', out {} {}'.format(
+                            self.__get_cs_type__(p.type_), p.name)
+
                 title_des_args += ')'
                 if title_des_args != ')':
                     code('/// <summary>')
                     if class_.CallBackType > 0:
-                        code('/// <see cref="OnDeserialization(object)"/>でデシリアライズされなかったオブジェクトを呼び出す')
+                        code(
+                            '/// <see cref="OnDeserialization(object)"/>でデシリアライズされなかったオブジェクトを呼び出す')
                     else:
-                        code('/// <see cref="{}(SerializationInfo, StreamingContext)"/>でデシリアライズされなかったオブジェクトを呼び出す'.format(class_.name))
+                        code(
+                            '/// <see cref="{}(SerializationInfo, StreamingContext)"/>でデシリアライズされなかったオブジェクトを呼び出す'.format(class_.name))
                     code('/// </summary>')
                     code('/// <param name="info">シリアライズされたデータを格納するオブジェクト</param>')
                     for p in class_.properties:
                         if p.serialized and not p.has_setter:
-                            code('/// <param name="{}"><see cref="{}.{}"/></param>'.format(p.name, class_.name, p.name))
+                            code(
+                                '/// <param name="{}"><see cref="{}.{}"/></param>'.format(p.name, class_.name, p.name))
                     with CodeBlock(code, title_des + title_des_args, True):
                         self.__deserialize_nosetter__(class_, code)
 
                 # ICacheKeeper
                 if class_.handleCache:
                     code('#region ICacheKeeper')
-
-                    code('IDictionary<IntPtr, WeakReference<{}>> ICacheKeeper<{}>.CacheRepo => cacheRepo;'.format(class_.name, class_.name))
-                    code('IntPtr ICacheKeeper<{}>.Self {{ get => selfPtr; set => selfPtr = value; }}'.format(class_.name))
-                    code('void ICacheKeeper<{}>.Release(IntPtr native) => cbg_{}_Release(native);'.format(class_.name, class_.name))
-
-                    code('#endregion')
                     code('')
 
+                    code('IDictionary<IntPtr, WeakReference<{}>> ICacheKeeper<{}>.CacheRepo => cacheRepo;'.format(
+                        class_.name, class_.name))
+                    code('')
+
+                    with CodeBlock(code, 'IntPtr ICacheKeeper<{}>.Self'.format(class_.name), True):
+                        code('get => selfPtr;')
+                        with CodeBlock(code, 'set', False):
+                            code('selfPtr = value;')
+
+                    code('void ICacheKeeper<{}>.Release(IntPtr native) => cbg_{}_Release(native);'.format(
+                        class_.name, class_.name))
+
+                    code('')
+
+                    code('#endregion')
+
+                code('')
                 code('#endregion')
                 code('')
 
@@ -765,19 +798,21 @@ class BindingGeneratorCSharp(BindingGenerator):
                         if (class_.base_class != None and class_.base_class.CallBackType > 0):
                             code('base.OnDeserialization(sender);')
                         code('')
-                    
+
                     code('OnDeserialize_Method(sender);')
 
                     if class_.SerializeType >= 2:
                         code('')
                         code('seInfo = null;')
-                
+
                 if class_.base_class == None and not class_.is_Sealed:
-                    code('void IDeserializationCallback.OnDeserialization(object sender) => OnDeserialization(sender);')
+                    code(
+                        'void IDeserializationCallback.OnDeserialization(object sender) => OnDeserialization(sender);')
 
                 code('/// <summary>')
                 if (class_.base_class == None or class_.base_class.CallBackType == 0) and class_.is_Sealed:
-                    code('/// <see cref="IDeserializationCallback.OnDeserialization(object)"/>中で実行される')
+                    code(
+                        '/// <see cref="IDeserializationCallback.OnDeserialization(object)"/>中で実行される')
                 else:
                     code('/// <see cref="OnDeserialization(object)"/>中で実行される')
                 code('/// </summary>')
@@ -792,15 +827,15 @@ class BindingGeneratorCSharp(BindingGenerator):
                         code('{}({});'.format(__get_c_release_func_name__(
                             class_), self.self_ptr_name))
                         code('{} = IntPtr.Zero;'.format(self.self_ptr_name))
-                
 
         return code
-    
-    def __deserialize__(self, class_ : Class, code : Code, info : str) -> str:
+
+    def __deserialize__(self, class_: Class, code: Code, info: str) -> str:
         if class_.handleCache:
             code('var ptr = Call_GetPtr({});'.format(info))
             code('')
-            code('if (ptr == IntPtr.Zero) throw new SerializationException("インスタンス生成に失敗しました");')
+            code(
+                'if (ptr == IntPtr.Zero) throw new SerializationException("インスタンス生成に失敗しました");')
             if class_.cache_mode == CacheMode.ThreadSafeCache:
                 code('CacheHelper.CacheHandlingConcurrent(this, ptr);')
             else:
@@ -810,13 +845,12 @@ class BindingGeneratorCSharp(BindingGenerator):
             if p.serialized and p.has_setter:
                 code('{} = {}.{}'.format(p.name, info, self.__write_getvalue__(p)))
 
-    def __deserialize_nosetter__(self, class_ : Class, code : Code) -> str:
+    def __deserialize_nosetter__(self, class_: Class, code: Code) -> str:
         for p in class_.properties:
             if p.serialized and not p.has_setter:
                 code('{} = info.{}'.format(p.name, self.__write_getvalue__(p)))
 
-
-    def __write_getvalue__(self, p : Property) -> str:
+    def __write_getvalue__(self, p: Property) -> str:
         if p.type_ == ctypes.c_byte:
             return 'GetByte(S_{});'.format(p.name)
         if p.type_ == int:
