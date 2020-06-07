@@ -7,7 +7,6 @@
 
 namespace HelloWorld
 {
-
 	inline int32_t ConvertUtf16ToUtf8(char* dst, int32_t dst_size, const char16_t* src)
 	{
 		int32_t cnt = 0;
@@ -47,104 +46,120 @@ namespace HelloWorld
 		return cnt;
 	}
 
-ClassA::ClassA()
-{
-	printf("Create ClassA(C++) in %d\n", std::this_thread::get_id());
-}
+	StructA::StructA() {
+		X = 0;
+		Y = 0;
+		Z = 0;
+	}
 
-ClassA::~ClassA()
-{
-	printf("Dispose ClassA(C++) in %d\n", std::this_thread::get_id());
-}
+	StructA::StructA(float _x, float _y, float _z) {
+		X = _x;
+		Y = _y;
+		Z = _z;
+	}
 
-void ClassA::FuncSimple()
-{
-    printf("FuncSimple\n");
-}
+	StructA::operator StructA_C() const { return StructA_C{ X, Y, Z }; }
 
-void ClassA::FuncArgInt(int value)
-{
-    printf("FuncArgInt %d\n", value);
-}
+	StructA_C::operator StructA() const { return StructA(X, Y, Z); }
 
-void ClassA::FuncArgFloatBoolStr(float value1, bool value2, const char16_t* value3)
-{
-    printf("FuncArgFloatBoolStr %f %d\n", value1, (int)value2);
+	ClassA::ClassA()
+	{
+		printf("Create ClassA(C++) in %d\n", std::this_thread::get_id());
+	}
 
-	char temp[200];
-	ConvertUtf16ToUtf8(temp, 200, value3);
-    std::cout << temp << std::endl;
-}
+	ClassA::~ClassA()
+	{
+		printf("Dispose ClassA(C++) in %d\n", std::this_thread::get_id());
+	}
 
-void ClassA::FuncArgStruct(const StructA& value1)
-{
-	std::cout << value1.X << ", " << value1.Y << ", " << value1.Z << std::endl;
-}
+	void ClassA::FuncSimple()
+	{
+		printf("FuncSimple\n");
+	}
 
-void ClassA::FuncArgClass(std::shared_ptr<ClassB> value1)
-{
-	std::cout << value1->GetValue() << std::endl;
-}
+	void ClassA::FuncArgInt(int value)
+	{
+		printf("FuncArgInt %d\n", value);
+	}
 
-int ClassA::FuncReturnInt()
-{
-    return 100;
-}
+	void ClassA::FuncArgFloatBoolStr(float value1, bool value2, const char16_t* value3)
+	{
+		printf("FuncArgFloatBoolStr %f %d\n", value1, (int)value2);
 
-bool ClassA::FuncReturnBool()
-{
-    return true;
-}
+		char temp[200];
+		ConvertUtf16ToUtf8(temp, 200, value3);
+		std::cout << temp << std::endl;
+	}
 
-float ClassA::FuncReturnFloat()
-{
-    return 2.1f;
-}
+	void ClassA::FuncArgStruct(StructA* value1)
+	{
+		std::cout << "cout in core: struct:" << value1->X << ", " << value1->Y << ", " << value1->Z << std::endl;
+	}
 
-StructA ClassA::FuncReturnStruct()
-{
-	StructA ret;
-	ret.X = 2.0f;
-	ret.Y = 1.0f;
-	ret.Z = 3.0f;
-	return ret;
-}
+	void ClassA::FuncArgClass(std::shared_ptr<ClassB> value1)
+	{
+		std::cout << value1->GetValue() << std::endl;
+	}
 
-char16_t* ret_char = u"Return";
+	int ClassA::FuncReturnInt()
+	{
+		return 100;
+	}
 
-const char16_t* ClassA::FuncReturnString()
-{
-	return ret_char;
-}
+	bool ClassA::FuncReturnBool()
+	{
+		return true;
+	}
 
-std::shared_ptr<ClassB> ClassA::FuncReturnClass()
-{
-	return std::shared_ptr<ClassB>(new ClassB(), ReferenceDeleter<ClassB>());
-}
+	float ClassA::FuncReturnFloat()
+	{
+		return 2.1f;
+	}
 
-EnumA ClassA::GetEnumA() const
-{
-	return enumA_;
-}
+	StructA ClassA::FuncReturnStruct()
+	{
+		StructA ret;
+		ret.X = 2.0f;
+		ret.Y = 1.0f;
+		ret.Z = 3.0f;
+		return ret;
+	}
 
-void ClassA::SetEnumA(EnumA v)
-{
-	enumA_ = v;
-}
+	char16_t* ret_char = u"Return";
 
-int ClassA::FuncReturnStatic()
-{
-	return 1;
-}
+	const char16_t* ClassA::FuncReturnString()
+	{
+		return ret_char;
+	}
 
-ClassB::ClassB()
-{
-	printf("Create ClassB(C++) in %d\n", std::this_thread::get_id());
-}
+	std::shared_ptr<ClassB> ClassA::FuncReturnClass()
+	{
+		return std::shared_ptr<ClassB>(new ClassB(), ReferenceDeleter<ClassB>());
+	}
 
-ClassB::~ClassB()
-{
-	printf("Dispose ClassB(C++) in %d\n", std::this_thread::get_id());
-}
+	EnumA ClassA::GetEnumA() const
+	{
+		return enumA_;
+	}
+
+	void ClassA::SetEnumA(EnumA v)
+	{
+		enumA_ = v;
+	}
+
+	int ClassA::FuncReturnStatic()
+	{
+		return 1;
+	}
+
+	ClassB::ClassB()
+	{
+		printf("Create ClassB(C++) in %d\n", std::this_thread::get_id());
+	}
+
+	ClassB::~ClassB()
+	{
+		printf("Dispose ClassB(C++) in %d\n", std::this_thread::get_id());
+	}
 
 }

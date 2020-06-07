@@ -2,9 +2,9 @@ cmake_minimum_required(VERSION 3.8)
 
 enable_language(CXX)
 
-file(GLOB files *.cpp) 
+file(GLOB files *.h *.cpp) 
 
-add_library(Common
+add_library(CoreLib
   SHARED
   ${files}
 )

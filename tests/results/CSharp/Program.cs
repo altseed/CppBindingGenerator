@@ -19,7 +19,7 @@ namespace Test
             if (HelloWorld.ClassA.FuncReturnStatic() != 1) throw new Exception();
 
             a.EnumA = HelloWorld.EnumA.Tiger;
-            if(a.EnumA != HelloWorld.EnumA.Tiger) throw new Exception();
+            if (a.EnumA != HelloWorld.EnumA.Tiger) throw new Exception();
 
             HelloWorld.StructA sa = new HelloWorld.StructA();
             sa.X = 1.0f;
@@ -32,10 +32,10 @@ namespace Test
             a.FuncArgClass(cb);
 
             var retBool = a.FuncReturnBool();
-            Console.WriteLine(retBool);
+            Console.WriteLine($"retBool:{retBool}");
 
             var retStruct = a.FuncReturnStruct();
-            Console.WriteLine(string.Format("{0},{1},{2}", retStruct.X, retStruct.Y, retStruct.Z));
+            Console.WriteLine($"retStruct(should 2, 1, 3):{retStruct.X}, {retStruct.Y}, {retStruct.Z}");
 
             var retSrring = a.FuncReturnString();
             Console.WriteLine(retSrring);
@@ -44,14 +44,12 @@ namespace Test
             retClass.SetValue(101);
             a.FuncArgClass(retClass);
 
-
             Console.WriteLine("Inheritance Test:");
             var derived = new HelloWorld.DerivedClass();
             var asBase = derived as HelloWorld.BaseClass;
             asBase.SetBaseClassField(12345);
             Console.WriteLine($"As Base Value:{asBase.GetBaseClassField()}");
             Console.WriteLine($"Derived Value:{derived.GetBaseClassFieldFromDerivedClass()}");
-
         }
     }
 }

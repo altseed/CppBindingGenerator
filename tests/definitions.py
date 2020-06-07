@@ -3,14 +3,14 @@ import ctypes
 import sys
 
 # Struct
-StructA = cbg.Struct('HelloWorld', 'StructA', 'StorakutoA')
+StructA = cbg.Struct('HelloWorld', 'StructA_C', 'StructA')
 with StructA as struct:
     struct.add_field(float, 'X')
     struct.add_field(float, 'Y')
     struct.add_field(float, 'Z')
 
 ReplaceStructA = cbg.Struct(
-    'HelloWorld', 'ReplaceStructA', 'ReprasuStorakutoA')
+    'HelloWorld', 'ReplaceStructA', 'CSReplaceStructA')
 with ReplaceStructA as struct:
     struct.add_field(float, 'X')
     struct.add_field(float, 'Y')
@@ -55,8 +55,8 @@ with ClassC as class_:
         prop.has_setter = True
 
     with class_.add_func('FuncHasRefArg') as func:
-        with func.add_arg(ctypes.c_byte, 'intRef') as arg:
-            arg.called_by = cbg.CalledBy.Out
+        with func.add_arg(int, 'intRef') as arg:
+            arg.called_by = cbg.ArgCalledBy.Ref
 
 # ClassB
 ClassB = cbg.Class('HelloWorld', 'ClassB', cbg.CacheMode.Cache)
@@ -79,11 +79,11 @@ with ClassB as class_:
         prop.brief = cbg.Description()
         prop.brief.add('ja', 'Gets or sets some integer.')
 
-    with class_.add_property(ClassC, 'ClassProperty') as prop:
+    with class_.add_property(ClassA, 'ClassProperty') as prop:
         prop.has_getter = True
         prop.has_setter = True
         prop.brief = cbg.Description()
-        prop.brief.add('ja', 'Gets or sets some ClassC.')
+        prop.brief.add('ja', 'Gets or sets some ClassA.')
 
     class_.add_property(float, 'MyFloat')
 
@@ -108,6 +108,7 @@ with ClassA as class_:
         with func.add_arg(StructA, 'value1') as arg:
             arg.desc = cbg.Description()
             arg.desc.add('en', 'StructA input.')
+            arg.called_by = cbg.ArgCalledBy.Ref
         func.brief = cbg.Description()
         func.brief.add('en', 'Processes a structA.')
 
