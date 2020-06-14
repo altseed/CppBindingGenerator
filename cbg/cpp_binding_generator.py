@@ -616,12 +616,10 @@ extern "C" {
 
         for class_ in self.define.classes:
             for func in class_.funcs:
-                if not func.onlyExtern:
-                    code += self.__generate_func__(class_, func)
+                code += self.__generate_func__(class_, func)
 
             for prop in class_.properties:
-                if not prop.onlyExtern:
-                    code += self.__generate_property__(class_, prop)
+                code += self.__generate_property__(class_, prop)
 
             # generate release
             release_func = Function('Release')
