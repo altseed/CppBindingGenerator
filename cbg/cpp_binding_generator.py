@@ -124,6 +124,7 @@ class Function:
         self.is_static = False
         self.is_constructor = False
         self.is_public = True
+        self.onlyExtern = False
         self.targets = []
 
     def add_arg(self, type_, name: str) -> Argument:
@@ -156,6 +157,7 @@ class Property:
         self.is_public = True
         self.null_deserialized = True
         self.nullable = True
+        self.onlyExtern = False
 
     def getter_as_func(self) -> Function:
         f = Function('Get' + self.name)
@@ -614,10 +616,12 @@ extern "C" {
 
         for class_ in self.define.classes:
             for func in class_.funcs:
-                code += self.__generate_func__(class_, func)
+                if not func.onlyExtern:
+                    code += self.__generate_func__(class_, func)
 
             for prop in class_.properties:
-                code += self.__generate_property__(class_, prop)
+                if not prop.onlyExtern:
+                    code += self.__generate_property__(class_, prop)
 
             # generate release
             release_func = Function('Release')
