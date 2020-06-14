@@ -566,10 +566,11 @@ class BindingGeneratorCSharp(BindingGenerator):
 
             # properties
             for prop_ in class_.properties:
-                code(self.__generate__managed_property_(class_, prop_))
+                if not prop_.onlyExtern:
+                    code(self.__generate__managed_property_(class_, prop_))
 
             # managed functions
-            for func_ in [f for f in class_.funcs if len(f.targets) == 0 or 'csharp' in f.targets]:
+            for func_ in [f for f in class_.funcs if not f.onlyExtern and (len(f.targets) == 0 or 'csharp' in f.targets)]:
                 code(self.__generate__managed_func__(class_, func_))
 
             # ISerializable

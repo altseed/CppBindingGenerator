@@ -124,6 +124,7 @@ class Function:
         self.is_static = False
         self.is_constructor = False
         self.is_public = True
+        self.onlyExtern = False
         self.targets = []
 
     def add_arg(self, type_, name: str) -> Argument:
@@ -156,6 +157,7 @@ class Property:
         self.is_public = True
         self.null_deserialized = True
         self.nullable = True
+        self.onlyExtern = False
 
     def getter_as_func(self) -> Function:
         f = Function('Get' + self.name)
