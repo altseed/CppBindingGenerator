@@ -669,6 +669,7 @@ class BindingGeneratorCSharp(BindingGenerator):
 
                     code('OnGetObjectData(info, context);')
                 if (class_.base_class == None or class_.base_class.SerializeType < 2) and not class_.is_Sealed:
+                    code('[EditorBrowsable(EditorBrowsableState.Never)]')
                     code(
                         'void ISerializable.GetObjectData(SerializationInfo info, StreamingContext context) => GetObjectData(info, context);')
 
