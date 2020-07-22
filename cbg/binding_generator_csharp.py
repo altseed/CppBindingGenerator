@@ -227,6 +227,7 @@ class BindingGeneratorCSharp(BindingGenerator):
             args = ['IntPtr {}'.format(self.self_ptr_name)] + args
 
         code('[DllImport("{}")]'.format(self.dll_name))
+        code('[EditorBrowsable(EditorBrowsableState.Never)]')
 
         if(func_.return_value.type_ == bool):
             code('[return: MarshalAs(UnmanagedType.U1)]')
@@ -312,11 +313,13 @@ class BindingGeneratorCSharp(BindingGenerator):
             return_type_name = self.__get_cs_type__(
                 func_.return_value.type_, is_return=True)
             cache_code = 'private Dictionary<IntPtr, WeakReference<{}>> cache{} = new Dictionary<IntPtr, WeakReference<{}>>();'
+            code('[EditorBrowsable(EditorBrowsableState.Never)]')
             code(cache_code.format(return_type_name, func_.name, return_type_name))
         elif func_.return_value.cache_mode() == CacheMode.ThreadSafeCache:
             return_type_name = self.__get_cs_type__(
                 func_.return_value.type_, is_return=True)
             cache_code = 'private ConcurrentDictionary<IntPtr, WeakReference<{}>> cache{} = new ConcurrentDictionary<IntPtr, WeakReference<{}>>();'
+            code('[EditorBrowsable(EditorBrowsableState.Never)]')
             code(cache_code.format(return_type_name, func_.name, return_type_name))
 
         # determine signature
@@ -408,8 +411,8 @@ class BindingGeneratorCSharp(BindingGenerator):
         new_ = ''
         if class_.base_class != None:
             new_ = 'new'
-
-        body = '''internal static {2} {0} TryGetFromCache(IntPtr native)
+        body = '''[EditorBrowsable(EditorBrowsableState.Never)]
+        internal static {2} {0} TryGetFromCache(IntPtr native)
 {{
     if(native == IntPtr.Zero) return null;
 
@@ -444,7 +447,8 @@ class BindingGeneratorCSharp(BindingGenerator):
         if class_.base_class != None:
             new_ = 'new'
 
-        body = '''internal static {2} {0} TryGetFromCache(IntPtr native)
+        body = '''[EditorBrowsable(EditorBrowsableState.Never)]
+        internal static {2} {0} TryGetFromCache(IntPtr native)
 {{
     if(native == IntPtr.Zero) return null;
 
@@ -531,17 +535,20 @@ class BindingGeneratorCSharp(BindingGenerator):
             # cache repo
             if class_.cache_mode == CacheMode.Cache:
                 cache_code = 'private static Dictionary<IntPtr, WeakReference<{}>> cacheRepo = new Dictionary<IntPtr, WeakReference<{}>>();'
+                code('[EditorBrowsable(EditorBrowsableState.Never)]')
                 code(cache_code.format(class_.name, class_.name))
                 code('')
                 self.__write_cache_getter__(code, class_)
             elif class_.cache_mode == CacheMode.ThreadSafeCache:
                 cache_code = 'private static ConcurrentDictionary<IntPtr, WeakReference<{}>> cacheRepo = new ConcurrentDictionary<IntPtr, WeakReference<{}>>();'
+                code('[EditorBrowsable(EditorBrowsableState.Never)]')
                 code(cache_code.format(class_.name, class_.name))
                 code('')
                 self.__write_threadsafe_cache_getter__(code, class_)
 
             # unmanaged pointer
             if class_.base_class == None:
+                code('[EditorBrowsable(EditorBrowsableState.Never)]')
                 code('internal IntPtr {} = IntPtr.Zero;'.format(self.self_ptr_name))
 
             # extern unmanaged functions
@@ -558,9 +565,11 @@ class BindingGeneratorCSharp(BindingGenerator):
 
             # constructor
             if class_.base_class == None:
+                code('[EditorBrowsable(EditorBrowsableState.Never)]')
                 with CodeBlock(code, 'internal {}(MemoryHandle handle)'.format(class_.name), True):
                     code('{} = handle.selfPtr;'.format(self.self_ptr_name))
             else:
+                code('[EditorBrowsable(EditorBrowsableState.Never)]')
                 with CodeBlock(code, 'internal {}(MemoryHandle handle) : base(handle)'.format(class_.name), True):
                     code('{} = handle.selfPtr;'.format(self.self_ptr_name))
 
@@ -583,12 +592,14 @@ class BindingGeneratorCSharp(BindingGenerator):
                 code('#region SerializeName')
                 for p in class_.properties:
                     if p.serialized:
+                        code('[EditorBrowsable(EditorBrowsableState.Never)]')
                         code('private const string S_{} = "S_{}";'.format(
                             p.name, p.name))
                 code('#endregion')
                 code('')
 
                 if class_.CallBackType > 0:
+                    code('[EditorBrowsable(EditorBrowsableState.Never)]')
                     code('private SerializationInfo seInfo;')
                     code('')
 
@@ -624,6 +635,7 @@ class BindingGeneratorCSharp(BindingGenerator):
                 code('/// </summary>')
                 code('/// <param name="info">シリアライズされたデータを格納するオブジェクト</param>')
                 code('/// <param name="context">送信元の情報</param>')
+                code('[EditorBrowsable(EditorBrowsableState.Never)]')
                 with CodeBlock(code, title_Const, True):
                     if class_.CallBackType > 0:
                         code('seInfo = info;')
@@ -639,6 +651,7 @@ class BindingGeneratorCSharp(BindingGenerator):
                 code('/// </summary>')
                 code('/// <param name="info">シリアライズされるデータを格納するオブジェクト</param>')
                 code('/// <param name="context">送信先の情報</param>')
+                code('[EditorBrowsable(EditorBrowsableState.Never)]')
                 with CodeBlock(code, title_GetObj):
                     if class_.SerializeType == 3 and class_.base_class != None and class_.base_class.SerializeType >= 2:
                         code('base.GetObjectData(info, context);')
@@ -670,6 +683,7 @@ class BindingGeneratorCSharp(BindingGenerator):
                 code('/// </summary>')
                 code('/// <param name="info">シリアライズされるデータを格納するオブジェクト</param>')
                 code('/// <param name="context">送信先の情報</param>')
+                code('[EditorBrowsable(EditorBrowsableState.Never)]')
                 code(
                     'partial void OnGetObjectData(SerializationInfo info, StreamingContext context);')
 
@@ -680,6 +694,7 @@ class BindingGeneratorCSharp(BindingGenerator):
                 code('/// </summary>')
                 code('/// <param name="info">シリアライズされたデータを格納するオブジェクト</param>')
                 code('/// <param name="context">送信元の情報</param>')
+                code('[EditorBrowsable(EditorBrowsableState.Never)]')
                 code(
                     'partial void OnDeserialize_Constructor(SerializationInfo info, StreamingContext context);')
 
@@ -694,6 +709,7 @@ class BindingGeneratorCSharp(BindingGenerator):
                 code('/// </summary>')
                 code('/// <param name="ptr"/>selfPtrとなる値 初期値である<see cref="IntPtr.Zero"/>のままだと<see cref="SerializationException"/>がスローされる')
                 code('/// <param name="info"/>シリアライズされたデータを格納するオブジェクト</param>')
+                code('[EditorBrowsable(EditorBrowsableState.Never)]')
                 code(
                     'partial void Deserialize_GetPtr(ref IntPtr ptr, SerializationInfo info);')
 
@@ -712,6 +728,7 @@ class BindingGeneratorCSharp(BindingGenerator):
                     code('/// <summary>')
                     code('/// 呼び出し禁止')
                     code('/// </summary>')
+                    code('[EditorBrowsable(EditorBrowsableState.Never)]')
                     with CodeBlock(code, title_get, True):
                         code('var ptr = IntPtr.Zero;')
                         code('Deserialize_GetPtr(ref ptr, info);')
@@ -746,6 +763,7 @@ class BindingGeneratorCSharp(BindingGenerator):
                         if p.serialized and not p.has_setter:
                             code(
                                 '/// <param name="{}"><see cref="{}.{}"/></param>'.format(p.name, class_.name, p.name))
+                    code('[EditorBrowsable(EditorBrowsableState.Never)]')
                     with CodeBlock(code, title_des + title_des_args, True):
                         self.__deserialize_nosetter__(class_, code)
 
@@ -754,15 +772,18 @@ class BindingGeneratorCSharp(BindingGenerator):
                     code('#region ICacheKeeper')
                     code('')
 
+                    code('[EditorBrowsable(EditorBrowsableState.Never)]')
                     code('IDictionary<IntPtr, WeakReference<{}>> ICacheKeeper<{}>.CacheRepo => cacheRepo;'.format(
                         class_.name, class_.name))
                     code('')
 
+                    code('[EditorBrowsable(EditorBrowsableState.Never)]')
                     with CodeBlock(code, 'IntPtr ICacheKeeper<{}>.Self'.format(class_.name), True):
                         code('get => selfPtr;')
                         with CodeBlock(code, 'set', False):
                             code('selfPtr = value;')
 
+                    code('[EditorBrowsable(EditorBrowsableState.Never)]')
                     code('void ICacheKeeper<{}>.Release(IntPtr native) => cbg_{}_Release(native);'.format(
                         class_.name, class_.name))
 
@@ -790,6 +811,7 @@ class BindingGeneratorCSharp(BindingGenerator):
                 code('/// デシリアライズ時に実行')
                 code('/// </summary>')
                 code('/// <param name="sender">現在はサポートされていない 常にnullを返す</param>')
+                code('[EditorBrowsable(EditorBrowsableState.Never)]')
                 with CodeBlock(code, title):
                     if class_.SerializeType >= 2:
                         code('if (seInfo == null) return;')
@@ -807,6 +829,7 @@ class BindingGeneratorCSharp(BindingGenerator):
                         code('seInfo = null;')
 
                 if class_.base_class == None and not class_.is_Sealed:
+                    code('[EditorBrowsable(EditorBrowsableState.Never)]')
                     code(
                         'void IDeserializationCallback.OnDeserialization(object sender) => OnDeserialization(sender);')
 
@@ -818,6 +841,7 @@ class BindingGeneratorCSharp(BindingGenerator):
                     code('/// <see cref="OnDeserialization(object)"/>中で実行される')
                 code('/// </summary>')
                 code('/// <param name="sender">現在はサポートされていない 常にnullを返す</param>')
+                code('[EditorBrowsable(EditorBrowsableState.Never)]')
                 code('partial void OnDeserialize_Method(object sender);')
                 code('')
 
@@ -889,9 +913,10 @@ class BindingGeneratorCSharp(BindingGenerator):
 
         # declare using
         code('using System;')
-        code('using System.Runtime.InteropServices;')
+        code('using System.ComponentModel;')
         code('using System.Collections.Generic;')
         code('using System.Collections.Concurrent;')
+        code('using System.Runtime.InteropServices;')
         code('using System.Runtime.Serialization;')
         code('')
 
@@ -902,6 +927,7 @@ class BindingGeneratorCSharp(BindingGenerator):
             code.inc_indent()
 
         # a struct for memory management
+        code('[EditorBrowsable(EditorBrowsableState.Never)]')
         with CodeBlock(code, 'struct MemoryHandle', True):
             code('public IntPtr selfPtr;')  # internal?
             with CodeBlock(code, 'public MemoryHandle(IntPtr p)'):  # internal?
