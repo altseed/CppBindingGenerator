@@ -64,6 +64,9 @@ class BindingGeneratorCSharp(BindingGenerator):
             code('/// <summary>')
             code('/// {}'.format(enum_.brief.descs[self.lang]))
             code('/// </summary>')
+        # FlagsAttribute
+        if enum_.isFlag:
+            code('[Flags]')
         code('[Serializable]')
         with CodeBlock(code, 'public enum {} : int'.format(enum_.name)):
             for val in enum_.values:
