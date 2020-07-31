@@ -202,6 +202,7 @@ class Enum:
         self.values = []  # type: List[EnumValue]
         self.name = name
         self.namespace = namespace
+        self.isFlag = False
 
     def add(self, name: str, value=None) -> EnumValue:
         '''
