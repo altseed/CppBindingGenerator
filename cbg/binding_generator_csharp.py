@@ -65,7 +65,13 @@ class BindingGeneratorCSharp(BindingGenerator):
             code('/// {}'.format(enum_.brief.descs[self.lang]))
             code('/// </summary>')
         code('[Serializable]')
-        with CodeBlock(code, 'public enum {} : int'.format(enum_.name)):
+
+        if enum_.alias != None:
+            enum_name = enum_.alias
+        else:
+            enum_name = enum_.name
+
+        with CodeBlock(code, 'public enum {} : int'.format(enum_name)):
             for val in enum_.values:
                 # XML Comment
                 if val.brief != None:
@@ -115,7 +121,10 @@ class BindingGeneratorCSharp(BindingGenerator):
                 return '{}{}'.format(ptr, type_.alias)
 
         if type_ in self.define.enums:
-            return type_.name
+            if type_.alias == None:
+                return type_.name
+            else:
+                return type_.alias
 
         if type_ is None:
             return 'void'
