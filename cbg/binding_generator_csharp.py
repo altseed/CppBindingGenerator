@@ -221,7 +221,11 @@ class BindingGeneratorCSharp(BindingGenerator):
             return '{}'.format(name)
 
         if type_ in self.define.enums:
-            return '({}){}'.format(type_.name, name)
+            if type_.alias == None:
+                enum_name = type_.name
+            else:
+                enum_name = type_.alias
+            return '({}){}'.format(enum_name, name)
 
         assert(False)
 
