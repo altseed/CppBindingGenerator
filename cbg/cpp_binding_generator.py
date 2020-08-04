@@ -197,10 +197,11 @@ class EnumValue:
 
 
 class Enum:
-    def __init__(self, namespace: str, name: str):
+    def __init__(self, namespace: str, name: str, alias:str=None):
         self.brief = None  # type: Description
         self.values = []  # type: List[EnumValue]
         self.name = name
+        self.alias = alias
         self.namespace = namespace
         self.isFlag = False
 

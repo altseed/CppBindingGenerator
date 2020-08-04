@@ -16,7 +16,7 @@ with ReplaceStructA as struct:
     struct.add_field(float, 'Y')
 
 # EnumA
-EnumA = cbg.Enum('HelloWorld', 'EnumA')
+EnumA = cbg.Enum('HelloWorld', 'EnumA', 'Animal')
 with EnumA as enum:
     enum.add('Mosue')
     enum.add('Cow')
