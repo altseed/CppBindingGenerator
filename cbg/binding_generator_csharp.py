@@ -718,14 +718,14 @@ class BindingGeneratorCSharp(BindingGenerator):
                 code('')
                 code('/// <summary>')
                 if class_.CallBackType > 0:
-                    code('/// <see cref="OnDeserialization(object)"/>内で呼び出される')
+                    code('/// <see cref="IDeserializationCallback.OnDeserialization"/>内で呼び出される')
                 else:
                     code(
                         '/// <see cref="{}(SerializationInfo, StreamingContext)"/>内で呼び出される'.format(class_.name))
                 code('/// デシリアライズ時にselfPtrを取得する操作をここに必ず書くこと')
                 code('/// </summary>')
-                code('/// <param name="ptr"/>selfPtrとなる値 初期値である<see cref="IntPtr.Zero"/>のままだと<see cref="SerializationException"/>がスローされる')
-                code('/// <param name="info"/>シリアライズされたデータを格納するオブジェクト</param>')
+                code('/// <param name="ptr">selfPtrとなる値 初期値である<see cref="IntPtr.Zero"/>のままだと<see cref="SerializationException"/>がスローされる</param>')
+                code('/// <param name="info">シリアライズされたデータを格納するオブジェクト</param>')
                 code('[EditorBrowsable(EditorBrowsableState.Never)]')
                 code(
                     'partial void Deserialize_GetPtr(ref IntPtr ptr, SerializationInfo info);')
@@ -770,7 +770,7 @@ class BindingGeneratorCSharp(BindingGenerator):
                     code('/// <summary>')
                     if class_.CallBackType > 0:
                         code(
-                            '/// <see cref="OnDeserialization(object)"/>でデシリアライズされなかったオブジェクトを呼び出す')
+                            '/// <see cref="IDeserializationCallback.OnDeserialization"/>でデシリアライズされなかったオブジェクトを呼び出す')
                     else:
                         code(
                             '/// <see cref="{}(SerializationInfo, StreamingContext)"/>でデシリアライズされなかったオブジェクトを呼び出す'.format(class_.name))
@@ -853,9 +853,9 @@ class BindingGeneratorCSharp(BindingGenerator):
                 code('/// <summary>')
                 if (class_.base_class == None or class_.base_class.CallBackType == 0) and class_.is_Sealed:
                     code(
-                        '/// <see cref="IDeserializationCallback.OnDeserialization(object)"/>中で実行される')
+                        '/// <see cref="IDeserializationCallback.OnDeserialization"/>中で実行される')
                 else:
-                    code('/// <see cref="OnDeserialization(object)"/>中で実行される')
+                    code('/// <see cref="IDeserializationCallback.OnDeserialization"/>中で実行される')
                 code('/// </summary>')
                 code('/// <param name="sender">現在はサポートされていない 常にnullを返す</param>')
                 code('[EditorBrowsable(EditorBrowsableState.Never)]')
@@ -910,6 +910,11 @@ class BindingGeneratorCSharp(BindingGenerator):
             return 'GetValue<{}>(S_{});'.format(p.type_.alias, p.name)
         if p.type_ in self.define.classes and not p.null_deserialized:
             return 'GetValue<{}>(S_{}) ?? throw new SerializationException("デシリアライズに失敗しました");'.format(p.type_.name, p.name)
+        if p.type_ in self.define.enums:
+            name = p.type_.alias
+            if name is None:
+                name = p.type_.name
+            return 'GetValue<{}>(S_{});'.format(name, p.name)
         return 'GetValue<{}>(S_{});'.format(p.type_.name, p.name)
 
     def generate(self):
