@@ -874,7 +874,11 @@ class BindingGeneratorCSharp(BindingGenerator):
 
     def __deserialize__(self, class_: Class, code: Code, info: str) -> str:
         if class_.handleCache:
-            code('var ptr = Call_GetPtr({});'.format(info))
+            if class_.base_class != None and class_.base_class.handleCache:
+                code('var ptr = selfPtr;')
+                code('if (ptr == IntPtr.Zero) ptr = Call_GetPtr({});'.format(info))
+            else:
+                code('var ptr = Call_GetPtr({});'.format(info))
             code('')
             code(
                 'if (ptr == IntPtr.Zero) throw new SerializationException("インスタンス生成に失敗しました");')
