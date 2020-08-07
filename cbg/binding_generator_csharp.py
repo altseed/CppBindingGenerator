@@ -889,12 +889,20 @@ class BindingGeneratorCSharp(BindingGenerator):
             code('')
         for p in class_.properties:
             if p.serialized and p.has_setter:
-                code('{} = {}.{}'.format(p.name, info, self.__write_getvalue__(p)))
+                c = '{} = {}.{}'.format(p.name, info, self.__write_getvalue__(p))
+                if p.type_ in self.define.classes and p.type_.CallBackType > 0:
+                    code('var ' + c)
+                    code('((IDeserializationCallback){}).OnDeserialization(null);'.format(p.name))
+                    code('this.{} = {};'.format(p.name, p.name))
+                else:
+                    code(c)
 
     def __deserialize_nosetter__(self, class_: Class, code: Code) -> str:
         for p in class_.properties:
             if p.serialized and not p.has_setter:
                 code('{} = info.{}'.format(p.name, self.__write_getvalue__(p)))
+                if p.type_ in self.define.classes and p.type_.CallBackType > 0:
+                    code('((IDeserializationCallback){}).OnDeserialization(null);'.format(p.name))                    
 
     def __write_getvalue__(self, p: Property) -> str:
         if p.type_ == ctypes.c_byte:
