@@ -867,6 +867,9 @@ class BindingGeneratorCSharp(BindingGenerator):
                 code('')
 
             # destructor
+            code('/// <summary>')
+            code('/// <see cref="{}"/>のインスタンスを削除します。'.format(class_.name))
+            code('/// </summary>')
             with CodeBlock(code, '~{}()'.format(class_.name)):
                 with CodeBlock(code, 'lock (this) '):
                     with CodeBlock(code, 'if ({} != IntPtr.Zero)'.format(self.self_ptr_name)):
