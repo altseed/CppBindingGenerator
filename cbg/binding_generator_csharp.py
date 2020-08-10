@@ -639,7 +639,7 @@ class BindingGeneratorCSharp(BindingGenerator):
                     if class_.constructor_count == 1:
                         title_Const += ' : this()'
                     else:
-                        if class_.base_class != None:
+                        if class_.base_class == None:
                             title_Const += ' : this(new MemoryHandle(IntPtr.Zero))'
 
                 title_GetObj += 'GetObjectData(SerializationInfo info, StreamingContext context)'
@@ -733,26 +733,25 @@ class BindingGeneratorCSharp(BindingGenerator):
                 code(
                     'partial void Deserialize_GetPtr(ref IntPtr ptr, SerializationInfo info);')
 
-                if class_.handleCache:
-                    title_get = ''
-                    if class_.base_class != None and class_.base_class.SerializeType >= 2 and class_.base_class.handleCache:
-                        title_get = 'protected private override '
+                title_get = ''
+                if class_.base_class != None and class_.base_class.SerializeType >= 2 and class_.base_class.handleCache:
+                    title_get = 'protected private override '
+                else:
+                    if class_.is_Sealed:
+                        title_get = 'private '
                     else:
-                        if class_.is_Sealed:
-                            title_get = 'private '
-                        else:
-                            title_get = 'protected private virtual '
-                    title_get += 'IntPtr Call_GetPtr(SerializationInfo info)'
+                        title_get = 'protected private virtual '
+                title_get += 'IntPtr Call_GetPtr(SerializationInfo info)'
                     
-                    code('')
-                    code('/// <summary>')
-                    code('/// 呼び出し禁止')
-                    code('/// </summary>')
-                    code('[EditorBrowsable(EditorBrowsableState.Never)]')
-                    with CodeBlock(code, title_get, True):
-                        code('var ptr = IntPtr.Zero;')
-                        code('Deserialize_GetPtr(ref ptr, info);')
-                        code('return ptr;')
+                code('')
+                code('/// <summary>')
+                code('/// 呼び出し禁止')
+                code('/// </summary>')
+                code('[EditorBrowsable(EditorBrowsableState.Never)]')
+                with CodeBlock(code, title_get, True):
+                    code('var ptr = IntPtr.Zero;')
+                    code('Deserialize_GetPtr(ref ptr, info);')
+                    code('return ptr;')
 
                 # Unsetter_Deserialize
                 title_des = ''
@@ -891,6 +890,11 @@ class BindingGeneratorCSharp(BindingGenerator):
                 code('CacheHelper.CacheHandlingConcurrent(this, ptr);')
             else:
                 code('CacheHelper.CacheHandling(this, ptr);')
+            code('')
+        else:
+            code('selfPtr = Call_GetPtr({});'.format(info))
+            code(
+                'if (selfPtr == IntPtr.Zero) throw new SerializationException("インスタンス生成に失敗しました");')
             code('')
         for p in class_.properties:
             if p.serialized and p.has_setter:
