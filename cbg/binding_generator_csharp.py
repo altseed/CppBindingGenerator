@@ -689,6 +689,7 @@ class BindingGeneratorCSharp(BindingGenerator):
                     code(
                         'void ISerializable.GetObjectData(SerializationInfo info, StreamingContext context) => GetObjectData(info, context);')
 
+                # OnGetObjectData
                 code('')
                 code('/// <summary>')
                 if class_.is_Sealed and (class_.base_class == None or class_.base_class.SerializeType < 2):
@@ -704,6 +705,7 @@ class BindingGeneratorCSharp(BindingGenerator):
                 code(
                     'partial void OnGetObjectData(SerializationInfo info, StreamingContext context);')
 
+                # OnDeserialization_Constructor
                 code('')
                 code('/// <summary>')
                 code(
@@ -715,6 +717,7 @@ class BindingGeneratorCSharp(BindingGenerator):
                 code(
                     'partial void OnDeserialize_Constructor(SerializationInfo info, StreamingContext context);')
 
+                # Deserialize_GetPtr
                 code('')
                 code('/// <summary>')
                 if class_.CallBackType > 0:
@@ -751,6 +754,7 @@ class BindingGeneratorCSharp(BindingGenerator):
                         code('Deserialize_GetPtr(ref ptr, info);')
                         code('return ptr;')
 
+                # Unsetter_Deserialize
                 title_des = ''
                 if (class_.is_Sealed):
                     title_des = 'private'
@@ -850,6 +854,7 @@ class BindingGeneratorCSharp(BindingGenerator):
                     code(
                         'void IDeserializationCallback.OnDeserialization(object sender) => OnDeserialization(sender);')
 
+                # OnDeserialize_Method
                 code('/// <summary>')
                 if (class_.base_class == None or class_.base_class.CallBackType == 0) and class_.is_Sealed:
                     code(
