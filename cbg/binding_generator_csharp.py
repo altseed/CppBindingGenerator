@@ -647,7 +647,7 @@ class BindingGeneratorCSharp(BindingGenerator):
                 # Deserialize Constructor
                 code('/// <summary>')
                 code(
-                    '/// シリアライズされたデータをもとに<see cref="{}"/>のインスタンスを生成する'.format(class_.name))
+                    '/// シリアライズされたデータをもとに<see cref="{}"/>のインスタンスを生成します。'.format(class_.name))
                 code('/// </summary>')
                 code('/// <param name="info">シリアライズされたデータを格納するオブジェクト</param>')
                 code('/// <param name="context">送信元の情報</param>')
@@ -694,10 +694,10 @@ class BindingGeneratorCSharp(BindingGenerator):
                 code('/// <summary>')
                 if class_.is_Sealed and (class_.base_class == None or class_.base_class.SerializeType < 2):
                     code(
-                        '/// <see cref="ISerializable.GetObjectData(SerializationInfo, StreamingContext)"/>内で実行')
+                        '/// <see cref="ISerializable.GetObjectData(SerializationInfo, StreamingContext)"/>内で実行されます。')
                 else:
                     code(
-                        '/// <see cref="GetObjectData(SerializationInfo, StreamingContext)"/>内で実行')
+                        '/// <see cref="GetObjectData(SerializationInfo, StreamingContext)"/>内で実行されます。')
                 code('/// </summary>')
                 code('/// <param name="info">シリアライズされるデータを格納するオブジェクト</param>')
                 code('/// <param name="context">送信先の情報</param>')
@@ -709,7 +709,7 @@ class BindingGeneratorCSharp(BindingGenerator):
                 code('')
                 code('/// <summary>')
                 code(
-                    '/// <see cref="{}(SerializationInfo, StreamingContext)"/>内で実行'.format(class_.name))
+                    '/// <see cref="{}(SerializationInfo, StreamingContext)"/>内で実行します。'.format(class_.name))
                 code('/// </summary>')
                 code('/// <param name="info">シリアライズされたデータを格納するオブジェクト</param>')
                 code('/// <param name="context">送信元の情報</param>')
@@ -721,7 +721,7 @@ class BindingGeneratorCSharp(BindingGenerator):
                 code('')
                 code('/// <summary>')
                 if class_.CallBackType > 0:
-                    code('/// <see cref="IDeserializationCallback.OnDeserialization"/>内で呼び出される')
+                    code('/// <see cref="IDeserializationCallback.OnDeserialization"/>内で呼び出されます。')
                 else:
                     code(
                         '/// <see cref="{}(SerializationInfo, StreamingContext)"/>内で呼び出される'.format(class_.name))
@@ -773,10 +773,10 @@ class BindingGeneratorCSharp(BindingGenerator):
                     code('/// <summary>')
                     if class_.CallBackType > 0:
                         code(
-                            '/// <see cref="IDeserializationCallback.OnDeserialization"/>でデシリアライズされなかったオブジェクトを呼び出す')
+                            '/// <see cref="IDeserializationCallback.OnDeserialization"/>でデシリアライズされなかったオブジェクトを呼び出します。')
                     else:
                         code(
-                            '/// <see cref="{}(SerializationInfo, StreamingContext)"/>でデシリアライズされなかったオブジェクトを呼び出す'.format(class_.name))
+                            '/// <see cref="{}(SerializationInfo, StreamingContext)"/>でデシリアライズされなかったオブジェクトを呼び出します。'.format(class_.name))
                     code('/// </summary>')
                     code('/// <param name="info">シリアライズされたデータを格納するオブジェクト</param>')
                     for p in class_.properties:
@@ -830,7 +830,7 @@ class BindingGeneratorCSharp(BindingGenerator):
                 code('/// <summary>')
                 code('/// デシリアライズ時に実行')
                 code('/// </summary>')
-                code('/// <param name="sender">現在はサポートされていない 常にnullを返す</param>')
+                code('/// <param name="sender">現在はサポートされていない 常にnullを返します。</param>')
                 code('[EditorBrowsable(EditorBrowsableState.Never)]')
                 with CodeBlock(code, title):
                     if class_.SerializeType >= 2:
@@ -857,9 +857,9 @@ class BindingGeneratorCSharp(BindingGenerator):
                 code('/// <summary>')
                 if (class_.base_class == None or class_.base_class.CallBackType == 0) and class_.is_Sealed:
                     code(
-                        '/// <see cref="IDeserializationCallback.OnDeserialization"/>中で実行される')
+                        '/// <see cref="IDeserializationCallback.OnDeserialization"/>中で実行されます。')
                 else:
-                    code('/// <see cref="IDeserializationCallback.OnDeserialization"/>中で実行される')
+                    code('/// <see cref="IDeserializationCallback.OnDeserialization"/>中で実行されます。')
                 code('/// </summary>')
                 code('/// <param name="sender">現在はサポートされていない 常にnullを返す</param>')
                 code('[EditorBrowsable(EditorBrowsableState.Never)]')
