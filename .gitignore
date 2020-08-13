@@ -2,12 +2,15 @@
 .ionide
 */__pycache__
 *.cpp
+*.h
 *.cs
 .vs/
 *.rs
 
-tests/build/**
-!tests/build/GenerateProjects**
+tests/Build/**
+!tests/results/cplusplus**
+
+!tests/Build/GenerateProjects**
 
 **/rust**/target
 **/*.rs.bk

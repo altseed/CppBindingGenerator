@@ -8,3 +8,4 @@ from .cpp_binding_generator import ArgCalledBy
 
 from .binding_generator_csharp import BindingGeneratorCSharp
 from .binding_generator_rust import BindingGeneratorRust
+from .binding_generator_cplusplus.binding_generator import BindingGeneratorCPlusPlus

@@ -64,12 +64,14 @@ namespace HelloWorld
 
 	ClassA::ClassA()
 	{
-		printf("Create ClassA(C++) in %d\n", std::this_thread::get_id());
+		auto id = std::this_thread::get_id();
+		std::cout << "Create ClassA(C++) in " << id << std::endl;
 	}
 
 	ClassA::~ClassA()
 	{
-		printf("Dispose ClassA(C++) in %d\n", std::this_thread::get_id());
+		auto id = std::this_thread::get_id();
+		std::cout << "Dispose ClassA(C++) in " << id << std::endl;
 	}
 
 	void ClassA::FuncSimple()
@@ -125,7 +127,7 @@ namespace HelloWorld
 		return ret;
 	}
 
-	char16_t* ret_char = u"Return";
+	const char16_t* ret_char = u"Return";
 
 	const char16_t* ClassA::FuncReturnString()
 	{
@@ -154,12 +156,14 @@ namespace HelloWorld
 
 	ClassB::ClassB()
 	{
-		printf("Create ClassB(C++) in %d\n", std::this_thread::get_id());
+		auto id = std::this_thread::get_id();
+		std::cout << "Create ClassB(C++) in " << id << std::endl;
 	}
 
 	ClassB::~ClassB()
 	{
-		printf("Dispose ClassB(C++) in %d\n", std::this_thread::get_id());
+		auto id = std::this_thread::get_id();
+		std::cout << "Dispose ClassB(C++) in " << id << std::endl;
 	}
 
 }
