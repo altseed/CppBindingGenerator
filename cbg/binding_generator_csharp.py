@@ -886,7 +886,7 @@ class BindingGeneratorCSharp(BindingGenerator):
             code('')
             code(
                 'if (ptr == IntPtr.Zero) throw new SerializationException("インスタンス生成に失敗しました");')
-            if class_.cache_mode() == CacheMode.ThreadSafeCache:
+            if class_.cache_mode == CacheMode.ThreadSafeCache:
                 code('CacheHelper.CacheHandlingConcurrent(this, ptr);')
             else:
                 code('CacheHelper.CacheHandling(this, ptr);')
