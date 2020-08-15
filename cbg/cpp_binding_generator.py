@@ -577,31 +577,31 @@ class SharedObjectGenerator:
 //   このファイルへの変更は消失することがあります。
 //
 //   THIS FILE IS AUTO GENERATED.
-//   YOUR COMMITMENT ON THIS FILE WILL BE WIPED. 
+//   YOUR COMMITMENT ON THIS FILE WILL BE WIPED.
 //
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 
 #if defined(_WIN32) || defined(__WIN32__) || defined(__CYGWIN__)
-  #include <Windows.h>
+#include <Windows.h>
 #endif
 
 #ifndef CBGEXPORT
 #if defined(_WIN32) || defined(__WIN32__) || defined(__CYGWIN__)
-  #define CBGEXPORT __declspec(dllexport)
+#define CBGEXPORT __declspec(dllexport)
 #else
-  #define CBGEXPORT
+#define CBGEXPORT
 #endif
 #endif
 
 #ifndef CBGSTDCALL
 #if defined(_WIN32) || defined(__WIN32__) || defined(__CYGWIN__)
-  #define CBGSTDCALL __stdcall
+#define CBGSTDCALL __stdcall
 #else
-  #define CBGSTDCALL
+#define CBGSTDCALL
 #endif
 #endif
 

@@ -15,6 +15,7 @@ from .cpp_binding_generator import __get_c_release_func_name__
 #     └─__write_managed_func_body__
 #   └─(destructor)
 
+
 def get_alias_or_name(type_) -> str:
     if type_.alias == None:
         return type_.name
@@ -336,7 +337,7 @@ class BindingGeneratorCSharp(BindingGenerator):
         # determine signature
         determines = []
 
-        if func_.is_public:
+        if func_.is_public and class_.is_public:
             determines += ['public']
         else:
             determines += ['internal']
@@ -398,7 +399,7 @@ class BindingGeneratorCSharp(BindingGenerator):
 
         type_name = self.__get_cs_type__(prop_.type_, is_return=True)
         access = ''
-        if (prop_.is_public):
+        if prop_.is_public and class_.is_public:
             access = 'public'
         else:
             access = 'internal'
@@ -718,7 +719,8 @@ class BindingGeneratorCSharp(BindingGenerator):
                 code('')
                 code('/// <summary>')
                 if class_.CallBackType > 0:
-                    code('/// <see cref="IDeserializationCallback.OnDeserialization"/>内で呼び出されます。')
+                    code(
+                        '/// <see cref="IDeserializationCallback.OnDeserialization"/>内で呼び出されます。')
                 else:
                     code(
                         '/// <see cref="{}(SerializationInfo, StreamingContext)"/>内で呼び出される'.format(class_name))
@@ -739,7 +741,7 @@ class BindingGeneratorCSharp(BindingGenerator):
                     else:
                         title_get = 'protected private virtual '
                 title_get += 'IntPtr Call_GetPtr(SerializationInfo info)'
-                    
+
                 code('')
                 code('/// <summary>')
                 code('/// 呼び出し禁止')
@@ -856,7 +858,8 @@ class BindingGeneratorCSharp(BindingGenerator):
                     code(
                         '/// <see cref="IDeserializationCallback.OnDeserialization"/>中で実行されます。')
                 else:
-                    code('/// <see cref="IDeserializationCallback.OnDeserialization"/>中で実行されます。')
+                    code(
+                        '/// <see cref="IDeserializationCallback.OnDeserialization"/>中で実行されます。')
                 code('/// </summary>')
                 code('/// <param name="sender">現在はサポートされていない 常にnullを返す</param>')
                 code('[EditorBrowsable(EditorBrowsableState.Never)]')
@@ -898,10 +901,12 @@ class BindingGeneratorCSharp(BindingGenerator):
             code('')
         for p in class_.properties:
             if p.serialized and p.has_setter:
-                c = '{} = {}.{}'.format(p.name, info, self.__write_getvalue__(p))
+                c = '{} = {}.{}'.format(
+                    p.name, info, self.__write_getvalue__(p))
                 if p.type_ in self.define.classes and p.type_.CallBackType > 0:
                     code('var ' + c)
-                    code('((IDeserializationCallback){}).OnDeserialization(null);'.format(p.name))
+                    code(
+                        '((IDeserializationCallback){}).OnDeserialization(null);'.format(p.name))
                     code('this.{} = {};'.format(p.name, p.name))
                 else:
                     code(c)
@@ -911,7 +916,8 @@ class BindingGeneratorCSharp(BindingGenerator):
             if p.serialized and not p.has_setter:
                 code('{} = info.{}'.format(p.name, self.__write_getvalue__(p)))
                 if p.type_ in self.define.classes and p.type_.CallBackType > 0:
-                    code('((IDeserializationCallback){}).OnDeserialization(null);'.format(p.name))                    
+                    code(
+                        '((IDeserializationCallback){}).OnDeserialization(null);'.format(p.name))
 
     def __write_getvalue__(self, p: Property) -> str:
         if p.type_ == ctypes.c_byte:
