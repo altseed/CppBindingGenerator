@@ -271,6 +271,7 @@ class Class:
     def __init__(self, namespace='', name='', cache_mode: CacheMode = CacheMode.Cache):
         self.namespace = namespace  # type: str
         self.name = name  # type: str
+        self.alias = None # type: str
         self.funcs = []  # type: Functions
         self.properties = []  # type: List[Property]
         self.base_class = None  # type: Class
