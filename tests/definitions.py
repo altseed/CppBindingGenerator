@@ -147,6 +147,14 @@ with ClassA as class_:
         prop.has_getter = True
         prop.has_setter = True
 
+# ClassAlias
+ClassAlias = cbg.Class('HelloWorld', 'ClassAlias_Cpp', cbg.CacheMode.NoCache)
+with ClassAlias as class_:
+    class_.alias = 'ClassAlias_CS'
+    class_.add_constructor()
+    with class_.add_func('FuncSimple') as func_:
+        func_.return_value.type_ = ClassAlias
+
 # Inheritance
 BaseClass = cbg.Class('HelloWorld', 'BaseClass', cbg.CacheMode.NoCache)
 with BaseClass as class_:
@@ -166,6 +174,7 @@ with DerivedClass as class_:
 
 # define
 define = cbg.Define()
+define.classes.append(ClassAlias)
 define.classes.append(ClassA)
 define.classes.append(ClassB)
 define.classes.append(ClassC)
