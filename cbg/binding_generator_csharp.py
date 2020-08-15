@@ -337,7 +337,7 @@ class BindingGeneratorCSharp(BindingGenerator):
         # determine signature
         determines = []
 
-        if func_.is_public and class_.is_public:
+        if func_.is_public:
             determines += ['public']
         else:
             determines += ['internal']
@@ -399,7 +399,7 @@ class BindingGeneratorCSharp(BindingGenerator):
 
         type_name = self.__get_cs_type__(prop_.type_, is_return=True)
         access = ''
-        if prop_.is_public and class_.is_public:
+        if prop_.is_public:
             access = 'public'
         else:
             access = 'internal'
