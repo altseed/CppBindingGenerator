@@ -906,7 +906,7 @@ class BindingGeneratorCSharp(BindingGenerator):
                 if p.type_ in self.define.classes and p.type_.CallBackType > 0:
                     code('var ' + c)
                     code(
-                        '((IDeserializationCallback){}).OnDeserialization(null);'.format(p.name))
+                        '((IDeserializationCallback){})?.OnDeserialization(null);'.format(p.name))
                     code('this.{} = {};'.format(p.name, p.name))
                 else:
                     code(c)
