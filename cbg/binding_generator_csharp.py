@@ -803,6 +803,16 @@ class BindingGeneratorCSharp(BindingGenerator):
                             code('selfPtr = value;')
 
                     code('[EditorBrowsable(EditorBrowsableState.Never)]')
+                    surpress_value = ''
+                    if class_.surpress_Releasing:
+                        surpress_value = 'true'
+                    else:
+                        surpress_value = 'false'
+                    code('bool ICacheKeeper<{}>.SurpressReleasing => {};'.format(
+                        class_name, surpress_value))
+                    code('')
+
+                    code('[EditorBrowsable(EditorBrowsableState.Never)]')
                     code('void ICacheKeeper<{}>.Release(IntPtr native) => cbg_{}_Release(native);'.format(
                         class_name, class_name))
 
