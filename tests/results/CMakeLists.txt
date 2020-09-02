@@ -17,3 +17,4 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/RELEASE")
 
 # add directories
 add_subdirectory(so)
+add_subdirectory(cplusplus)

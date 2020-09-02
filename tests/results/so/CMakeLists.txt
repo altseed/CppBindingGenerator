@@ -4,7 +4,6 @@ enable_language(CXX)
 
 file(GLOB files *.h *.cpp) 
 
-add_library(CoreLib
-  SHARED
-  ${files}
-)
+add_library(CoreLib SHARED ${files})
+
+target_compile_features(CoreLib PUBLIC cxx_std_17)
