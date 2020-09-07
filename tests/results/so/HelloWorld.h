@@ -11,11 +11,13 @@ namespace HelloWorld
 	class ReferenceObject
 	{
 		int ref = 1;
+
 	public:
 		ReferenceObject() = default;
 		virtual ~ReferenceObject() = default;
 
-		int AddRef() {
+		int AddRef()
+		{
 			ref++;
 			return ref;
 		}
@@ -32,9 +34,10 @@ namespace HelloWorld
 		}
 	};
 
-	template <typename T> struct ReferenceDeleter
+	template <typename T>
+	struct ReferenceDeleter
 	{
-		void operator()(T* p)
+		void operator()(T *p)
 		{
 			if (p != nullptr)
 			{
@@ -76,7 +79,7 @@ namespace HelloWorld
 	};
 
 	template <class T>
-	std::shared_ptr<T> CreateAndAddSharedPtr(T* p)
+	std::shared_ptr<T> CreateAndAddSharedPtr(T *p)
 	{
 		if (p == nullptr)
 			return nullptr;
@@ -86,7 +89,7 @@ namespace HelloWorld
 	}
 
 	template <class T>
-	T* AddAndGetSharedPtr(std::shared_ptr<T> sp)
+	T *AddAndGetSharedPtr(std::shared_ptr<T> sp)
 	{
 		auto p = sp.get();
 		if (p == nullptr)
@@ -109,14 +112,14 @@ namespace HelloWorld
 		virtual ~ClassA();
 		void FuncSimple();
 		void FuncArgInt(int value);
-		void FuncArgFloatBoolStr(float value1, bool value2, const char16_t* value3);
-		void FuncArgStruct(StructA* value1);
+		void FuncArgFloatBoolStr(float value1, bool value2, const char16_t *value3);
+		void FuncArgStruct(StructA *value1);
 		void FuncArgClass(std::shared_ptr<ClassB> value1);
 		int FuncReturnInt();
 		bool FuncReturnBool();
 		float FuncReturnFloat();
 		StructA FuncReturnStruct();
-		const char16_t* FuncReturnString();
+		const char16_t *FuncReturnString();
 		std::shared_ptr<ClassB> FuncReturnClass();
 
 		std::shared_ptr<ClassB> GetBReference() { return nullptr; }
@@ -134,6 +137,7 @@ namespace HelloWorld
 		EnumA enumValue_ = EnumA::Mouse;
 
 		std::shared_ptr<ClassA> classa_;
+
 	public:
 		ClassB();
 		virtual ~ClassB();
@@ -143,21 +147,21 @@ namespace HelloWorld
 		void SetEnum(EnumA value) { enumValue_ = value; }
 
 		int GetMyProperty() { return 3; }
-		void SetMyProperty(int value) { }
-		void SetMyBool(bool value) { }
+		void SetMyProperty(int value) {}
+		void SetMyBool(bool value) {}
 
 		std::shared_ptr<ClassA> GetClassProperty() { return classa_; }
 		void SetClassProperty(std::shared_ptr<ClassA> value) { classa_ = value; }
 	};
 
-	class ClassC : public ReferenceObject {
+	class ClassC : public ReferenceObject
+	{
 	private:
 		float value_;
 		EnumA enum_;
 		int myProperty_;
 		std::u16string stringProperty_;
 		bool myBool_;
-
 
 	public:
 		void SetValue(float value) { value_ = value; }
@@ -168,31 +172,46 @@ namespace HelloWorld
 		void SetMyProperty(int value) { myProperty_ = value; }
 		int GetMyProperty() { return myProperty_; }
 
-		void SetStringProperty(const char16_t* value) { stringProperty_ = value; }
-		const char16_t* GetStringProperty() { return stringProperty_.c_str(); }
+		void SetStringProperty(const char16_t *value) { stringProperty_ = value; }
+		const char16_t *GetStringProperty() { return stringProperty_.c_str(); }
 
-		void FuncHasRefArg(int32_t* value) { *value = 2; }
-		void SetMyBool(bool value) { myBool_=value; }
+		void FuncHasRefArg(int32_t *value) { *value = 2; }
+		void SetMyBool(bool value) { myBool_ = value; }
 	};
 
-	class BaseClass : public ReferenceObject {
+	class BaseClass : public ReferenceObject
+	{
 	protected:
 		int baseClassField_;
 
 	public:
-		int GetBaseClassField() {
+		int GetBaseClassField()
+		{
 			return baseClassField_;
 		}
-		void SetBaseClassField(int value) {
+		void SetBaseClassField(int value)
+		{
 			baseClassField_ = value;
 		}
 	};
 
-	class DerivedClass : public BaseClass {
+	class DerivedClass : public BaseClass
+	{
 	public:
-		int GetBaseClassFieldFromDerivedClass() {
+		int GetBaseClassFieldFromDerivedClass()
+		{
 			return baseClassField_;
 		}
 	};
 
-}
+	class ClassAlias_Cpp
+		: public ReferenceObject
+	{
+	public:
+		ClassAlias_Cpp() = default;
+		~ClassAlias_Cpp() override = default;
+
+		std::shared_ptr<ClassAlias_Cpp> FuncSimple() { return std::make_shared<ClassAlias_Cpp>(); }
+	};
+
+} // namespace HelloWorld

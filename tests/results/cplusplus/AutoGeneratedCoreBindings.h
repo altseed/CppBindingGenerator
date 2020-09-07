@@ -25,7 +25,6 @@ namespace HelloWorldA
     static std::shared_ptr<DynamicLinkLibrary> dll = nullptr;
     
     bool LoadLibrary();
-    void FreeLibrary();
     
     enum class Animal : int
     {
@@ -34,11 +33,48 @@ namespace HelloWorldA
         Tiger = 3,
     };
     
+    class ClassAlias_Cpp;
     class ClassA;
     class ClassB;
     class ClassC;
     class BaseClass;
     class DerivedClass;
+    
+    class ClassAlias_Cpp
+    {
+    private:
+        static std::mutex mtx;
+        static std::unordered_map<void*, std::weak_ptr<ClassAlias_Cpp> > cacheRepo;
+        
+    public:
+        static std::shared_ptr<ClassAlias_Cpp> TryGetFromCache(void* native);
+        
+    public:
+        void* selfPtr = nullptr;
+        
+    private:
+        static void* cbg_ClassAlias_Cpp_Constructor_0();
+    
+        static void* cbg_ClassAlias_Cpp_FuncSimple(void* selfPtr);
+    
+        static void cbg_ClassAlias_Cpp_Release(void* selfPtr);
+        
+        
+    public:
+        ClassAlias_Cpp(void* handle);
+        
+    private:
+        
+    public:
+        ClassAlias_Cpp();
+        
+        std::shared_ptr<ClassAlias_Cpp> FuncSimple();
+        
+        /**
+         @brief ClassAlias_Cppのインスタンスを削除します。
+         */
+        ~ClassAlias_Cpp();
+    };
     
     class ClassA
     {

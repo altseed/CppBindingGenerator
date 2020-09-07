@@ -134,7 +134,7 @@ class BindingGeneratorCPlusPlusSrc(BindingGenerator):
             if type_.cache_mode != CacheMode.NoCache:
                 return '{}::TryGetFromCache({})'.format(type_.name, name)
             else:
-                return '{} != nullptr ? new {}({}) : nullptr'.format(name, type_.name, name)
+                return 'std::shared_ptr<{}>({} != nullptr ? new {}({}) : nullptr)'.format(type_.name, name, type_.name, name)
 
         if type_ in self.define.structs:
             return '{}'.format(name)

@@ -20,12 +20,55 @@ namespace HelloWorldA
         return dll->Load(ConvertSharedObjectPath("CoreLib").c_str());
     }
     
-    void FreeLibrary()
+    std::mutex ClassAlias_Cpp::mtx;
+    
+    std::unordered_map<void*, std::weak_ptr<ClassAlias_Cpp> > ClassAlias_Cpp::cacheRepo;
+    
+    void* ClassAlias_Cpp::cbg_ClassAlias_Cpp_Constructor_0()
     {
-        if(dll != nullptr)
+        typedef void* (*proc_t)();
+        static proc_t proc = dll->GetProc<proc_t>("cbg_ClassAlias_Cpp_Constructor_0");
+        return proc();
+    }
+    
+    void* ClassAlias_Cpp::cbg_ClassAlias_Cpp_FuncSimple(void* selfPtr)
+    {
+        typedef void* (*proc_t)(void* selfPtr);
+        static proc_t proc = dll->GetProc<proc_t>("cbg_ClassAlias_Cpp_FuncSimple");
+        return proc(selfPtr);
+    }
+    
+    void ClassAlias_Cpp::cbg_ClassAlias_Cpp_Release(void* selfPtr)
+    {
+        typedef void (*proc_t)(void* selfPtr);
+        static proc_t proc = dll->GetProc<proc_t>("cbg_ClassAlias_Cpp_Release");
+        proc(selfPtr);
+    }
+    
+    ClassAlias_Cpp::ClassAlias_Cpp(void* handle)
+    {
+        selfPtr = handle;
+    }
+    
+    
+    ClassAlias_Cpp::ClassAlias_Cpp()
+    {
+        selfPtr = cbg_ClassAlias_Cpp_Constructor_0();
+    }
+    
+    std::shared_ptr<ClassAlias_Cpp> ClassAlias_Cpp::FuncSimple()
+    {
+        auto ret = cbg_ClassAlias_Cpp_FuncSimple(selfPtr);
+        return std::shared_ptr<ClassAlias_Cpp>(ret != nullptr ? new ClassAlias_Cpp(ret) : nullptr);
+    }
+    
+    ClassAlias_Cpp::~ClassAlias_Cpp()
+    {
+        std::lock_guard<std::mutex> lock(mtx);
+        if (selfPtr != nullptr)
         {
-            dll->Reset();
-            dll = nullptr;
+            cbg_ClassAlias_Cpp_Release(selfPtr);
+            selfPtr = nullptr;
         }
     }
     
