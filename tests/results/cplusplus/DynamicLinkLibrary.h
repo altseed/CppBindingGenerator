@@ -3,6 +3,7 @@
 #include <atomic>
 #include <cassert>
 #include <string>
+#include <iostream>
 
 #ifdef _WIN32
 #include <Windows.h>
@@ -82,6 +83,10 @@ public:
 		dll_ = ::LoadLibraryA(path);
 	#else
 		dll_ = dlopen(path, RTLD_LAZY);
+		if(dll_ == nullptr)
+		{
+			std::cout << dlerror() << std::endl;
+		}
 	#endif
 		return dll_ != nullptr;
 	}
