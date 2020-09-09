@@ -37,7 +37,7 @@ namespace HelloWorld
 	template <typename T>
 	struct ReferenceDeleter
 	{
-		void operator()(T *p)
+		void operator()(T* p)
 		{
 			if (p != nullptr)
 			{
@@ -79,7 +79,7 @@ namespace HelloWorld
 	};
 
 	template <class T>
-	std::shared_ptr<T> CreateAndAddSharedPtr(T *p)
+	std::shared_ptr<T> CreateAndAddSharedPtr(T* p)
 	{
 		if (p == nullptr)
 			return nullptr;
@@ -89,7 +89,7 @@ namespace HelloWorld
 	}
 
 	template <class T>
-	T *AddAndGetSharedPtr(std::shared_ptr<T> sp)
+	T* AddAndGetSharedPtr(std::shared_ptr<T> sp)
 	{
 		auto p = sp.get();
 		if (p == nullptr)
@@ -112,14 +112,14 @@ namespace HelloWorld
 		virtual ~ClassA();
 		void FuncSimple();
 		void FuncArgInt(int value);
-		void FuncArgFloatBoolStr(float value1, bool value2, const char16_t *value3);
-		void FuncArgStruct(StructA *value1);
+		void FuncArgFloatBoolStr(float value1, bool value2, const char16_t* value3);
+		void FuncArgStruct(StructA* value1);
 		void FuncArgClass(std::shared_ptr<ClassB> value1);
 		int FuncReturnInt();
 		bool FuncReturnBool();
 		float FuncReturnFloat();
 		StructA FuncReturnStruct();
-		const char16_t *FuncReturnString();
+		const char16_t* FuncReturnString();
 		std::shared_ptr<ClassB> FuncReturnClass();
 
 		std::shared_ptr<ClassB> GetBReference() { return nullptr; }
@@ -172,10 +172,10 @@ namespace HelloWorld
 		void SetMyProperty(int value) { myProperty_ = value; }
 		int GetMyProperty() { return myProperty_; }
 
-		void SetStringProperty(const char16_t *value) { stringProperty_ = value; }
-		const char16_t *GetStringProperty() { return stringProperty_.c_str(); }
+		void SetStringProperty(const char16_t* value) { stringProperty_ = value; }
+		const char16_t* GetStringProperty() { return stringProperty_.c_str(); }
 
-		void FuncHasRefArg(int32_t *value) { *value = 2; }
+		void FuncHasRefArg(int32_t* value) { *value = 2; }
 		void SetMyBool(bool value) { myBool_ = value; }
 	};
 
@@ -185,6 +185,9 @@ namespace HelloWorld
 		int baseClassField_;
 
 	public:
+		BaseClass() = default;
+		virtual ~BaseClass() override = default;
+
 		int GetBaseClassField()
 		{
 			return baseClassField_;
