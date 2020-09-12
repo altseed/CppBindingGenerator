@@ -4,6 +4,7 @@
 #include <cassert>
 #include <string>
 #include <iostream>
+#include <filesystem>
 
 #ifdef _WIN32
 #include <Windows.h>
@@ -27,7 +28,7 @@
 inline std::string ConvertSharedObjectPath(std::string path)
 {
 #ifndef _WIN32
-	path = "lib" + path;
+	path = "./lib" + path;
 #endif
 
 #ifdef _WIN32
@@ -37,6 +38,7 @@ inline std::string ConvertSharedObjectPath(std::string path)
 #else
 	path += ".so";
 #endif
+	path = std::filesystem::absolute(path);
 	return path;
 }
 
