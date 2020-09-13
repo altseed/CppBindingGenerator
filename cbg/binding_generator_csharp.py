@@ -16,6 +16,14 @@ from .cpp_binding_generator import __get_c_release_func_name__
 #   └─(destructor)
 
 
+def get_desc(define: Define, lang: str, elements: []):
+    fallback = ''
+    if elements[-1].brief is not None:
+        fallback = elements[-1].brief.descs[lang]
+
+    return define.get_text(lang, elements, fallback)
+
+
 def get_alias_or_name(type_) -> str:
     if type_.alias == None:
         return type_.name
@@ -67,9 +75,10 @@ class BindingGeneratorCSharp(BindingGenerator):
         code = Code()
 
         # XML Comment
-        if enum_.brief != None:
+        brief_comment = get_desc(self.define, self.lang, [enum_])
+        if brief_comment != None:
             code('/// <summary>')
-            code('/// {}'.format(enum_.brief.descs[self.lang]))
+            code('/// {}'.format(brief_comment))
             code('/// </summary>')
         # FlagsAttribute
         if enum_.isFlag:
@@ -79,9 +88,10 @@ class BindingGeneratorCSharp(BindingGenerator):
         with CodeBlock(code, 'public enum {} : int'.format(get_alias_or_name(enum_))):
             for val in enum_.values:
                 # XML Comment
+                brief_comment = get_desc(self.define, self.lang, [enum_, val])
                 if val.brief != None:
                     code('/// <summary>')
-                    code('/// {}'.format(val.brief.descs[self.lang]))
+                    code('/// {}'.format(brief_comment))
                     code('/// </summary>')
 
                 # Enum Value Body
@@ -293,14 +303,15 @@ class BindingGeneratorCSharp(BindingGenerator):
             arg.type_, False, arg.called_by) + ' ' + arg.name for arg in func_.args]
 
         # XML comment
-        if func_.brief != None:
+        brief_comment = get_desc(self.define, self.lang, [class_, func_])
+        if brief_comment != "":
             code('/// <summary>')
-            code('/// {}'.format(func_.brief.descs[self.lang]))
+            code('/// {}'.format(brief_comment))
             code('/// </summary>')
             for arg in func_.args:
-                if arg.brief != None:
-                    code('/// <param name="{}">{}</param>'.format(arg.name,
-                                                                  arg.brief.descs[self.lang]))
+                brief_comment = get_desc(self.define, self.lang, [class_, func_, arg])
+                if brief_comment != "":
+                    code('/// <param name="{}">{}</param>'.format(arg.name,brief_comment))
 
             argcount = 0
             exc_message = '/// <exception cref="ArgumentNullException">'
@@ -316,9 +327,10 @@ class BindingGeneratorCSharp(BindingGenerator):
                 if argcount > 1:
                     code(exc_message + 'のいずれかがnull</exception>')
 
-            if func_.return_value.brief != None:
+            brief_comment = get_desc(self.define, self.lang, [class_, func_, func_.return_value])
+            if brief_comment != "":
                 code(
-                    '/// <returns>{}</returns>'.format(func_.return_value.brief.descs[self.lang]))
+                    '/// <returns>{}</returns>'.format(brief_comment))
 
         # cache repo
         if func_.return_value.cache_mode() == CacheMode.Cache:
@@ -388,9 +400,10 @@ class BindingGeneratorCSharp(BindingGenerator):
             return code
 
         # XML comment
-        if prop_.brief != None:
+        brief_comment = get_desc(self.define, self.lang, [class_, prop_])
+        if brief_comment != '':
             code('/// <summary>')
-            code('/// {}'.format(prop_.brief.descs[self.lang]))
+            code('/// {}'.format(brief_comment))
             code('/// </summary>')
 
             if not prop_.nullable and (prop_.type_ in self.define.classes or prop_.type_ == ctypes.c_wchar_p):
@@ -494,9 +507,10 @@ class BindingGeneratorCSharp(BindingGenerator):
         class_name = get_alias_or_name(class_)
 
         # XML comment
-        if class_.brief != None:
+        brief_comment = get_desc(self.define, self.lang, [class_])
+        if brief_comment != None:
             code('/// <summary>')
-            code('/// {}'.format(class_.brief.descs[self.lang]))
+            code('/// {}'.format(brief_comment))
             code('/// </summary>')
 
         # SerializableAttribute

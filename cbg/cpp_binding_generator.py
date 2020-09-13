@@ -1,6 +1,7 @@
 from typing import List
 import ctypes
 import enum
+import json
 
 # Data structure
 # Define
@@ -104,6 +105,8 @@ class ReturnValue:
             return CacheMode.NoCache
         return self.type_.cache_mode
 
+    def __str__(self):
+        return 'return'
 
 class Function:
     '''
@@ -314,13 +317,41 @@ class Class:
 
 Classes = List[Class]
 
-
 class Define:
     def __init__(self):
-        self.enums = []  # type: Enums
+        self.enums = [] # type: Enums
         self.classes = []  # type: Classes
         self.structs = []  # type: Structs
+        self.text_dicts = {}
 
+    def load_text_from_json_text(self, text):
+        dicts = json.loads(text)
+        for k, v in dicts.items():
+            self.text_dicts[k] = v
+
+    def load_text_from_json_file(self, path):
+        json_open = open(path, 'r')
+        dicts = json.load(json_open)
+        for k, v in dicts:
+            self.text_dicts[k] = v
+        
+    def get_text(self, lang : str, elements : List, fallback = ''):
+        '''
+        Get text from dictionary
+        '''
+
+        keys = [lang] + [str(e) for e in elements]
+
+        dicts = self.text_dicts
+        for key in keys:
+            if key in dicts.keys():
+                dicts = dicts[key]
+            else:
+                return fallback
+
+        if "@brief" in dicts.keys():
+            return dicts["@brief"]
+        return fallback
 
 def __get_c_func_name__(class_: Class, func_: Function) -> str:
     return 'cbg_' + class_.name + '_' + func_.name

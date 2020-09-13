@@ -183,3 +183,17 @@ define.structs.append(ReplaceStructA)
 define.enums.append(EnumA)
 define.classes.append(BaseClass)
 define.classes.append(DerivedClass)
+
+json_text =  r'''
+
+{
+    "en" : {
+        "ClassA" : {
+            "@brief" : "ClassA-Desc"
+        }
+    }
+}
+
+'''
+
+define.load_text_from_json_text(json_text)
