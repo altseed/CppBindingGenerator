@@ -228,6 +228,7 @@ class BindingGeneratorCPlusPlusHdr(BindingGenerator):
             code(cache_code.format(return_type_name, func_.name))
 
         if func_.is_constructor:
+            args = ['bool callCoreConstructor'] + args
             code('{}({});'.format(class_.name, ', '.join(args)))
         elif func_.is_static:
             cpp_type = self.__get_cpp_type__(func_.return_value.type_, is_return=True)
@@ -293,7 +294,6 @@ class BindingGeneratorCPlusPlusHdr(BindingGenerator):
             code('static std::shared_ptr<{}> TryGetFromCache(void* native);'.format(class_.name))
             code('')
                 
-
             # unmanaged pointer
             if class_.base_class == None:
                 code.dec_indent()

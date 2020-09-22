@@ -66,7 +66,7 @@ namespace HelloWorldA
     private:
         
     public:
-        ClassAlias_Cpp();
+        ClassAlias_Cpp(bool callCoreConstructor);
         
         std::shared_ptr<ClassAlias_Cpp> FuncSimple();
         
@@ -136,7 +136,7 @@ namespace HelloWorldA
         Animal get_EnumA();
         void set_EnumA(Animal value);
         
-        ClassA();
+        ClassA(bool callCoreConstructor);
         
         void FuncSimple();
         
@@ -215,7 +215,7 @@ namespace HelloWorldA
         int get_MyProperty();
         void set_MyProperty(int value);
         
-        ClassB();
+        ClassB(bool callCoreConstructor);
         
         void SetValue(float value);
         
@@ -288,7 +288,7 @@ namespace HelloWorldA
         
         void set_MyBool(bool value);
         
-        ClassC();
+        ClassC(bool callCoreConstructor);
         
         void SetValue(float value);
         
@@ -332,7 +332,7 @@ namespace HelloWorldA
     private:
         
     public:
-        BaseClass();
+        BaseClass(bool callCoreConstructor);
         
         int GetBaseClassField();
         
@@ -367,7 +367,7 @@ namespace HelloWorldA
     private:
         
     public:
-        DerivedClass();
+        DerivedClass(bool callCoreConstructor);
         
         int GetBaseClassFieldFromDerivedClass();
         

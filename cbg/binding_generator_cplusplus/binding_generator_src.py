@@ -190,7 +190,8 @@ class BindingGeneratorCPlusPlusSrc(BindingGenerator):
                 code('if({} == nullptr) throw "{}の引数がnullです"'.format(a.name, a.name))
 
         if func_.is_constructor:
-            code('{} = {}({});'.format(self.self_ptr_name, fname, ', '.join(args)))
+            code('if(callCoreConstructor)')
+            code('    {} = {}({});'.format(self.self_ptr_name, fname, ', '.join(args)))
         elif func_.return_value.type_ is None:
             code('{}({});'.format(fname, ', '.join(args)))
         else:
@@ -225,7 +226,11 @@ class BindingGeneratorCPlusPlusSrc(BindingGenerator):
             code(cache_code.format(return_type_name, func_.name))
 
         if func_.is_constructor:
+            args = ['bool callCoreConstructor'] + args
             func_title = '{}::{}({})'.format(class_.name, class_.name, ', '.join(args))
+            if class_.base_class != None:
+                nameArgs = ', '.join(['false'] + [arg.name for arg in func_.args])
+                func_title += ' : {}({})'.format(class_.base_class.name, nameArgs)
         else:
             cpp_type = self.__get_cpp_type__(func_.return_value.type_, is_return=True)
             func_title = '{} {}::{}({})'.format(cpp_type, class_.name, func_.name, ', '.join(args))
