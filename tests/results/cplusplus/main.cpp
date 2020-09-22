@@ -70,7 +70,7 @@ int main()
         return 1;
     }
 
-    auto a = std::shared_ptr<HelloWorldA::ClassA>(new HelloWorldA::ClassA());
+    auto a = std::shared_ptr<HelloWorldA::ClassA>(new HelloWorldA::ClassA(true));
     a->FuncSimple();
     a->FuncArgInt(2);
     a->FuncArgFloatBoolStr(2.2f, true, u"hello");
@@ -88,7 +88,7 @@ int main()
     sa->Z = 3.0f;
     a->FuncArgStruct(std::shared_ptr<HelloWorldA::StructA_C>(sa));
 
-    auto cb = std::shared_ptr<HelloWorldA::ClassB>(new HelloWorldA::ClassB());
+    auto cb = std::shared_ptr<HelloWorldA::ClassB>(new HelloWorldA::ClassB(true));
     cb->SetValue(100);
     a->FuncArgClass(cb);
 
@@ -107,7 +107,7 @@ int main()
     a->FuncArgClass(retClass);
 
     std::cout << "Inheritance Test:" << std::endl;
-    auto derived = std::shared_ptr<HelloWorldA::DerivedClass>(new HelloWorldA::DerivedClass());
+    auto derived = std::shared_ptr<HelloWorldA::DerivedClass>(new HelloWorldA::DerivedClass(true));
     auto asBase = std::static_pointer_cast<HelloWorldA::BaseClass>(derived);
     asBase->SetBaseClassField(12345);
     std::cout << "As Base Value:" << asBase->GetBaseClassField() << std::endl;

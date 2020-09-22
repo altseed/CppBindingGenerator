@@ -51,9 +51,10 @@ namespace HelloWorldA
     }
     
     
-    ClassAlias_Cpp::ClassAlias_Cpp()
+    ClassAlias_Cpp::ClassAlias_Cpp(bool callCoreConstructor)
     {
-        selfPtr = cbg_ClassAlias_Cpp_Constructor_0();
+        if(callCoreConstructor)
+            selfPtr = cbg_ClassAlias_Cpp_Constructor_0();
     }
     
     std::shared_ptr<ClassAlias_Cpp> ClassAlias_Cpp::FuncSimple()
@@ -219,9 +220,10 @@ namespace HelloWorldA
         cbg_ClassA_SetEnumA(selfPtr, (int)value);
     }
     
-    ClassA::ClassA()
+    ClassA::ClassA(bool callCoreConstructor)
     {
-        selfPtr = cbg_ClassA_Constructor_0();
+        if(callCoreConstructor)
+            selfPtr = cbg_ClassA_Constructor_0();
     }
     
     void ClassA::FuncSimple()
@@ -401,9 +403,10 @@ namespace HelloWorldA
         cbg_ClassB_SetMyProperty(selfPtr, value);
     }
     
-    ClassB::ClassB()
+    ClassB::ClassB(bool callCoreConstructor)
     {
-        selfPtr = cbg_ClassB_Constructor_0();
+        if(callCoreConstructor)
+            selfPtr = cbg_ClassB_Constructor_0();
     }
     
     void ClassB::SetValue(float value)
@@ -572,9 +575,10 @@ namespace HelloWorldA
         cbg_ClassC_SetMyBool(selfPtr, value);
     }
     
-    ClassC::ClassC()
+    ClassC::ClassC(bool callCoreConstructor)
     {
-        selfPtr = cbg_ClassC_Constructor_0();
+        if(callCoreConstructor)
+            selfPtr = cbg_ClassC_Constructor_0();
     }
     
     void ClassC::SetValue(float value)
@@ -646,9 +650,10 @@ namespace HelloWorldA
     }
     
     
-    BaseClass::BaseClass()
+    BaseClass::BaseClass(bool callCoreConstructor)
     {
-        selfPtr = cbg_BaseClass_Constructor_0();
+        if(callCoreConstructor)
+            selfPtr = cbg_BaseClass_Constructor_0();
     }
     
     int BaseClass::GetBaseClassField()
@@ -703,9 +708,10 @@ namespace HelloWorldA
     }
     
     
-    DerivedClass::DerivedClass()
+    DerivedClass::DerivedClass(bool callCoreConstructor) : BaseClass(false)
     {
-        selfPtr = cbg_DerivedClass_Constructor_0();
+        if(callCoreConstructor)
+            selfPtr = cbg_DerivedClass_Constructor_0();
     }
     
     int DerivedClass::GetBaseClassFieldFromDerivedClass()
