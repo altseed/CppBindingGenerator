@@ -177,7 +177,7 @@ class BindingGeneratorCPlusPlusSrc(BindingGenerator):
         code(result)
         return code
 
-    def __write_managed_function_body__(self, code: Code, class_: Class, func_: Function):
+    def __write_managed_function_body__(self, code: Code, class_: Class, func_: Function, callByDerived_ = False):
         fname = __get_c_func_name__(class_, func_)
         # call a function
         args = [self.__convert_cppc_to_cpp__(arg.type_, arg.name, arg.called_by) for arg in func_.args]
@@ -190,11 +190,11 @@ class BindingGeneratorCPlusPlusSrc(BindingGenerator):
                 code('if({} == nullptr) throw "{}の引数がnullです"'.format(a.name, a.name))
 
         if func_.is_constructor:
-            code('std::lock_guard<std::mutex> lock(mtx);')
-            with CodeBlock(code, 'if ({} != nullptr)'.format(self.self_ptr_name)):
-                code('{}({});'.format(__get_c_release_func_name__(class_), self.self_ptr_name))
-                code('{} = nullptr;'.format(self.self_ptr_name))
-            code('{} = {}({});'.format(self.self_ptr_name, fname, ', '.join(args)))
+            if callByDerived_:
+                code('if(!calledByDerived)')
+                code('    {} = {}({});'.format(self.self_ptr_name, fname, ', '.join(args)))
+            else:
+                code('{} = {}({});'.format(self.self_ptr_name, fname, ', '.join(args)))
         elif func_.return_value.type_ is None:
             code('{}({});'.format(fname, ', '.join(args)))
         else:
@@ -229,17 +229,24 @@ class BindingGeneratorCPlusPlusSrc(BindingGenerator):
             code(cache_code.format(return_type_name, func_.name))
 
         if func_.is_constructor:
+            func_title = '{}::{}({})'.format(class_.name, class_.name, ', '.join(['bool calledByDerived'] + args))
+            if class_.base_class != None:
+                nameArgs = ', '.join(['calledByDerived'] + [arg.name for arg in func_.args])
+                func_title += ' : {}({})'.format(class_.base_class.name, nameArgs)
+            with CodeBlock(code, func_title):
+                self.__write_managed_function_body__(code, class_, func_)
+            code('')
             func_title = '{}::{}({})'.format(class_.name, class_.name, ', '.join(args))
             if class_.base_class != None:
-                nameArgs = ', '.join([arg.name for arg in func_.args])
+                nameArgs = ', '.join(['true'] + [arg.name for arg in func_.args])
                 func_title += ' : {}({})'.format(class_.base_class.name, nameArgs)
+            with CodeBlock(code, func_title):
+                self.__write_managed_function_body__(code, class_, func_, True)
         else:
             cpp_type = self.__get_cpp_type__(func_.return_value.type_, is_return=True)
             func_title = '{} {}::{}({})'.format(cpp_type, class_.name, func_.name, ', '.join(args))
-
-        # function body
-        with CodeBlock(code, func_title):
-            self.__write_managed_function_body__(code, class_, func_)
+            with CodeBlock(code, func_title):
+                self.__write_managed_function_body__(code, class_, func_)
 
         return code
 
@@ -340,7 +347,6 @@ class BindingGeneratorCPlusPlusSrc(BindingGenerator):
             class_title += ' : {}(handle)'.format(class_.base_class.name)
         with CodeBlock(code, class_title, True):
             code('{} = handle;'.format(self.self_ptr_name))
-        code('')
                 
         # properties
         for prop_ in class_.properties:

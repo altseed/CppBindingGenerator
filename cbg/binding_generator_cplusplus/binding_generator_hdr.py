@@ -228,6 +228,13 @@ class BindingGeneratorCPlusPlusHdr(BindingGenerator):
             code(cache_code.format(return_type_name, func_.name))
 
         if func_.is_constructor:
+            code.dec_indent()
+            code('protected:')
+            code.inc_indent()
+            code('{}({});'.format(class_.name, ', '.join(['bool calledByDerived'] + args)))
+            code.dec_indent()
+            code('public:')
+            code.inc_indent()
             code('{}({});'.format(class_.name, ', '.join(args)))
         elif func_.is_static:
             cpp_type = self.__get_cpp_type__(func_.return_value.type_, is_return=True)

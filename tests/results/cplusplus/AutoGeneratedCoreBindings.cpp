@@ -50,16 +50,15 @@ namespace HelloWorldA
         selfPtr = handle;
     }
     
+    ClassAlias_Cpp::ClassAlias_Cpp(bool calledByDerived)
+    {
+        selfPtr = cbg_ClassAlias_Cpp_Constructor_0();
+    }
     
     ClassAlias_Cpp::ClassAlias_Cpp()
     {
-        std::lock_guard<std::mutex> lock(mtx);
-        if (selfPtr != nullptr)
-        {
-            cbg_ClassAlias_Cpp_Release(selfPtr);
-            selfPtr = nullptr;
-        }
-        selfPtr = cbg_ClassAlias_Cpp_Constructor_0();
+        if(!calledByDerived)
+            selfPtr = cbg_ClassAlias_Cpp_Constructor_0();
     }
     
     std::shared_ptr<ClassAlias_Cpp> ClassAlias_Cpp::FuncSimple()
@@ -206,7 +205,6 @@ namespace HelloWorldA
         selfPtr = handle;
     }
     
-    
     std::shared_ptr<ClassB> ClassA::get_BReference()
     {
         auto ret = cbg_ClassA_GetBReference(selfPtr);
@@ -225,15 +223,15 @@ namespace HelloWorldA
         cbg_ClassA_SetEnumA(selfPtr, (int)value);
     }
     
+    ClassA::ClassA(bool calledByDerived)
+    {
+        selfPtr = cbg_ClassA_Constructor_0();
+    }
+    
     ClassA::ClassA()
     {
-        std::lock_guard<std::mutex> lock(mtx);
-        if (selfPtr != nullptr)
-        {
-            cbg_ClassA_Release(selfPtr);
-            selfPtr = nullptr;
-        }
-        selfPtr = cbg_ClassA_Constructor_0();
+        if(!calledByDerived)
+            selfPtr = cbg_ClassA_Constructor_0();
     }
     
     void ClassA::FuncSimple()
@@ -400,7 +398,6 @@ namespace HelloWorldA
         selfPtr = handle;
     }
     
-    
     int ClassB::get_MyProperty()
     {
         return _MyProperty;
@@ -413,15 +410,15 @@ namespace HelloWorldA
         cbg_ClassB_SetMyProperty(selfPtr, value);
     }
     
+    ClassB::ClassB(bool calledByDerived)
+    {
+        selfPtr = cbg_ClassB_Constructor_0();
+    }
+    
     ClassB::ClassB()
     {
-        std::lock_guard<std::mutex> lock(mtx);
-        if (selfPtr != nullptr)
-        {
-            cbg_ClassB_Release(selfPtr);
-            selfPtr = nullptr;
-        }
-        selfPtr = cbg_ClassB_Constructor_0();
+        if(!calledByDerived)
+            selfPtr = cbg_ClassB_Constructor_0();
     }
     
     void ClassB::SetValue(float value)
@@ -559,7 +556,6 @@ namespace HelloWorldA
         selfPtr = handle;
     }
     
-    
     int ClassC::get_MyProperty()
     {
         return _MyProperty;
@@ -590,15 +586,15 @@ namespace HelloWorldA
         cbg_ClassC_SetMyBool(selfPtr, value);
     }
     
+    ClassC::ClassC(bool calledByDerived)
+    {
+        selfPtr = cbg_ClassC_Constructor_0();
+    }
+    
     ClassC::ClassC()
     {
-        std::lock_guard<std::mutex> lock(mtx);
-        if (selfPtr != nullptr)
-        {
-            cbg_ClassC_Release(selfPtr);
-            selfPtr = nullptr;
-        }
-        selfPtr = cbg_ClassC_Constructor_0();
+        if(!calledByDerived)
+            selfPtr = cbg_ClassC_Constructor_0();
     }
     
     void ClassC::SetValue(float value)
@@ -669,16 +665,15 @@ namespace HelloWorldA
         selfPtr = handle;
     }
     
+    BaseClass::BaseClass(bool calledByDerived)
+    {
+        selfPtr = cbg_BaseClass_Constructor_0();
+    }
     
     BaseClass::BaseClass()
     {
-        std::lock_guard<std::mutex> lock(mtx);
-        if (selfPtr != nullptr)
-        {
-            cbg_BaseClass_Release(selfPtr);
-            selfPtr = nullptr;
-        }
-        selfPtr = cbg_BaseClass_Constructor_0();
+        if(!calledByDerived)
+            selfPtr = cbg_BaseClass_Constructor_0();
     }
     
     int BaseClass::GetBaseClassField()
@@ -732,16 +727,15 @@ namespace HelloWorldA
         selfPtr = handle;
     }
     
-    
-    DerivedClass::DerivedClass() : BaseClass()
+    DerivedClass::DerivedClass(bool calledByDerived) : BaseClass(calledByDerived)
     {
-        std::lock_guard<std::mutex> lock(mtx);
-        if (selfPtr != nullptr)
-        {
-            cbg_DerivedClass_Release(selfPtr);
-            selfPtr = nullptr;
-        }
         selfPtr = cbg_DerivedClass_Constructor_0();
+    }
+    
+    DerivedClass::DerivedClass() : BaseClass(true)
+    {
+        if(!calledByDerived)
+            selfPtr = cbg_DerivedClass_Constructor_0();
     }
     
     int DerivedClass::GetBaseClassFieldFromDerivedClass()

@@ -66,6 +66,9 @@ namespace HelloWorldA
     private:
         
     public:
+        protected:
+        ClassAlias_Cpp(bool calledByDerived);
+        public:
         ClassAlias_Cpp();
         
         std::shared_ptr<ClassAlias_Cpp> FuncSimple();
@@ -136,6 +139,9 @@ namespace HelloWorldA
         Animal get_EnumA();
         void set_EnumA(Animal value);
         
+        protected:
+        ClassA(bool calledByDerived);
+        public:
         ClassA();
         
         void FuncSimple();
@@ -215,6 +221,9 @@ namespace HelloWorldA
         int get_MyProperty();
         void set_MyProperty(int value);
         
+        protected:
+        ClassB(bool calledByDerived);
+        public:
         ClassB();
         
         void SetValue(float value);
@@ -288,6 +297,9 @@ namespace HelloWorldA
         
         void set_MyBool(bool value);
         
+        protected:
+        ClassC(bool calledByDerived);
+        public:
         ClassC();
         
         void SetValue(float value);
@@ -332,6 +344,9 @@ namespace HelloWorldA
     private:
         
     public:
+        protected:
+        BaseClass(bool calledByDerived);
+        public:
         BaseClass();
         
         int GetBaseClassField();
@@ -367,6 +382,9 @@ namespace HelloWorldA
     private:
         
     public:
+        protected:
+        DerivedClass(bool calledByDerived);
+        public:
         DerivedClass();
         
         int GetBaseClassFieldFromDerivedClass();
