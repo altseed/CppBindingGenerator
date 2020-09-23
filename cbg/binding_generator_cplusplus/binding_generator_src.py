@@ -234,14 +234,14 @@ class BindingGeneratorCPlusPlusSrc(BindingGenerator):
                 nameArgs = ', '.join(['calledByDerived'] + [arg.name for arg in func_.args])
                 func_title += ' : {}({})'.format(class_.base_class.name, nameArgs)
             with CodeBlock(code, func_title):
-                self.__write_managed_function_body__(code, class_, func_)
+                self.__write_managed_function_body__(code, class_, func_, True)
             code('')
             func_title = '{}::{}({})'.format(class_.name, class_.name, ', '.join(args))
             if class_.base_class != None:
                 nameArgs = ', '.join(['true'] + [arg.name for arg in func_.args])
                 func_title += ' : {}({})'.format(class_.base_class.name, nameArgs)
             with CodeBlock(code, func_title):
-                self.__write_managed_function_body__(code, class_, func_, True)
+                self.__write_managed_function_body__(code, class_, func_)
         else:
             cpp_type = self.__get_cpp_type__(func_.return_value.type_, is_return=True)
             func_title = '{} {}::{}({})'.format(cpp_type, class_.name, func_.name, ', '.join(args))
