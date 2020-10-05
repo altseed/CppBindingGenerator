@@ -271,7 +271,7 @@ class BindingGeneratorCSharp(BindingGenerator):
         code(result)
         return code
 
-    def __write_managed_function_body__(self, code: Code, class_: Class, func_: Function):
+    def __write_managed_function_body__(self, code: Code, class_: Class, func_: Function, callByDerived_ = False):
         fname = __get_c_func_name__(class_, func_)
         # call a function
         args = [self.__convert_csc_to_cs__(
@@ -286,7 +286,11 @@ class BindingGeneratorCSharp(BindingGenerator):
                     a.name, a.name))
 
         if func_.is_constructor:
-            code('{} = {}({});'.format(self.self_ptr_name, fname, ', '.join(args)))
+            if callByDerived_:
+                code('if(!calledByDerived)')
+                code('    {} = {}({});'.format(self.self_ptr_name, fname, ', '.join(args)))
+            else:
+                code('{} = {}({});'.format(self.self_ptr_name, fname, ', '.join(args)))
         else:
             if func_.return_value.type_ is None:
                 code('{}({});'.format(fname, ', '.join(args)))
@@ -358,15 +362,21 @@ class BindingGeneratorCSharp(BindingGenerator):
             determines += ['static']
 
         if func_.is_constructor:
-            func_title = '{} {}({})'.format(
-                ' '.join(determines), get_alias_or_name(class_), ', '.join(args))
+            func_title = '{} {}({})'.format(' '.join(determines), get_alias_or_name(class_), ', '.join(args))
+            if class_.base_class != None:
+                func_title += ' : base({})'.format(', '.join(['true'] + [arg.name for arg in func_.args]))
+            with CodeBlock(code, func_title):
+                self.__write_managed_function_body__(code, class_, func_)
+            code('')
+            func_title = 'protected {}({})'.format(get_alias_or_name(class_), ', '.join(['bool calledByDerived'] + args))
+            if class_.base_class != None:
+                func_title += ' : base({})'.format(', '.join(['calledByDerived'] + [arg.name for arg in func_.args]))
+            with CodeBlock(code, func_title):
+                self.__write_managed_function_body__(code, class_, func_, True)
         else:
-            func_title = '{} {} {}({})'.format(' '.join(determines), self.__get_cs_type__(
-                func_.return_value.type_, is_return=True), func_.name, ', '.join(args))
-
-        # function body
-        with CodeBlock(code, func_title):
-            self.__write_managed_function_body__(code, class_, func_)
+            func_title = '{} {} {}({})'.format(' '.join(determines), self.__get_cs_type__(func_.return_value.type_, is_return=True), func_.name, ', '.join(args))
+            with CodeBlock(code, func_title):
+                self.__write_managed_function_body__(code, class_, func_)
 
         return code
 

@@ -50,11 +50,15 @@ namespace HelloWorldA
         selfPtr = handle;
     }
     
-    
-    ClassAlias_Cpp::ClassAlias_Cpp(bool callCoreConstructor)
+    ClassAlias_Cpp::ClassAlias_Cpp(bool calledByDerived)
     {
-        if(callCoreConstructor)
+        if(!calledByDerived)
             selfPtr = cbg_ClassAlias_Cpp_Constructor_0();
+    }
+    
+    ClassAlias_Cpp::ClassAlias_Cpp()
+    {
+        selfPtr = cbg_ClassAlias_Cpp_Constructor_0();
     }
     
     std::shared_ptr<ClassAlias_Cpp> ClassAlias_Cpp::FuncSimple()
@@ -201,7 +205,6 @@ namespace HelloWorldA
         selfPtr = handle;
     }
     
-    
     std::shared_ptr<ClassB> ClassA::get_BReference()
     {
         auto ret = cbg_ClassA_GetBReference(selfPtr);
@@ -220,10 +223,15 @@ namespace HelloWorldA
         cbg_ClassA_SetEnumA(selfPtr, (int)value);
     }
     
-    ClassA::ClassA(bool callCoreConstructor)
+    ClassA::ClassA(bool calledByDerived)
     {
-        if(callCoreConstructor)
+        if(!calledByDerived)
             selfPtr = cbg_ClassA_Constructor_0();
+    }
+    
+    ClassA::ClassA()
+    {
+        selfPtr = cbg_ClassA_Constructor_0();
     }
     
     void ClassA::FuncSimple()
@@ -390,7 +398,6 @@ namespace HelloWorldA
         selfPtr = handle;
     }
     
-    
     int ClassB::get_MyProperty()
     {
         return _MyProperty;
@@ -403,10 +410,15 @@ namespace HelloWorldA
         cbg_ClassB_SetMyProperty(selfPtr, value);
     }
     
-    ClassB::ClassB(bool callCoreConstructor)
+    ClassB::ClassB(bool calledByDerived)
     {
-        if(callCoreConstructor)
+        if(!calledByDerived)
             selfPtr = cbg_ClassB_Constructor_0();
+    }
+    
+    ClassB::ClassB()
+    {
+        selfPtr = cbg_ClassB_Constructor_0();
     }
     
     void ClassB::SetValue(float value)
@@ -544,7 +556,6 @@ namespace HelloWorldA
         selfPtr = handle;
     }
     
-    
     int ClassC::get_MyProperty()
     {
         return _MyProperty;
@@ -575,10 +586,15 @@ namespace HelloWorldA
         cbg_ClassC_SetMyBool(selfPtr, value);
     }
     
-    ClassC::ClassC(bool callCoreConstructor)
+    ClassC::ClassC(bool calledByDerived)
     {
-        if(callCoreConstructor)
+        if(!calledByDerived)
             selfPtr = cbg_ClassC_Constructor_0();
+    }
+    
+    ClassC::ClassC()
+    {
+        selfPtr = cbg_ClassC_Constructor_0();
     }
     
     void ClassC::SetValue(float value)
@@ -649,11 +665,15 @@ namespace HelloWorldA
         selfPtr = handle;
     }
     
-    
-    BaseClass::BaseClass(bool callCoreConstructor)
+    BaseClass::BaseClass(bool calledByDerived)
     {
-        if(callCoreConstructor)
+        if(!calledByDerived)
             selfPtr = cbg_BaseClass_Constructor_0();
+    }
+    
+    BaseClass::BaseClass()
+    {
+        selfPtr = cbg_BaseClass_Constructor_0();
     }
     
     int BaseClass::GetBaseClassField()
@@ -707,11 +727,15 @@ namespace HelloWorldA
         selfPtr = handle;
     }
     
-    
-    DerivedClass::DerivedClass(bool callCoreConstructor) : BaseClass(false)
+    DerivedClass::DerivedClass(bool calledByDerived) : BaseClass(calledByDerived)
     {
-        if(callCoreConstructor)
+        if(!calledByDerived)
             selfPtr = cbg_DerivedClass_Constructor_0();
+    }
+    
+    DerivedClass::DerivedClass() : BaseClass(true)
+    {
+        selfPtr = cbg_DerivedClass_Constructor_0();
     }
     
     int DerivedClass::GetBaseClassFieldFromDerivedClass()
