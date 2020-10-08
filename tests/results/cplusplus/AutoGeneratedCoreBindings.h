@@ -76,7 +76,7 @@ namespace HelloWorldA
         /**
          @brief ClassAlias_Cppのインスタンスを削除します。
          */
-        ~ClassAlias_Cpp();
+        virtual ~ClassAlias_Cpp();
     };
     
     class ClassA
@@ -177,7 +177,7 @@ namespace HelloWorldA
         /**
          @brief ClassAのインスタンスを削除します。
          */
-        ~ClassA();
+        virtual ~ClassA();
     };
     
     class ClassB
@@ -235,7 +235,7 @@ namespace HelloWorldA
         /**
          @brief ClassBのインスタンスを削除します。
          */
-        ~ClassB();
+        virtual ~ClassB();
     };
     
     class ClassC
@@ -313,7 +313,7 @@ namespace HelloWorldA
         /**
          @brief ClassCのインスタンスを削除します。
          */
-        ~ClassC();
+        virtual ~ClassC();
     };
     
     class BaseClass
@@ -356,7 +356,7 @@ namespace HelloWorldA
         /**
          @brief BaseClassのインスタンスを削除します。
          */
-        ~BaseClass();
+        virtual ~BaseClass();
     };
     
     class DerivedClass : public BaseClass
@@ -392,7 +392,7 @@ namespace HelloWorldA
         /**
          @brief DerivedClassのインスタンスを削除します。
          */
-        ~DerivedClass();
+        virtual ~DerivedClass();
     };
     
 }

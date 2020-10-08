@@ -355,7 +355,7 @@ class BindingGeneratorCPlusPlusHdr(BindingGenerator):
             code('/**')
             code(' @brief {}のインスタンスを削除します。'.format(class_.name))
             code(' */')
-            code('~{}();'.format(class_.name))
+            code('virtual ~{}();'.format(class_.name))
 
         return code
 

@@ -191,8 +191,7 @@ class BindingGeneratorCPlusPlusSrc(BindingGenerator):
 
         if func_.is_constructor:
             if callByDerived_:
-                code('if(!calledByDerived)')
-                code('    {} = {}({});'.format(self.self_ptr_name, fname, ', '.join(args)))
+                code('// Dummy function.')
             else:
                 code('{} = {}({});'.format(self.self_ptr_name, fname, ', '.join(args)))
         elif func_.return_value.type_ is None:
