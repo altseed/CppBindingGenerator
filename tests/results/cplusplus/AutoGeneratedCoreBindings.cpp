@@ -52,8 +52,7 @@ namespace HelloWorldA
     
     ClassAlias_Cpp::ClassAlias_Cpp(bool calledByDerived)
     {
-        if(!calledByDerived)
-            selfPtr = cbg_ClassAlias_Cpp_Constructor_0();
+        // Dummy function.
     }
     
     ClassAlias_Cpp::ClassAlias_Cpp()
@@ -225,8 +224,7 @@ namespace HelloWorldA
     
     ClassA::ClassA(bool calledByDerived)
     {
-        if(!calledByDerived)
-            selfPtr = cbg_ClassA_Constructor_0();
+        // Dummy function.
     }
     
     ClassA::ClassA()
@@ -412,8 +410,7 @@ namespace HelloWorldA
     
     ClassB::ClassB(bool calledByDerived)
     {
-        if(!calledByDerived)
-            selfPtr = cbg_ClassB_Constructor_0();
+        // Dummy function.
     }
     
     ClassB::ClassB()
@@ -588,8 +585,7 @@ namespace HelloWorldA
     
     ClassC::ClassC(bool calledByDerived)
     {
-        if(!calledByDerived)
-            selfPtr = cbg_ClassC_Constructor_0();
+        // Dummy function.
     }
     
     ClassC::ClassC()
@@ -667,8 +663,7 @@ namespace HelloWorldA
     
     BaseClass::BaseClass(bool calledByDerived)
     {
-        if(!calledByDerived)
-            selfPtr = cbg_BaseClass_Constructor_0();
+        // Dummy function.
     }
     
     BaseClass::BaseClass()
@@ -729,8 +724,7 @@ namespace HelloWorldA
     
     DerivedClass::DerivedClass(bool calledByDerived) : BaseClass(calledByDerived)
     {
-        if(!calledByDerived)
-            selfPtr = cbg_DerivedClass_Constructor_0();
+        // Dummy function.
     }
     
     DerivedClass::DerivedClass() : BaseClass(true)
