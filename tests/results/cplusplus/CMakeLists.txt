@@ -4,14 +4,14 @@ enable_language(CXX)
 
 file(GLOB files *.h *.cpp) 
 
-add_executable(CBGTest ${files})
+add_library(cplusplus SHARED ${files})
 
-add_dependencies(CBGTest CoreLib)
+add_dependencies(cplusplus CoreLib)
 
-target_compile_features(CBGTest PUBLIC cxx_std_17)
+target_compile_features(cplusplus PUBLIC cxx_std_17)
 
 if(UNIX AND NOT APPLE)
-    target_link_libraries(CBGTest PRIVATE dl)
+    target_link_libraries(cplusplus PRIVATE dl)
 endif()
 
 if(UNIX)

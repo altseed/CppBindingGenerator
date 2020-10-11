@@ -1,14 +1,10 @@
 .vscode
 .ionide
 */__pycache__
-*.cpp
-*.h
-*.cs
 .vs/
 *.rs
 
 tests/Build/**
-!tests/results/cplusplus**
 
 !tests/Build/GenerateProjects**
 

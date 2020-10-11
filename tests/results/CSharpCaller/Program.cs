@@ -50,6 +50,10 @@ namespace Test
             asBase.SetBaseClassField(12345);
             Console.WriteLine($"As Base Value:{asBase.GetBaseClassField()}");
             Console.WriteLine($"Derived Value:{derived.GetBaseClassFieldFromDerivedClass()}");
+
+            var classCppD = new HelloWorld.ClassCppD();
+            var classBFromCpp = classCppD.FuncReturnClass();
+            Console.WriteLine(string.Format("MyProp {0}", classBFromCpp.MyProperty)); 
         }
     }
 }

@@ -64,11 +64,11 @@ void SetCurrentDir(const char* path)
 int main()
 {
     //SetCurrentDir(GetExecutingDirectory().c_str());
-    if(!HelloWorldA::LoadLibrary())
-    {
-        std::cout << "Failed to load library." << std::endl;
-        return 1;
-    }
+    //if(!HelloWorldA::LoadLibrary())
+    //{
+    //    std::cout << "Failed to load library." << std::endl;
+    //    return 1;
+    //}
 
     auto a = std::shared_ptr<HelloWorldA::ClassA>(new HelloWorldA::ClassA());
     a->FuncSimple();
@@ -112,6 +112,6 @@ int main()
     asBase->SetBaseClassField(12345);
     std::cout << "As Base Value:" << asBase->GetBaseClassField() << std::endl;
     std::cout << "Derived Value:" << derived->GetBaseClassFieldFromDerivedClass() << std::endl;
-
+	
     return 0;
 }

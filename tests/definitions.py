@@ -197,3 +197,16 @@ json_text =  r'''
 '''
 
 define.load_text_from_json_text(json_text)
+
+# Cpp
+
+ClassCppD = cbg.Class('HelloWorldCpp', 'ClassCppD', cbg.CacheMode.NoCache)
+with ClassCppD as class_:
+    class_.add_constructor()
+    with class_.add_func('FuncReturnClass') as func:
+        func.return_value.type_ = ClassB
+        func.return_value.cache = True
+
+define_cpp = cbg.Define()
+define_cpp.classes.append(ClassCppD)
+

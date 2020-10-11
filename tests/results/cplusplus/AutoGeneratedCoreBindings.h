@@ -22,10 +22,6 @@
 
 namespace HelloWorldA
 {
-    static std::shared_ptr<DynamicLinkLibrary> dll = nullptr;
-    
-    bool LoadLibrary();
-    
     enum class Animal : int
     {
         Mosue,
@@ -49,6 +45,10 @@ namespace HelloWorldA
     public:
         static std::shared_ptr<ClassAlias_Cpp> TryGetFromCache(void* native);
         
+        void* GetInternal() const { return selfPtr; }
+        
+        static void AddRef(void* ptr) { cbg_ClassAlias_Cpp_AddRef(ptr); }
+        
     public:
         void* selfPtr = nullptr;
         
@@ -57,6 +57,8 @@ namespace HelloWorldA
     
         static void* cbg_ClassAlias_Cpp_FuncSimple(void* selfPtr);
     
+        static void cbg_ClassAlias_Cpp_AddRef(void* selfPtr);
+        
         static void cbg_ClassAlias_Cpp_Release(void* selfPtr);
         
         
@@ -87,6 +89,10 @@ namespace HelloWorldA
         
     public:
         static std::shared_ptr<ClassA> TryGetFromCache(void* native);
+        
+        void* GetInternal() const { return selfPtr; }
+        
+        static void AddRef(void* ptr) { cbg_ClassA_AddRef(ptr); }
         
     public:
         void* selfPtr = nullptr;
@@ -124,6 +130,8 @@ namespace HelloWorldA
     
         static void cbg_ClassA_SetEnumA(void* selfPtr, int value);
     
+        static void cbg_ClassA_AddRef(void* selfPtr);
+        
         static void cbg_ClassA_Release(void* selfPtr);
         
         
@@ -189,6 +197,10 @@ namespace HelloWorldA
     public:
         static std::shared_ptr<ClassB> TryGetFromCache(void* native);
         
+        void* GetInternal() const { return selfPtr; }
+        
+        static void AddRef(void* ptr) { cbg_ClassB_AddRef(ptr); }
+        
     public:
         void* selfPtr = nullptr;
         
@@ -205,6 +217,8 @@ namespace HelloWorldA
     
         static void cbg_ClassB_SetMyProperty(void* selfPtr, int value);
     
+        static void cbg_ClassB_AddRef(void* selfPtr);
+        
         static void cbg_ClassB_Release(void* selfPtr);
         
         
@@ -247,6 +261,10 @@ namespace HelloWorldA
     public:
         static std::shared_ptr<ClassC> TryGetFromCache(void* native);
         
+        void* GetInternal() const { return selfPtr; }
+        
+        static void AddRef(void* ptr) { cbg_ClassC_AddRef(ptr); }
+        
     public:
         void* selfPtr = nullptr;
         
@@ -271,6 +289,8 @@ namespace HelloWorldA
     
         static void cbg_ClassC_SetMyBool(void* selfPtr, int value);
     
+        static void cbg_ClassC_AddRef(void* selfPtr);
+        
         static void cbg_ClassC_Release(void* selfPtr);
         
         
@@ -325,6 +345,10 @@ namespace HelloWorldA
     public:
         static std::shared_ptr<BaseClass> TryGetFromCache(void* native);
         
+        void* GetInternal() const { return selfPtr; }
+        
+        static void AddRef(void* ptr) { cbg_BaseClass_AddRef(ptr); }
+        
     public:
         void* selfPtr = nullptr;
         
@@ -335,6 +359,8 @@ namespace HelloWorldA
     
         static void cbg_BaseClass_SetBaseClassField(void* selfPtr, int value);
     
+        static void cbg_BaseClass_AddRef(void* selfPtr);
+        
         static void cbg_BaseClass_Release(void* selfPtr);
         
         
@@ -368,11 +394,17 @@ namespace HelloWorldA
     public:
         static std::shared_ptr<DerivedClass> TryGetFromCache(void* native);
         
+        void* GetInternal() const { return selfPtr; }
+        
+        static void AddRef(void* ptr) { cbg_DerivedClass_AddRef(ptr); }
+        
     private:
         static void* cbg_DerivedClass_Constructor_0();
     
         static int cbg_DerivedClass_GetBaseClassFieldFromDerivedClass(void* selfPtr);
     
+        static void cbg_DerivedClass_AddRef(void* selfPtr);
+        
         static void cbg_DerivedClass_Release(void* selfPtr);
         
         

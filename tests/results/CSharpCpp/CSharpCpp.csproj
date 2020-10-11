@@ -19,7 +19,7 @@
   <Choose>
     <When Condition="'$(Configuration)|$(Platform)'=='Debug|x64' And ('$(OS)' == 'Windows' Or '$(OS)' == 'Windows_NT')">
       <ItemGroup>
-        <Content Include="..\Build\DEBUG\CoreLib.dll">
+        <Content Include="..\Build\DEBUG\cplusplus.dll">
           <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </Content>
       </ItemGroup>
@@ -27,7 +27,7 @@
 
     <When Condition=" '$(Configuration)'=='Debug' And $([MSBuild]::IsOsPlatform('OSX')) ">
       <ItemGroup>
-        <Content Include="..\Build\DEBUG\libCoreLib.dylib">
+        <Content Include="..\Build\DEBUG\libcplusplus.dylib">
           <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </Content>
       </ItemGroup>
@@ -35,10 +35,14 @@
 
     <When Condition=" '$(Configuration)'=='Debug' And $([MSBuild]::IsOsPlatform('Linux')) ">
       <ItemGroup>
-        <Content Include="..\Build\DEBUG\libCoreLib.so">
+        <Content Include="..\Build\DEBUG\libcplusplus.so">
           <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </Content>
       </ItemGroup>
     </When>
   </Choose>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CSharp\CSharp.csproj" />
+  </ItemGroup>
 </Project>
