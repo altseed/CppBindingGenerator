@@ -4,7 +4,7 @@ import os, re, textwrap
 
 from ..cpp_binding_generator import *
 from ..cpp_binding_generator import __get_c_func_name__
-from ..cpp_binding_generator import __get_c_release_func_name__
+from ..cpp_binding_generator import __get_c_release_func_name__, __get_c_addref_func_name__
 
 from cbg.binding_generator_cplusplus.code_block import CodeBlock
 
@@ -159,7 +159,7 @@ class BindingGeneratorCPlusPlusSrc(BindingGenerator):
         return_type = self.__get_cppc_type__(func_.return_value.type_, is_return=True)
         with CodeBlock(code, '{} {}::{}({})'.format(return_type, class_.name, func_name, ', '.join(args_def))):
             code('typedef {} (*proc_t)({});'.format(return_type, ', '.join(args_def)))
-            code('static proc_t proc = dll->GetProc<proc_t>("{}");'.format(func_name))
+            code('static proc_t proc = GetLibrary()->GetProc<proc_t>("{}");'.format(func_name))
             if func_.return_value.type_ == None:
                 code('proc({});'.format(', '.join(args_use)))
             else:
@@ -337,6 +337,10 @@ class BindingGeneratorCPlusPlusSrc(BindingGenerator):
                 code(str(self.__generate_unmanaged_func__(class_,prop_.setter_as_func())))
 
         # releasing function
+        addref_func = Function('AddRef')
+        code(self.__generate_unmanaged_func__(class_, addref_func))
+
+        # releasing function
         release_func = Function('Release')
         code(self.__generate_unmanaged_func__(class_, release_func))
 
@@ -393,9 +397,13 @@ class BindingGeneratorCPlusPlusSrc(BindingGenerator):
 
         with CodeBlock(code, 'namespace {}'.format(self.namespace)):
 
-            with CodeBlock(code, 'bool LoadLibrary()'):
+            code('static std::shared_ptr<DynamicLinkLibrary> dll = nullptr;')
+
+            with CodeBlock(code, 'std::shared_ptr<DynamicLinkLibrary>& GetLibrary()'):
+                code('if(dll != nullptr) return dll;')
                 code('dll = std::shared_ptr<DynamicLinkLibrary>(new DynamicLinkLibrary());')
-                code('return dll->Load(ConvertSharedObjectPath("{}").c_str());'.format(self.dll_name))
+                code('if(!dll->Load(ConvertSharedObjectPath("{}").c_str())) dll = nullptr;'.format(self.dll_name))
+                code('return dll;')
             code('')
 
             # class group

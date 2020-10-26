@@ -4,7 +4,6 @@
 #include <cassert>
 #include <string>
 #include <iostream>
-#include <filesystem>
 
 #ifdef _WIN32
 #include <Windows.h>
@@ -25,6 +24,19 @@
 #define _EXPORT
 #endif
 
+#include <filesystem>
+
+#ifdef _WIN32
+#if _MSC_VER < 1920
+namespace fs = std::experimental::filesystem;
+#else
+namespace fs = std::filesystem;
+#endif
+
+#else
+namespace fs = std::filesystem;
+#endif
+
 inline std::string ConvertSharedObjectPath(std::string path)
 {
 #ifndef _WIN32
@@ -38,7 +50,7 @@ inline std::string ConvertSharedObjectPath(std::string path)
 #else
 	path += ".so";
 #endif
-	path = std::filesystem::absolute(path);
+	path = fs::absolute(path).generic_string();
 	return path;
 }
 

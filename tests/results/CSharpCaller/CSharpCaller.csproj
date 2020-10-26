@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>Library</OutputType>
+    <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <OutputPath>../Build</OutputPath>
     <Platforms>x64</Platforms>
@@ -41,4 +41,9 @@
       </ItemGroup>
     </When>
   </Choose>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CSharpCpp\CSharpCpp.csproj" />
+    <ProjectReference Include="..\CSharp\CSharp.csproj" />
+  </ItemGroup>
 </Project>

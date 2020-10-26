@@ -299,7 +299,15 @@ class BindingGeneratorCPlusPlusHdr(BindingGenerator):
             code.inc_indent()
             code('static std::shared_ptr<{}> TryGetFromCache(void* native);'.format(class_.name))
             code('')
+
+            code('void* GetInternal() const {{ return {}; }}'.format(self.self_ptr_name))
+            code('')
                 
+            addref_func = Function('AddRef')
+
+            code('static void AddRef(void* ptr) {{ {}(ptr); }}'.format(__get_c_func_name__(class_, addref_func)))
+            code('')
+
             # unmanaged pointer
             if class_.base_class == None:
                 code.dec_indent()
@@ -320,7 +328,9 @@ class BindingGeneratorCPlusPlusHdr(BindingGenerator):
                 if prop_.has_setter:
                     code(str(self.__generate_unmanaged_func__(class_,prop_.setter_as_func())))
 
-            # releasing function
+            # addref function
+            code(self.__generate_unmanaged_func__(class_, addref_func))
+
             release_func = Function('Release')
             code(self.__generate_unmanaged_func__(class_, release_func))
             code('')
@@ -397,13 +407,6 @@ class BindingGeneratorCPlusPlusHdr(BindingGenerator):
         code('')
 
         with CodeBlock(code, 'namespace {}'.format(self.namespace)):
-
-            # load dynamic link library
-            code('static std::shared_ptr<DynamicLinkLibrary> dll = nullptr;')
-            code('')
-            code('bool LoadLibrary();')
-            code('')
-
             # enum group
             for enum_ in self.define.enums:
                 code(self.__generate_enum__(enum_))

@@ -1,7 +1,7 @@
 from typing import List
 import ctypes
 
-from .cpp_binding_generator import BindingGenerator, Define, CacheMode, ArgCalledBy, Class, Struct, Enum, Code, Property, Function, EnumValue, __get_c_func_name__
+from .cpp_binding_generator import BindingGenerator, Define, DefineDependency, CacheMode, ArgCalledBy, Class, Struct, Enum, Code, Property, Function, EnumValue, __get_c_func_name__
 from .cpp_binding_generator import __get_c_release_func_name__
 
 # A flow of generating code
@@ -22,14 +22,6 @@ def get_desc(define: Define, lang: str, elements: []):
         fallback = elements[-1].brief.descs[lang]
 
     return define.get_text(lang, elements, fallback)
-
-
-def get_alias_or_name(type_) -> str:
-    if type_.alias == None:
-        return type_.name
-    else:
-        return type_.alias
-
 
 class CodeBlock:
     def __init__(self, coder: Code, title: str, after_space: bool = False):
@@ -52,9 +44,8 @@ class CodeBlock:
         if self.after_space:
             self.coder('')
 
-
 class BindingGeneratorCSharp(BindingGenerator):
-    def __init__(self, define: Define, lang: str):
+    def __init__(self, define: Define, dependencies : List[DefineDependency], lang: str):
         '''
         generator for C#
 
@@ -70,6 +61,30 @@ class BindingGeneratorCSharp(BindingGenerator):
         self.dll_name = ''
         self.self_ptr_name = 'selfPtr'
         self.lang = lang
+        self.dependencies = dependencies
+
+    def get_dependency_namespace(self, obj):
+        for dependency in self.dependencies:
+            if obj in dependency.define.classes:
+                return dependency.namespace
+
+            if obj in dependency.define.structs:
+                return dependency.namespace
+
+            if obj in dependency.define.enums:
+                return dependency.namespace
+
+        return ''
+
+    def get_alias_or_name(self, type_) -> str:
+        namespace = self.get_dependency_namespace(type_)
+        if namespace != "":
+            namespace += "."
+
+        if type_.alias == None:
+            return namespace + type_.name
+        else:
+            return namespace + type_.alias
 
     def __generate_enum__(self, enum_: Enum) -> Code:
         code = Code()
@@ -85,7 +100,7 @@ class BindingGeneratorCSharp(BindingGenerator):
             code('[Flags]')
         code('[Serializable]')
 
-        with CodeBlock(code, 'public enum {} : int'.format(get_alias_or_name(enum_))):
+        with CodeBlock(code, 'public enum {} : int'.format(self.get_alias_or_name(enum_))):
             for val in enum_.values:
                 # XML Comment
                 brief_comment = get_desc(self.define, self.lang, [enum_, val])
@@ -127,7 +142,7 @@ class BindingGeneratorCSharp(BindingGenerator):
             return 'IntPtr'
 
         if type_ in self.define.classes:
-            return get_alias_or_name(type_)
+            return self.get_alias_or_name(type_)
 
         if type_ in self.define.structs:
             if is_return:
@@ -136,7 +151,20 @@ class BindingGeneratorCSharp(BindingGenerator):
                 return '{}{}'.format(ptr, type_.alias)
 
         if type_ in self.define.enums:
-            return get_alias_or_name(type_)
+            return self.get_alias_or_name(type_)
+
+        for dependency in self.dependencies:
+            if type_ in dependency.define.classes:
+                return self.get_alias_or_name(type_)
+
+            if type_ in dependency.define.structs:
+                if is_return:
+                    return '{}'.format(type_.alias)
+                else:
+                    return '{}{}'.format(ptr, type_.alias)
+
+            if type_ in dependency.define.enums:
+                return self.get_alias_or_name(type_)
 
         if type_ is None:
             return 'void'
@@ -173,17 +201,20 @@ class BindingGeneratorCSharp(BindingGenerator):
         if type_ == ctypes.c_void_p:
             return 'IntPtr'
 
-        if type_ in self.define.classes:
-            return 'IntPtr'
+        defines = [d.define for d in self.dependencies] + [self.define]
 
-        if type_ in self.define.structs:
-            if is_return:
-                return '{}'.format(type_.alias)
-            else:
-                return '{}{}'.format(ptr, type_.alias)
+        for define in defines:
+            if type_ in define.classes:
+                return 'IntPtr'
 
-        if type_ in self.define.enums:
-            return 'int'
+            if type_ in define.structs:
+                if is_return:
+                    return '{}'.format(type_.alias)
+                else:
+                    return '{}{}'.format(ptr, type_.alias)
+
+            if type_ in define.enums:
+                return 'int'
 
         if type_ is None:
             return 'void'
@@ -223,18 +254,21 @@ class BindingGeneratorCSharp(BindingGenerator):
         if type_ == ctypes.c_wchar_p:
             return 'System.Runtime.InteropServices.Marshal.PtrToStringUni({})'.format(name)
 
-        if type_ in self.define.classes:
-            class_name = get_alias_or_name(type_)
-            if type_.cache_mode != CacheMode.NoCache:
-                return '{}.TryGetFromCache({})'.format(class_name, name)
-            else:
-                return '{} != null ? new {}(new MemoryHandle({})) : null'.format(name, class_name, name)
+        defines = [d.define for d in self.dependencies] + [self.define]
 
-        if type_ in self.define.structs:
-            return '{}'.format(name)
+        for define in defines:
+            if type_ in define.classes:
+                class_name = self.get_alias_or_name(type_)
+                if type_.cache_mode != CacheMode.NoCache:
+                    return '{}.TryGetFromCache({})'.format(class_name, name)
+                else:
+                    return '{} != null ? new {}(new MemoryHandle({})) : null'.format(name, class_name, name)
 
-        if type_ in self.define.enums:
-            return '({}){}'.format(get_alias_or_name(type_), name)
+            if type_ in define.structs:
+                return '{}'.format(name)
+
+            if type_ in define.enums:
+                return '({}){}'.format(self.get_alias_or_name(type_), name)
 
         assert(False)
 
@@ -361,13 +395,13 @@ class BindingGeneratorCSharp(BindingGenerator):
             determines += ['static']
 
         if func_.is_constructor:
-            func_title = '{} {}({})'.format(' '.join(determines), get_alias_or_name(class_), ', '.join(args))
+            func_title = '{} {}({})'.format(' '.join(determines), self.get_alias_or_name(class_), ', '.join(args))
             if class_.base_class != None:
                 func_title += ' : base({})'.format(', '.join(['true'] + [arg.name for arg in func_.args]))
             with CodeBlock(code, func_title):
                 self.__write_managed_function_body__(code, class_, func_)
             code('')
-            func_title = 'protected {}({})'.format(get_alias_or_name(class_), ', '.join(['bool calledByDerived'] + args))
+            func_title = 'protected {}({})'.format(self.get_alias_or_name(class_), ', '.join(['bool calledByDerived'] + args))
             if class_.base_class != None:
                 func_title += ' : base({})'.format(', '.join(['calledByDerived'] + [arg.name for arg in func_.args]))
             with CodeBlock(code, func_title):
@@ -446,7 +480,7 @@ class BindingGeneratorCSharp(BindingGenerator):
         if class_.base_class != None:
             new_ = 'new'
         body = '''[EditorBrowsable(EditorBrowsableState.Never)]
-        internal static {2} {0} TryGetFromCache(IntPtr native)
+public static {2} {0} TryGetFromCache(IntPtr native)
 {{
     if(native == IntPtr.Zero) return null;
 
@@ -469,7 +503,7 @@ class BindingGeneratorCSharp(BindingGenerator):
     cacheRepo[native] = new WeakReference<{0}>(newObject);
     return newObject;
 }}
-'''.format(get_alias_or_name(class_), release_func_name, new_)
+'''.format(self.get_alias_or_name(class_), release_func_name, new_)
         lines = body.split('\n')
         for line in lines:
             code(line)
@@ -505,7 +539,7 @@ class BindingGeneratorCSharp(BindingGenerator):
     cacheRepo.TryAdd(native, new WeakReference<{0}>(newObject));
     return newObject;
 }}
-'''.format(get_alias_or_name(class_), release_func_name, new_)
+'''.format(self.get_alias_or_name(class_), release_func_name, new_)
         lines = body.split('\n')
         for line in lines:
             code(line)
@@ -513,7 +547,7 @@ class BindingGeneratorCSharp(BindingGenerator):
     def __generate_class__(self, class_: Class) -> Code:
         code = Code()
 
-        class_name = get_alias_or_name(class_)
+        class_name = self.get_alias_or_name(class_)
 
         # XML comment
         brief_comment = get_desc(self.define, self.lang, [class_])
@@ -531,7 +565,7 @@ class BindingGeneratorCSharp(BindingGenerator):
         inheritCount = 0
         if class_.base_class != None:
             inheritCount += 1
-            inheritance = ' : {}'.format(get_alias_or_name(class_.base_class))
+            inheritance = ' : {}'.format(self.get_alias_or_name(class_.base_class))
 
         # ISerializable
         if (class_.SerializeType >= 2):
@@ -959,9 +993,9 @@ class BindingGeneratorCSharp(BindingGenerator):
         if p.type_ in self.define.structs:
             return 'GetValue<{}>(S_{});'.format(p.type_.alias, p.name)
         if p.type_ in self.define.classes and not p.null_deserialized:
-            return 'GetValue<{}>(S_{}) ?? throw new SerializationException("デシリアライズに失敗しました");'.format(get_alias_or_name(p.type_), p.name)
+            return 'GetValue<{}>(S_{}) ?? throw new SerializationException("デシリアライズに失敗しました");'.format(self.get_alias_or_name(p.type_), p.name)
         if p.type_ in self.define.enums:
-            return 'GetValue<{}>(S_{});'.format(get_alias_or_name(p.type_), p.name)
+            return 'GetValue<{}>(S_{});'.format(self.get_alias_or_name(p.type_), p.name)
         return 'GetValue<{}>(S_{});'.format(p.type_.name, p.name)
 
     def generate(self):

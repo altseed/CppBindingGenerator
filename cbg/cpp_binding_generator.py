@@ -356,10 +356,16 @@ class Define:
 def __get_c_func_name__(class_: Class, func_: Function) -> str:
     return 'cbg_' + class_.name + '_' + func_.name
 
+def __get_c_addref_func_name__(class_: Class) -> str:
+    return 'cbg_' + class_.name + '_' + 'AddRef'
 
 def __get_c_release_func_name__(class_: Class) -> str:
     return 'cbg_' + class_.name + '_' + 'Release'
 
+class DefineDependency:
+    def __init__(self):
+        self.namespace = ''
+        self.define = None # type: Define
 
 class Code:
     '''
@@ -405,15 +411,25 @@ class Code:
 
 
 class SharedObjectGenerator:
-    def __init__(self, define: Define):
+    def __init__(self, define: Define, dependencies : List[DefineDependency]):
         self.define = define
+        self.dependencies = dependencies
         self.output_path = ''
 
         self.header = ''  # header code inserted
         self.func_name_create_and_add_shared_ptr = 'CreateAndAddSharedPtr'
         self.func_name_add_and_get_shared_ptr = 'AddAndGetSharedPtr'
+        self.func_name_create_and_add_shared_ptr_dependence = 'CreateAndAddSharedPtr_Dependence'
+        self.func_name_add_and_get_shared_ptr_dependence = 'AddAndGetSharedPtr_Dependence'
 
     def __get_class_fullname__(self, type_: Class) -> str:
+        for dependency in self.dependencies:
+            if type_ in dependency.define.classes:
+                if dependency.namespace == '':
+                    return type_.name
+
+                return dependency.namespace + '::' + type_.name
+                
         if type_.namespace == '':
             return type_.name
 
@@ -450,6 +466,16 @@ class SharedObjectGenerator:
 
         if type_ in self.define.enums:
             return '{}::{}'.format(type_.namespace, type_.name)
+
+        for dependency in self.dependencies:
+            if type_ in dependency.define.classes:
+                return 'std::shared_ptr<{}>'.format(self.__get_class_fullname__(type_))
+
+            if type_ in dependency.define.structs:
+                return type_.cpp_fullname() + ptr
+
+            if type_ in dependency.define.enums:
+                return '{}::{}'.format(type_.namespace, type_.name)
 
         if type_ is None:
             return 'void'
@@ -488,6 +514,16 @@ class SharedObjectGenerator:
         if type_ in self.define.enums:
             return 'int32_t'
 
+        for dependency in self.dependencies:
+            if type_ in dependency.define.classes:
+                return 'void*'
+
+            if type_ in dependency.define.structs:
+                return type_.cpp_fullname() + ptr
+
+            if type_ in dependency.define.enums:
+                return 'int32_t'
+
         if type_ is None:
             return 'void'
 
@@ -503,6 +539,14 @@ class SharedObjectGenerator:
         if type_ in self.define.enums:
             return '({}::{}){}'.format(type_.namespace, type_.name, name)
 
+        for dependency in self.dependencies:
+            if dependency.define.classes:
+                return '{}<{}>(({}*){})'.format(self.func_name_create_and_add_shared_ptr_dependence, self.__get_class_fullname__(type_), self.__get_class_fullname__(type_), name)
+
+            if dependency.define.enums:
+                return '({}::{}){}'.format(type_.namespace, type_.name, name)
+
+
         assert(False)
 
     def __convert_ret__(self, type_, name: str) -> str:
@@ -517,6 +561,17 @@ class SharedObjectGenerator:
 
         if type_ in self.define.enums:
             return '(int32_t){}'.format(name)
+
+        for dependency in self.dependencies:
+            if dependency.define.classes:
+                return '(void*){}<{}>({})'.format(self.func_name_add_and_get_shared_ptr_dependence, self.__get_class_fullname__(type_), name)
+
+            if dependency.define.structs:
+                return '({})'.format(name)
+
+            if dependency.define.enums:
+                return '(int32_t){}'.format(name)
+
 
     def __generate_property__(self, class_: Class, prop_: Property) -> str:
         result = ''
@@ -655,6 +710,10 @@ extern "C" {
             for prop in class_.properties:
                 code += self.__generate_property__(class_, prop)
 
+            # generate addref
+            addref_func = Function('AddRef')
+            code += self.__generate_func__(class_, addref_func)
+
             # generate release
             release_func = Function('Release')
             code += self.__generate_func__(class_, release_func)
@@ -672,7 +731,6 @@ extern "C" {
         else:
             with open(self.output_path, mode='w', encoding='utf-8', newline="\n") as f:
                 f.write(code)
-
 
 class BindingGenerator:
     def __init__(self, define: Define):

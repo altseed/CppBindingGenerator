@@ -14,10 +14,13 @@
 
 namespace HelloWorldA
 {
-    bool LoadLibrary()
+    static std::shared_ptr<DynamicLinkLibrary> dll = nullptr;
+    std::shared_ptr<DynamicLinkLibrary>& GetLibrary()
     {
+        if(dll != nullptr) return dll;
         dll = std::shared_ptr<DynamicLinkLibrary>(new DynamicLinkLibrary());
-        return dll->Load(ConvertSharedObjectPath("CoreLib").c_str());
+        if(!dll->Load(ConvertSharedObjectPath("CoreLib").c_str())) dll = nullptr;
+        return dll;
     }
     
     std::mutex ClassAlias_Cpp::mtx;
@@ -27,21 +30,28 @@ namespace HelloWorldA
     void* ClassAlias_Cpp::cbg_ClassAlias_Cpp_Constructor_0()
     {
         typedef void* (*proc_t)();
-        static proc_t proc = dll->GetProc<proc_t>("cbg_ClassAlias_Cpp_Constructor_0");
+        static proc_t proc = GetLibrary()->GetProc<proc_t>("cbg_ClassAlias_Cpp_Constructor_0");
         return proc();
     }
     
     void* ClassAlias_Cpp::cbg_ClassAlias_Cpp_FuncSimple(void* selfPtr)
     {
         typedef void* (*proc_t)(void* selfPtr);
-        static proc_t proc = dll->GetProc<proc_t>("cbg_ClassAlias_Cpp_FuncSimple");
+        static proc_t proc = GetLibrary()->GetProc<proc_t>("cbg_ClassAlias_Cpp_FuncSimple");
         return proc(selfPtr);
+    }
+    
+    void ClassAlias_Cpp::cbg_ClassAlias_Cpp_AddRef(void* selfPtr)
+    {
+        typedef void (*proc_t)(void* selfPtr);
+        static proc_t proc = GetLibrary()->GetProc<proc_t>("cbg_ClassAlias_Cpp_AddRef");
+        proc(selfPtr);
     }
     
     void ClassAlias_Cpp::cbg_ClassAlias_Cpp_Release(void* selfPtr)
     {
         typedef void (*proc_t)(void* selfPtr);
-        static proc_t proc = dll->GetProc<proc_t>("cbg_ClassAlias_Cpp_Release");
+        static proc_t proc = GetLibrary()->GetProc<proc_t>("cbg_ClassAlias_Cpp_Release");
         proc(selfPtr);
     }
     
@@ -83,119 +93,126 @@ namespace HelloWorldA
     void* ClassA::cbg_ClassA_Constructor_0()
     {
         typedef void* (*proc_t)();
-        static proc_t proc = dll->GetProc<proc_t>("cbg_ClassA_Constructor_0");
+        static proc_t proc = GetLibrary()->GetProc<proc_t>("cbg_ClassA_Constructor_0");
         return proc();
     }
     
     void ClassA::cbg_ClassA_FuncSimple(void* selfPtr)
     {
         typedef void (*proc_t)(void* selfPtr);
-        static proc_t proc = dll->GetProc<proc_t>("cbg_ClassA_FuncSimple");
+        static proc_t proc = GetLibrary()->GetProc<proc_t>("cbg_ClassA_FuncSimple");
         proc(selfPtr);
     }
     
     void ClassA::cbg_ClassA_FuncArgInt(void* selfPtr, int value)
     {
         typedef void (*proc_t)(void* selfPtr, int value);
-        static proc_t proc = dll->GetProc<proc_t>("cbg_ClassA_FuncArgInt");
+        static proc_t proc = GetLibrary()->GetProc<proc_t>("cbg_ClassA_FuncArgInt");
         proc(selfPtr, value);
     }
     
     void ClassA::cbg_ClassA_FuncArgFloatBoolStr(void* selfPtr, float value1, int value2, const char16_t* value3)
     {
         typedef void (*proc_t)(void* selfPtr, float value1, int value2, const char16_t* value3);
-        static proc_t proc = dll->GetProc<proc_t>("cbg_ClassA_FuncArgFloatBoolStr");
+        static proc_t proc = GetLibrary()->GetProc<proc_t>("cbg_ClassA_FuncArgFloatBoolStr");
         proc(selfPtr, value1, value2, value3);
     }
     
     void ClassA::cbg_ClassA_FuncArgStruct(void* selfPtr, void* value1)
     {
         typedef void (*proc_t)(void* selfPtr, void* value1);
-        static proc_t proc = dll->GetProc<proc_t>("cbg_ClassA_FuncArgStruct");
+        static proc_t proc = GetLibrary()->GetProc<proc_t>("cbg_ClassA_FuncArgStruct");
         proc(selfPtr, value1);
     }
     
     void ClassA::cbg_ClassA_FuncArgClass(void* selfPtr, void* value1)
     {
         typedef void (*proc_t)(void* selfPtr, void* value1);
-        static proc_t proc = dll->GetProc<proc_t>("cbg_ClassA_FuncArgClass");
+        static proc_t proc = GetLibrary()->GetProc<proc_t>("cbg_ClassA_FuncArgClass");
         proc(selfPtr, value1);
     }
     
     int ClassA::cbg_ClassA_FuncReturnInt(void* selfPtr)
     {
         typedef int (*proc_t)(void* selfPtr);
-        static proc_t proc = dll->GetProc<proc_t>("cbg_ClassA_FuncReturnInt");
+        static proc_t proc = GetLibrary()->GetProc<proc_t>("cbg_ClassA_FuncReturnInt");
         return proc(selfPtr);
     }
     
     int ClassA::cbg_ClassA_FuncReturnBool(void* selfPtr)
     {
         typedef int (*proc_t)(void* selfPtr);
-        static proc_t proc = dll->GetProc<proc_t>("cbg_ClassA_FuncReturnBool");
+        static proc_t proc = GetLibrary()->GetProc<proc_t>("cbg_ClassA_FuncReturnBool");
         return proc(selfPtr);
     }
     
     float ClassA::cbg_ClassA_FuncReturnFloat(void* selfPtr)
     {
         typedef float (*proc_t)(void* selfPtr);
-        static proc_t proc = dll->GetProc<proc_t>("cbg_ClassA_FuncReturnFloat");
+        static proc_t proc = GetLibrary()->GetProc<proc_t>("cbg_ClassA_FuncReturnFloat");
         return proc(selfPtr);
     }
     
     StructA_C ClassA::cbg_ClassA_FuncReturnStruct(void* selfPtr)
     {
         typedef StructA_C (*proc_t)(void* selfPtr);
-        static proc_t proc = dll->GetProc<proc_t>("cbg_ClassA_FuncReturnStruct");
+        static proc_t proc = GetLibrary()->GetProc<proc_t>("cbg_ClassA_FuncReturnStruct");
         return proc(selfPtr);
     }
     
     void* ClassA::cbg_ClassA_FuncReturnClass(void* selfPtr)
     {
         typedef void* (*proc_t)(void* selfPtr);
-        static proc_t proc = dll->GetProc<proc_t>("cbg_ClassA_FuncReturnClass");
+        static proc_t proc = GetLibrary()->GetProc<proc_t>("cbg_ClassA_FuncReturnClass");
         return proc(selfPtr);
     }
     
     const char16_t* ClassA::cbg_ClassA_FuncReturnString(void* selfPtr)
     {
         typedef const char16_t* (*proc_t)(void* selfPtr);
-        static proc_t proc = dll->GetProc<proc_t>("cbg_ClassA_FuncReturnString");
+        static proc_t proc = GetLibrary()->GetProc<proc_t>("cbg_ClassA_FuncReturnString");
         return proc(selfPtr);
     }
     
     int ClassA::cbg_ClassA_FuncReturnStatic()
     {
         typedef int (*proc_t)();
-        static proc_t proc = dll->GetProc<proc_t>("cbg_ClassA_FuncReturnStatic");
+        static proc_t proc = GetLibrary()->GetProc<proc_t>("cbg_ClassA_FuncReturnStatic");
         return proc();
     }
     
     void* ClassA::cbg_ClassA_GetBReference(void* selfPtr)
     {
         typedef void* (*proc_t)(void* selfPtr);
-        static proc_t proc = dll->GetProc<proc_t>("cbg_ClassA_GetBReference");
+        static proc_t proc = GetLibrary()->GetProc<proc_t>("cbg_ClassA_GetBReference");
         return proc(selfPtr);
     }
     
     int ClassA::cbg_ClassA_GetEnumA(void* selfPtr)
     {
         typedef int (*proc_t)(void* selfPtr);
-        static proc_t proc = dll->GetProc<proc_t>("cbg_ClassA_GetEnumA");
+        static proc_t proc = GetLibrary()->GetProc<proc_t>("cbg_ClassA_GetEnumA");
         return proc(selfPtr);
     }
     
     void ClassA::cbg_ClassA_SetEnumA(void* selfPtr, int value)
     {
         typedef void (*proc_t)(void* selfPtr, int value);
-        static proc_t proc = dll->GetProc<proc_t>("cbg_ClassA_SetEnumA");
+        static proc_t proc = GetLibrary()->GetProc<proc_t>("cbg_ClassA_SetEnumA");
         proc(selfPtr, value);
+    }
+    
+    void ClassA::cbg_ClassA_AddRef(void* selfPtr)
+    {
+        typedef void (*proc_t)(void* selfPtr);
+        static proc_t proc = GetLibrary()->GetProc<proc_t>("cbg_ClassA_AddRef");
+        proc(selfPtr);
     }
     
     void ClassA::cbg_ClassA_Release(void* selfPtr)
     {
         typedef void (*proc_t)(void* selfPtr);
-        static proc_t proc = dll->GetProc<proc_t>("cbg_ClassA_Release");
+        static proc_t proc = GetLibrary()->GetProc<proc_t>("cbg_ClassA_Release");
         proc(selfPtr);
     }
     
@@ -345,49 +362,56 @@ namespace HelloWorldA
     void* ClassB::cbg_ClassB_Constructor_0()
     {
         typedef void* (*proc_t)();
-        static proc_t proc = dll->GetProc<proc_t>("cbg_ClassB_Constructor_0");
+        static proc_t proc = GetLibrary()->GetProc<proc_t>("cbg_ClassB_Constructor_0");
         return proc();
     }
     
     void ClassB::cbg_ClassB_SetValue(void* selfPtr, float value)
     {
         typedef void (*proc_t)(void* selfPtr, float value);
-        static proc_t proc = dll->GetProc<proc_t>("cbg_ClassB_SetValue");
+        static proc_t proc = GetLibrary()->GetProc<proc_t>("cbg_ClassB_SetValue");
         proc(selfPtr, value);
     }
     
     void ClassB::cbg_ClassB_SetEnum(void* selfPtr, int enumValue)
     {
         typedef void (*proc_t)(void* selfPtr, int enumValue);
-        static proc_t proc = dll->GetProc<proc_t>("cbg_ClassB_SetEnum");
+        static proc_t proc = GetLibrary()->GetProc<proc_t>("cbg_ClassB_SetEnum");
         proc(selfPtr, enumValue);
     }
     
     int ClassB::cbg_ClassB_GetEnum(void* selfPtr, int id)
     {
         typedef int (*proc_t)(void* selfPtr, int id);
-        static proc_t proc = dll->GetProc<proc_t>("cbg_ClassB_GetEnum");
+        static proc_t proc = GetLibrary()->GetProc<proc_t>("cbg_ClassB_GetEnum");
         return proc(selfPtr, id);
     }
     
     int ClassB::cbg_ClassB_GetMyProperty(void* selfPtr)
     {
         typedef int (*proc_t)(void* selfPtr);
-        static proc_t proc = dll->GetProc<proc_t>("cbg_ClassB_GetMyProperty");
+        static proc_t proc = GetLibrary()->GetProc<proc_t>("cbg_ClassB_GetMyProperty");
         return proc(selfPtr);
     }
     
     void ClassB::cbg_ClassB_SetMyProperty(void* selfPtr, int value)
     {
         typedef void (*proc_t)(void* selfPtr, int value);
-        static proc_t proc = dll->GetProc<proc_t>("cbg_ClassB_SetMyProperty");
+        static proc_t proc = GetLibrary()->GetProc<proc_t>("cbg_ClassB_SetMyProperty");
         proc(selfPtr, value);
+    }
+    
+    void ClassB::cbg_ClassB_AddRef(void* selfPtr)
+    {
+        typedef void (*proc_t)(void* selfPtr);
+        static proc_t proc = GetLibrary()->GetProc<proc_t>("cbg_ClassB_AddRef");
+        proc(selfPtr);
     }
     
     void ClassB::cbg_ClassB_Release(void* selfPtr)
     {
         typedef void (*proc_t)(void* selfPtr);
-        static proc_t proc = dll->GetProc<proc_t>("cbg_ClassB_Release");
+        static proc_t proc = GetLibrary()->GetProc<proc_t>("cbg_ClassB_Release");
         proc(selfPtr);
     }
     
@@ -474,77 +498,84 @@ namespace HelloWorldA
     void* ClassC::cbg_ClassC_Constructor_0()
     {
         typedef void* (*proc_t)();
-        static proc_t proc = dll->GetProc<proc_t>("cbg_ClassC_Constructor_0");
+        static proc_t proc = GetLibrary()->GetProc<proc_t>("cbg_ClassC_Constructor_0");
         return proc();
     }
     
     void ClassC::cbg_ClassC_SetValue(void* selfPtr, float value)
     {
         typedef void (*proc_t)(void* selfPtr, float value);
-        static proc_t proc = dll->GetProc<proc_t>("cbg_ClassC_SetValue");
+        static proc_t proc = GetLibrary()->GetProc<proc_t>("cbg_ClassC_SetValue");
         proc(selfPtr, value);
     }
     
     void ClassC::cbg_ClassC_SetEnum(void* selfPtr, int enumValue)
     {
         typedef void (*proc_t)(void* selfPtr, int enumValue);
-        static proc_t proc = dll->GetProc<proc_t>("cbg_ClassC_SetEnum");
+        static proc_t proc = GetLibrary()->GetProc<proc_t>("cbg_ClassC_SetEnum");
         proc(selfPtr, enumValue);
     }
     
     int ClassC::cbg_ClassC_GetEnum(void* selfPtr, int id)
     {
         typedef int (*proc_t)(void* selfPtr, int id);
-        static proc_t proc = dll->GetProc<proc_t>("cbg_ClassC_GetEnum");
+        static proc_t proc = GetLibrary()->GetProc<proc_t>("cbg_ClassC_GetEnum");
         return proc(selfPtr, id);
     }
     
     void ClassC::cbg_ClassC_FuncHasRefArg(void* selfPtr, int* intRef)
     {
         typedef void (*proc_t)(void* selfPtr, int* intRef);
-        static proc_t proc = dll->GetProc<proc_t>("cbg_ClassC_FuncHasRefArg");
+        static proc_t proc = GetLibrary()->GetProc<proc_t>("cbg_ClassC_FuncHasRefArg");
         proc(selfPtr, intRef);
     }
     
     int ClassC::cbg_ClassC_GetMyProperty(void* selfPtr)
     {
         typedef int (*proc_t)(void* selfPtr);
-        static proc_t proc = dll->GetProc<proc_t>("cbg_ClassC_GetMyProperty");
+        static proc_t proc = GetLibrary()->GetProc<proc_t>("cbg_ClassC_GetMyProperty");
         return proc(selfPtr);
     }
     
     void ClassC::cbg_ClassC_SetMyProperty(void* selfPtr, int value)
     {
         typedef void (*proc_t)(void* selfPtr, int value);
-        static proc_t proc = dll->GetProc<proc_t>("cbg_ClassC_SetMyProperty");
+        static proc_t proc = GetLibrary()->GetProc<proc_t>("cbg_ClassC_SetMyProperty");
         proc(selfPtr, value);
     }
     
     const char16_t* ClassC::cbg_ClassC_GetStringProperty(void* selfPtr)
     {
         typedef const char16_t* (*proc_t)(void* selfPtr);
-        static proc_t proc = dll->GetProc<proc_t>("cbg_ClassC_GetStringProperty");
+        static proc_t proc = GetLibrary()->GetProc<proc_t>("cbg_ClassC_GetStringProperty");
         return proc(selfPtr);
     }
     
     void ClassC::cbg_ClassC_SetStringProperty(void* selfPtr, const char16_t* value)
     {
         typedef void (*proc_t)(void* selfPtr, const char16_t* value);
-        static proc_t proc = dll->GetProc<proc_t>("cbg_ClassC_SetStringProperty");
+        static proc_t proc = GetLibrary()->GetProc<proc_t>("cbg_ClassC_SetStringProperty");
         proc(selfPtr, value);
     }
     
     void ClassC::cbg_ClassC_SetMyBool(void* selfPtr, int value)
     {
         typedef void (*proc_t)(void* selfPtr, int value);
-        static proc_t proc = dll->GetProc<proc_t>("cbg_ClassC_SetMyBool");
+        static proc_t proc = GetLibrary()->GetProc<proc_t>("cbg_ClassC_SetMyBool");
         proc(selfPtr, value);
+    }
+    
+    void ClassC::cbg_ClassC_AddRef(void* selfPtr)
+    {
+        typedef void (*proc_t)(void* selfPtr);
+        static proc_t proc = GetLibrary()->GetProc<proc_t>("cbg_ClassC_AddRef");
+        proc(selfPtr);
     }
     
     void ClassC::cbg_ClassC_Release(void* selfPtr)
     {
         typedef void (*proc_t)(void* selfPtr);
-        static proc_t proc = dll->GetProc<proc_t>("cbg_ClassC_Release");
+        static proc_t proc = GetLibrary()->GetProc<proc_t>("cbg_ClassC_Release");
         proc(selfPtr);
     }
     
@@ -631,28 +662,35 @@ namespace HelloWorldA
     void* BaseClass::cbg_BaseClass_Constructor_0()
     {
         typedef void* (*proc_t)();
-        static proc_t proc = dll->GetProc<proc_t>("cbg_BaseClass_Constructor_0");
+        static proc_t proc = GetLibrary()->GetProc<proc_t>("cbg_BaseClass_Constructor_0");
         return proc();
     }
     
     int BaseClass::cbg_BaseClass_GetBaseClassField(void* selfPtr)
     {
         typedef int (*proc_t)(void* selfPtr);
-        static proc_t proc = dll->GetProc<proc_t>("cbg_BaseClass_GetBaseClassField");
+        static proc_t proc = GetLibrary()->GetProc<proc_t>("cbg_BaseClass_GetBaseClassField");
         return proc(selfPtr);
     }
     
     void BaseClass::cbg_BaseClass_SetBaseClassField(void* selfPtr, int value)
     {
         typedef void (*proc_t)(void* selfPtr, int value);
-        static proc_t proc = dll->GetProc<proc_t>("cbg_BaseClass_SetBaseClassField");
+        static proc_t proc = GetLibrary()->GetProc<proc_t>("cbg_BaseClass_SetBaseClassField");
         proc(selfPtr, value);
+    }
+    
+    void BaseClass::cbg_BaseClass_AddRef(void* selfPtr)
+    {
+        typedef void (*proc_t)(void* selfPtr);
+        static proc_t proc = GetLibrary()->GetProc<proc_t>("cbg_BaseClass_AddRef");
+        proc(selfPtr);
     }
     
     void BaseClass::cbg_BaseClass_Release(void* selfPtr)
     {
         typedef void (*proc_t)(void* selfPtr);
-        static proc_t proc = dll->GetProc<proc_t>("cbg_BaseClass_Release");
+        static proc_t proc = GetLibrary()->GetProc<proc_t>("cbg_BaseClass_Release");
         proc(selfPtr);
     }
     
@@ -699,21 +737,28 @@ namespace HelloWorldA
     void* DerivedClass::cbg_DerivedClass_Constructor_0()
     {
         typedef void* (*proc_t)();
-        static proc_t proc = dll->GetProc<proc_t>("cbg_DerivedClass_Constructor_0");
+        static proc_t proc = GetLibrary()->GetProc<proc_t>("cbg_DerivedClass_Constructor_0");
         return proc();
     }
     
     int DerivedClass::cbg_DerivedClass_GetBaseClassFieldFromDerivedClass(void* selfPtr)
     {
         typedef int (*proc_t)(void* selfPtr);
-        static proc_t proc = dll->GetProc<proc_t>("cbg_DerivedClass_GetBaseClassFieldFromDerivedClass");
+        static proc_t proc = GetLibrary()->GetProc<proc_t>("cbg_DerivedClass_GetBaseClassFieldFromDerivedClass");
         return proc(selfPtr);
+    }
+    
+    void DerivedClass::cbg_DerivedClass_AddRef(void* selfPtr)
+    {
+        typedef void (*proc_t)(void* selfPtr);
+        static proc_t proc = GetLibrary()->GetProc<proc_t>("cbg_DerivedClass_AddRef");
+        proc(selfPtr);
     }
     
     void DerivedClass::cbg_DerivedClass_Release(void* selfPtr)
     {
         typedef void (*proc_t)(void* selfPtr);
-        static proc_t proc = dll->GetProc<proc_t>("cbg_DerivedClass_Release");
+        static proc_t proc = GetLibrary()->GetProc<proc_t>("cbg_DerivedClass_Release");
         proc(selfPtr);
     }
     
