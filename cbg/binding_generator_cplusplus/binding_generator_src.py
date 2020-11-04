@@ -6,7 +6,7 @@ from ..cpp_binding_generator import *
 from ..cpp_binding_generator import __get_c_func_name__
 from ..cpp_binding_generator import __get_c_release_func_name__, __get_c_addref_func_name__
 
-from cbg.binding_generator_cplusplus.code_block import CodeBlock
+from .code_block import CodeBlock
 
 class BindingGeneratorCPlusPlusSrc(BindingGenerator):
     def __init__(self, define: Define, lang: str):

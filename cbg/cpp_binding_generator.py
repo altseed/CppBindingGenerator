@@ -128,6 +128,7 @@ class Function:
         self.is_constructor = False
         self.is_public = True
         self.onlyExtern = False
+        self.is_overload = False
         self.targets = []
 
     def add_arg(self, type_, name: str) -> Argument:
@@ -353,7 +354,42 @@ class Define:
             return dicts["@brief"]
         return fallback
 
+def __get_cpp_overload_type__(type_) -> str:
+    if type_ == ctypes.c_byte:
+        return 'byte'
+
+    if type_ == int:
+        return 'int'
+
+    if type_ == float:
+        return 'float'
+
+    if type_ == bool:
+        return 'bool'
+
+    if type_ == ctypes.c_wchar_p:
+        return 'char16p'
+
+    if type_ == ctypes.c_void_p:
+        return 'voidp'
+
+    if type(type_) is Class:
+        return type_.name
+
+    if type(type_) is Struct:
+        return type_.name
+
+    if type(type_) is Enum:
+        return type_.name
+
+    if type_ is None:
+        return 'void'
+
+    assert(False)
+
 def __get_c_func_name__(class_: Class, func_: Function) -> str:
+    if func_.is_overload:
+        return 'cbg_' + class_.name + '_' + func_.name + '_' + '_'.join(map(lambda arg: __get_cpp_overload_type__(arg.type_), func_.args))
     return 'cbg_' + class_.name + '_' + func_.name
 
 def __get_c_addref_func_name__(class_: Class) -> str:
