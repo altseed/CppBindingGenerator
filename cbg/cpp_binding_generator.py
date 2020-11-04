@@ -354,18 +354,23 @@ class Define:
             return dicts["@brief"]
         return fallback
 
-def __get_cpp_overload_type__(type_) -> str:
+
+def __get_cpp_overload_type__(type_, called_by: ArgCalledBy = None) -> str:
+    ptr = ''
+    if called_by == ArgCalledBy.Out or called_by == ArgCalledBy.Ref:
+        ptr = 'p'
+
     if type_ == ctypes.c_byte:
-        return 'byte'
+        return 'byte' + ptr
 
     if type_ == int:
-        return 'int'
+        return 'int' + ptr
 
     if type_ == float:
-        return 'float'
+        return 'float' + ptr
 
     if type_ == bool:
-        return 'bool'
+        return 'bool' + ptr
 
     if type_ == ctypes.c_wchar_p:
         return 'char16p'
@@ -377,7 +382,7 @@ def __get_cpp_overload_type__(type_) -> str:
         return type_.name
 
     if type(type_) is Struct:
-        return type_.name
+        return type_.name + ptr
 
     if type(type_) is Enum:
         return type_.name
@@ -389,7 +394,7 @@ def __get_cpp_overload_type__(type_) -> str:
 
 def __get_c_func_name__(class_: Class, func_: Function) -> str:
     if func_.is_overload:
-        return 'cbg_' + class_.name + '_' + func_.name + '_' + '_'.join(map(lambda arg: __get_cpp_overload_type__(arg.type_), func_.args))
+        return 'cbg_' + class_.name + '_' + func_.name + '_' + '_'.join(map(lambda arg: __get_cpp_overload_type__(arg.type_, arg.called_by), func_.args))
     return 'cbg_' + class_.name + '_' + func_.name
 
 def __get_c_addref_func_name__(class_: Class) -> str:
