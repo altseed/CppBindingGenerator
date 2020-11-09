@@ -331,9 +331,9 @@ class Define:
             self.text_dicts[k] = v
 
     def load_text_from_json_file(self, path):
-        json_open = open(path, 'r')
+        json_open = open(path, 'r', encoding='utf8')
         dicts = json.load(json_open)
-        for k, v in dicts:
+        for k, v in dicts.items():
             self.text_dicts[k] = v
         
     def get_text(self, lang : str, elements : List, fallback = ''):
