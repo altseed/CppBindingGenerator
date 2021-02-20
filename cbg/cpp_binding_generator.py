@@ -2,6 +2,7 @@ from typing import List
 import ctypes
 import enum
 import json
+import copy
 
 # Data structure
 # Define
@@ -318,6 +319,26 @@ class Class:
 
 Classes = List[Class]
 
+def merge_str_dict(a, b):
+    dst = {}
+
+    def store(d):
+        for k, v in d.items():
+            if k in dst.keys():
+                if isinstance(dst[k],dict) and isinstance(v,dict):
+                    dst[k] = merge_str_dict(dst[k], v)
+                elif isinstance(dst[k],str) and isinstance(v,str):
+                    dst[k] = v
+                else:
+                    print('Warning : {} is not assigned. type({},{})'.format(k, type(dst[k]), type(v)))
+            else:
+                dst[k] = copy.deepcopy(v)
+
+    store(a)
+    store(b)
+    
+    return dst
+
 class Define:
     def __init__(self):
         self.enums = [] # type: Enums
@@ -327,14 +348,12 @@ class Define:
 
     def load_text_from_json_text(self, text):
         dicts = json.loads(text)
-        for k, v in dicts.items():
-            self.text_dicts[k] = v
+        self.text_dicts = merge_str_dict(self.text_dicts, dicts)
 
     def load_text_from_json_file(self, path):
         json_open = open(path, 'r', encoding='utf8')
         dicts = json.load(json_open)
-        for k, v in dicts.items():
-            self.text_dicts[k] = v
+        self.text_dicts = merge_str_dict(self.text_dicts, dicts)
         
     def get_text(self, lang : str, elements : List, fallback = ''):
         '''
