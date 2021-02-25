@@ -1,11 +1,8 @@
-from .cpp_binding_generator import SharedObjectGenerator, Class, Description, Argument, Function, Property, SerializeType, CallBackType
-from .cpp_binding_generator import Struct
-from .cpp_binding_generator import Enum, EnumValue
-from .cpp_binding_generator import Define, DefineDependency
-from .cpp_binding_generator import ReturnValue
-from .cpp_binding_generator import CacheMode
-from .cpp_binding_generator import ArgCalledBy
-
-from .binding_generator_csharp import BindingGeneratorCSharp
-from .binding_generator_rust import BindingGeneratorRust
-from .binding_generator_cplusplus.binding_generator import BindingGeneratorCPlusPlus
+from cbg.common.class_ import *
+from cbg.common.definition import *
+from cbg.common.enum import *
+from cbg.common.function import *
+from cbg.common.options import *
+from cbg.common.property import *
+from cbg.common.struct import *
+from cbg.wrapper.generate_wrapper import WrapperGenerator
