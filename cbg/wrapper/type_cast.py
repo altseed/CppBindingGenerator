@@ -4,12 +4,10 @@ from cbg.common.definition import Definition
 import cbg.wrapper.generate_wrapper as gen_wrapper
 import cbg.wrapper.type_name as type_name
 
-C_TYPES = [ctypes.c_byte, int, float, bool, ctypes.c_wchar_p, ctypes.c_void_p]
-
 # 入力された型をC++形式にキャストする処理を文字列で取得
 T = TypeVar('T')
 def _type_cast(type_:T, name:str, definition:Definition):
-    if type_ in C_TYPES + definition.structs:
+    if type_ in [ctypes.c_byte, int, float, bool, ctypes.c_wchar_p, ctypes.c_void_p] + definition.structs:
         return name
     elif type_ in definition.classes:
         generator = gen_wrapper.WrapperGenerator()
@@ -31,7 +29,7 @@ def _type_cast(type_:T, name:str, definition:Definition):
 # 戻り値をC++形式にキャストする処理を文字列で取得
 U = TypeVar('U')
 def _return_cast(type_:T, name:str, definition:Definition):
-    if type_ in C_TYPES:
+    if type_ in [ctypes.c_byte, int, float, bool, ctypes.c_wchar_p, ctypes.c_void_p]:
         return name
     elif type_ in definition.classes:
         generator = gen_wrapper.WrapperGenerator()

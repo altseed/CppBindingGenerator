@@ -40,5 +40,5 @@ class CodeBlock:
 
     def __exit__(self, exit_type, exit_value, traceback):
         self.code.indent -= 1
-        self.code('}\n')
+        self.code('}')
         return self

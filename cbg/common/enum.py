@@ -1,8 +1,8 @@
 class EnumValue:
 
     def __init__(self, name:str, value:int = None):
-        self.brief:str = None
-        self.note:str = None
+        self.brief:dict[str,str] = {'ja':None, 'en':None}
+        self.note:dict[str,str] = {'ja':None, 'en':None}
         self.name:str = name
         self.value:int = None
 
@@ -13,12 +13,13 @@ class Enum:
 
     def __init__(self, name:str):
         self.namespace:str = ''
-        self.brief:str = None
-        self.note:str = None
+        self.brief:dict[str,str] = {'ja':None, 'en':None}
+        self.note:dict[str,str] = {'ja':None, 'en':None}
         self.name:str = name
         self.alias:str = None
         self.is_flag:bool = False
         self.values:list[EnumValue] = []
+        self.targets:list[str] = []
 
     def add_value(self, name:str, value:int = None):
         enum_value = EnumValue(name, value)

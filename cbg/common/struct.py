@@ -5,11 +5,12 @@ class Struct:
 
     def __init__(self, name:str):
         self.namespace:str = ''
-        self.brief:str = None
-        self.note:str = None
+        self.brief:dict[str,str] = {'ja':None, 'en':None}
+        self.note:dict[str,str] = {'ja':None, 'en':None}
         self.name:str = name
         self.alias:str = None
         self.fields:list[Field] = []
+        self.targets:list[str] = []
 
     T = TypeVar('T')
     def add_field(self, type_:T, name:str):

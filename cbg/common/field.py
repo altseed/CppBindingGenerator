@@ -4,8 +4,8 @@ class Field:
 
     T = TypeVar('T')
     def __init__(self, type_:T, name:str):
-        self.brief:str = None
-        self.note:str = None
+        self.brief:dict[str,str] = {'ja':None, 'en':None}
+        self.note:dict[str,str] = {'ja':None, 'en':None}
         self.name:str = name
         self.type_:T = type_
 

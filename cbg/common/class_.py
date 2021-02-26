@@ -7,8 +7,8 @@ class Class:
 
     def __init__(self, name:str):
         self.namespace:str = ''
-        self.brief:str = None
-        self.note:str = None
+        self.brief:dict[str,str] = {'ja':None, 'en':None}
+        self.note:dict[str,str] = {'ja':None, 'en':None}
         self.name:str = name
         self.alias:str = None
         self.base_class:Class = None
@@ -20,6 +20,7 @@ class Class:
         self.cache_mode = CacheMode.Cache
         self.serialize_type = SerializeType.Disable
         self.call_back_type = CallBackType.Disable
+        self.targets:list[str] = []
         self.__constructor_count = 0
 
     def add_constructor(self):
