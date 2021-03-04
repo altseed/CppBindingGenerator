@@ -1,6 +1,4 @@
-from cbg.common.definition import Definition
-from cbg.common.code import Code, IndentStyle, CodeBlock
-from cbg.common.enum import Enum
+from cbg.common import *
 import cbg.binding_cs.generate_binding as gen_binding
 import cbg.binding_cs.type_name as type_name
 
@@ -17,6 +15,7 @@ def _generate_enum(code:Code, enum:Enum, definition:Definition):
     with CodeBlock(code, 'public enum ' + name + ' : int', IndentStyle.BSDAllman):
         for val in enum.values:
             # XMLコメントを出力
-            if val.brief[generator.language] != None: code('/// <summary>\n/// {}\n/// </summary>'.format(val.brief[generator.language]))
+            if val.brief[generator.language] != None:
+                code('/// <summary>\n/// {}\n/// </summary>'.format(val.brief[generator.language]))
             # 値を出力
             code(val.name + (' = ' + val.value if val.value != None else '') + ',')

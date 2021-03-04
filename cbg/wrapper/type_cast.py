@@ -1,6 +1,6 @@
 import ctypes
 from typing import TypeVar
-from cbg.common.definition import Definition
+from cbg.common import *
 import cbg.wrapper.generate_wrapper as gen_wrapper
 import cbg.wrapper.type_name as type_name
 

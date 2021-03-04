@@ -21,10 +21,10 @@ class Class:
         self.serialize_type = SerializeType.Disable
         self.call_back_type = CallBackType.Disable
         self.targets:list[str] = []
-        self.__constructor_count = 0
+        self._constructor_count = 0
 
     def add_constructor(self):
-        func = Function("Constructor" + str(self.__constructor_count))
+        func = Function("Constructor" + str(self._constructor_count))
         func.is_constructor = True
         func.return_value = ReturnValue(self)
         self.functions.append(func)

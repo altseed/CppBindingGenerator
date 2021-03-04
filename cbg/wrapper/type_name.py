@@ -1,10 +1,6 @@
 import ctypes
 from typing import TypeVar
-from cbg.common.definition import Definition
-from cbg.common.options import ArgCalledBy
-from cbg.common.class_ import Class
-from cbg.common.enum import Enum
-from cbg.common.struct import Struct
+from cbg.common import *
 
 # 入力された型をC++形式で文字列で取得
 T = TypeVar('T')

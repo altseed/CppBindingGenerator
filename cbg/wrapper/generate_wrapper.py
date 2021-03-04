@@ -1,6 +1,5 @@
 import os
-from cbg.common.code import Code, CodeBlock, IndentStyle
-from cbg.common.definition import Definition
+from cbg.common import *
 import cbg.wrapper.generate_class as gen_class
 
 class WrapperGenerator(object):

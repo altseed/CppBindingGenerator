@@ -1,7 +1,4 @@
-from cbg.common.code import Code
-from cbg.common.class_ import Class
-from cbg.common.function import Function
-from cbg.common.definition import Definition
+from cbg.common import *
 import cbg.wrapper.generate_function as gen_function
 import cbg.wrapper.generate_property as gen_property
 

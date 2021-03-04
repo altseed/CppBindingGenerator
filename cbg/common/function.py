@@ -42,8 +42,8 @@ class ReturnValue:
 class Function:
 
     def __init__(self, name:str):
-        self.brief:str = None
-        self.note:str = None
+        self.brief:dict[str,str] = {'ja':None, 'en':None}
+        self.note:dict[str,str] = {'ja':None, 'en':None}
         self.name:str = name
         self.arguments:list[Argument] = []
         self.return_value:ReturnValue = ReturnValue(None)

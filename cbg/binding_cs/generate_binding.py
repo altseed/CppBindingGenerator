@@ -1,5 +1,4 @@
-from cbg.common.code import Code, IndentStyle, CodeBlock
-from cbg.common.definition import Definition
+from cbg.common import *
 import cbg.binding_cs.generate_enum as gen_enum
 import cbg.binding_cs.generate_class as gen_class
 

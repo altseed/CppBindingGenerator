@@ -1,12 +1,5 @@
 import ctypes
-from cbg.common.definition import Definition
-from cbg.common.options import ArgCalledBy
-from cbg.common.code import Code, IndentStyle, CodeBlock
-from cbg.common.class_ import Class, CacheMode
-from cbg.common.enum import Enum
-from cbg.common.struct import Struct
-from cbg.common.property import Property
-from cbg.common.definition import Definition
+from cbg.common import *
 import cbg.binding_cs.generate_binding as gen_binding
 import cbg.binding_cs.type_name as type_name
 import cbg.binding_cs.type_cast as type_cast

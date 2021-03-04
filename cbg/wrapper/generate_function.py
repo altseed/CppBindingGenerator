@@ -1,11 +1,5 @@
 import ctypes
-from cbg.common.code import Code, IndentStyle, CodeBlock
-from cbg.common.options import ArgCalledBy
-from cbg.common.class_ import Class
-from cbg.common.struct import Struct
-from cbg.common.enum import Enum
-from cbg.common.function import Function
-from cbg.common.definition import Definition
+from cbg.common import *
 import cbg.wrapper.type_name as type_name
 import cbg.wrapper.type_cast as type_cast
 
