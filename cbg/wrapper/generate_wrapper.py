@@ -1,34 +1,14 @@
 import os
 from cbg.common import *
-import cbg.wrapper.generate_class as gen_class
+from cbg.wrapper.wrapper_generator import WrapperGenerator
 
-class WrapperGenerator(object):
-
-    # このクラスをシングルトンパターンで設計
-    def __new__(cls, *args, **kargs):
-        if not hasattr(cls, '_instance'):
-            cls._instance = super(WrapperGenerator, cls).__new__(cls)
-        return cls._instance
-
-    # 初期化は一回だけ
-    def __init__(self):
-        if not hasattr(self, '_initialized'):
-            self.definition:Definition = None
-            self.output_path:str = ''
-            self.header:str = ''
-            self.shared_ptr_creator_name:str = 'CreateAndAddSharedPtr'
-            self.shared_ptr_creator_name_dependence:str = 'CreateAndAddSharedPtrDependence'
-            self.shared_ptr_getter_name:str = 'AddAndGetSharedPtr'
-            self.shared_ptr_getter_name_dependence:str = 'AddAndGetSharedPtrDependence'
-        self._initialized = True
-        
-    # define を元に wrapper のソースコードを自動生成
-    def generate(self):
-        if self.output_path == None or self.output_path == '':
-            print('please specify an output path')
-            return
-        code = Code()
-        code('''// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# define を元に wrapper のソースコードを自動生成
+def _generate(self:WrapperGenerator):
+    if self.output_path == None or self.output_path == '':
+        print('please specify an output path')
+        return
+    code = Code()
+    code('''// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 //
 //   このファイルは自動生成されました。
@@ -65,9 +45,11 @@ class WrapperGenerator(object):
 
 {}
 '''.format(self.header))
-        with CodeBlock(code, 'extern "C"'):
-            code('')
-            for class_ in self.definition.classes:
-                gen_class._generate_class(code, class_, self.definition)
-        with open(self.output_path, mode='w', encoding='utf-8') as file:
-            file.write(str(code))
+    with CodeBlock(code, 'extern "C"'):
+        code('')
+        for class_ in self.definition.classes:
+            self._generate_class(code, class_, self.definition)
+    with open(self.output_path, mode='w', encoding='utf-8') as file:
+        file.write(str(code))
+
+WrapperGenerator.generate = _generate

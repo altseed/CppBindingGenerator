@@ -1,9 +1,8 @@
 import ctypes
 from cbg.common import *
-import cbg.wrapper.type_name as type_name
-import cbg.wrapper.type_cast as type_cast
+from cbg.wrapper.wrapper_generator import WrapperGenerator
 
-def _generate_function(code:Code, func:Function, class_:Class, definition:Definition):
+def _generate_function(self:WrapperGenerator, code:Code, func:Function, class_:Class, definition:Definition):
     # 関数名を定義
     name_list = ['cbg', str(class_), str(func)]
     if func.is_overload:
@@ -22,16 +21,16 @@ def _generate_function(code:Code, func:Function, class_:Class, definition:Defini
             else: assert(False)
     name = '_'.join(name_list)
     # 関数の引数を定義
-    arguments = [type_name._get_c_type(arg.type_, definition, arg.called_by) + ' ' + arg.name for arg in func.arguments]
+    arguments = [self._get_c_type(arg.type_, definition, arg.called_by) + ' ' + arg.name for arg in func.arguments]
     if not func.is_static and not func.is_constructor: arguments = ['void* cbg_self'] + arguments
     # 関数の戻り値を定義
     return_type = class_ if func.is_constructor else func.return_value.type_
     # 関数の内容の書き出し
-    block_title = 'CBGEXPORT {} CBGSTDCALL {}({})'.format(type_name._get_c_type(return_type, definition), name, ', '.join(arguments))
+    block_title = 'CBGEXPORT {} CBGSTDCALL {}({})'.format(self._get_c_type(return_type, definition), name, ', '.join(arguments))
     with CodeBlock(code, block_title, IndentStyle.KAndR):
         # this的なやつのキャスト
         if not func.is_static and not func.is_constructor:
-            class_name = type_name._get_cpp_fullname(class_, definition)
+            class_name = self._get_cpp_fullname(class_, definition)
             code('auto cbg_self_ = ({}*)(cbg_self);'.format(class_name))
         # その他引数のキャスト
         casted_args = []
@@ -42,28 +41,30 @@ def _generate_function(code:Code, func:Function, class_:Class, definition:Defini
                 c_value = '({})'.format(cpp_type) + arg.name
                 code('{} {} = {};'.format(cpp_type, casted_arg, c_value))
             else:
-                cpp_type = type_name._get_cpp_type(arg.type_, definition, arg.called_by)
-                c_value = type_cast._type_cast(arg.type_, definition, arg.name)
+                cpp_type = self._get_cpp_type(arg.type_, definition, arg.called_by)
+                c_value = self._type_cast(arg.type_, definition, arg.name)
                 code('{} {} = {};'.format(cpp_type, casted_arg, c_value))
             casted_args.append(casted_arg)
         # コンストラクタの書き出し
         if func.is_constructor:
-            class_fullname = type_name._get_cpp_fullname(class_, definition)
+            class_fullname = self._get_cpp_fullname(class_, definition)
             code('return new {}({});'.format(class_fullname, ', '.join(casted_args)))
         # その他のメソッドの書き出し
         else:
             caller = 'cbg_self_->'
             # 静的メソッド
             if func.is_static:
-                class_fullname = type_name._get_cpp_fullname(class_, definition)
+                class_fullname = self._get_cpp_fullname(class_, definition)
                 caller = class_fullname + '::'
             # 戻り値のないメソッド
             if func.return_value.type_ is None:
                 code('{}{}({});'.format(caller, func.name, ', '.join(casted_args)))
             # 戻り値のあるメソッド  
             else:
-                return_type = type_name._get_cpp_type(func.return_value.type_, definition)
-                return_value = type_cast._return_cast(func.return_value.type_, definition, 'cbg_ret')
+                return_type = self._get_cpp_type(func.return_value.type_, definition)
+                return_value = self._return_cast(func.return_value.type_, definition, 'cbg_ret')
                 code('{} cbg_ret = {}{}({});'.format(return_type, caller, func.name, ', '.join(casted_args)))
                 code('return {};'.format(return_value))
     code('')
+
+WrapperGenerator._generate_function = _generate_function
