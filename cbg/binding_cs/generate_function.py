@@ -22,27 +22,27 @@ def _get_c_function_name(self:BindingGeneratorCS, code:Code, func:Function, clas
 
 BindingGeneratorCS._get_c_function_name = _get_c_function_name
 
-def _generate_unmanaged_function(self:BindingGeneratorCS, code:Code, func:Function, class_:Class, definition:Definition):
+def _generate_unmanaged_function(self:BindingGeneratorCS, code:Code, func:Function, class_:Class):
     # 関数名を定義
     name = self._get_c_function_name(code, func, class_)
     # 引数の設定
-    args = [self._get_csc_type(arg.type_, definition, arg.called_by) + ' ' + arg.name for arg in func.arguments]
+    args = [self._get_csc_type(arg.type_, arg.called_by) + ' ' + arg.name for arg in func.arguments]
     if not func.is_static and not func.is_constructor: args = ['IntPtr {}'.format(self.self_ptr_name)] + args
     # 諸々属性の出力
     code('[DllImport("{}")]'.format(self.dll_name))
     code('[EditorBrowsable(EditorBrowsableState.Never)]')
     if(func.return_value.type_ == bool): code('[return: MarshalAs(UnmanagedType.U1)]')
     # 関数定義の出力
-    ret_type = self._get_csc_type(func.return_value.type_, definition)
+    ret_type = self._get_csc_type(func.return_value.type_)
     code('private static extern {} {}({});\n'.format(ret_type, name, ', '.join(args)))
 
 BindingGeneratorCS._generate_unmanaged_function = _generate_unmanaged_function
 
-def _generate_managed_function(self:BindingGeneratorCS, code:Code, func:Function, class_:Class, definition:Definition):
+def _generate_managed_function(self:BindingGeneratorCS, code:Code, func:Function, class_:Class):
     # 関数名を定義
     name = self._get_c_function_name(code, func, class_)
     # 引数の設定
-    args = [self._get_cs_type(arg.type_, definition, arg.called_by) + ' ' + arg.name for arg in func.arguments]
+    args = [self._get_cs_type(arg.type_, arg.called_by) + ' ' + arg.name for arg in func.arguments]
     # XMLコメントを出力
     if func.brief[self.language] != None:
         # 関数の説明
@@ -68,7 +68,7 @@ def _generate_managed_function(self:BindingGeneratorCS, code:Code, func:Function
     # キャッシュ用の辞書
     cache_mode = func.return_value.cache_mode()
     if cache_mode != CacheMode.NoCache:
-        return_type_name = self._get_cs_type(func.return_value.type_, definition)
+        return_type_name = self._get_cs_type(func.return_value.type_)
         dictionary = ''
         if cache_mode == CacheMode.Cache: dictionary = 'Dictionary'
         if cache_mode == CacheMode.Cache_ThreadSafe: dictionary = 'ConcurrentDictionary'
@@ -80,25 +80,25 @@ def _generate_managed_function(self:BindingGeneratorCS, code:Code, func:Function
     determines = ['public' if func.is_public else 'internal']
     if func.is_static: determines += ['static']
     if func.is_constructor:
-        func_title = '{} {}({})'.format(' '.join(determines), self._get_alias_or_name(class_, definition), ', '.join(args)) 
+        func_title = '{} {}({})'.format(' '.join(determines), self._get_alias_or_name(class_), ', '.join(args)) 
         if class_.base_class != None: func_title += ' : base({})'.format(', '.join(['true'] + [arg.name for arg in func.args]))
-        with CodeBlock(code, func_title, IndentStyle.BSDAllman): self._write_managed_function_body(code, func, class_, definition)
+        with CodeBlock(code, func_title, IndentStyle.BSDAllman): self._write_managed_function_body(code, func, class_)
         code('')
-        func_title = 'protected {}({})'.format(self._get_alias_or_name(class_, definition), ', '.join(['bool calledByDerived'] + args))
+        func_title = 'protected {}({})'.format(self._get_alias_or_name(class_), ', '.join(['bool calledByDerived'] + args))
         if class_.base_class != None: func_title += ' : base({})'.format(', '.join(['calledByDerived'] + [arg.name for arg in func.args]))
-        with CodeBlock(code, func_title, IndentStyle.BSDAllman): self._write_managed_function_body(code, func, class_, definition, True)
+        with CodeBlock(code, func_title, IndentStyle.BSDAllman): self._write_managed_function_body(code, func, class_, True)
     else:
-        func_title = '{} {} {}({})'.format(' '.join(determines), self._get_cs_type(func.return_value.type_, definition), func.name, ', '.join(args))
-        with CodeBlock(code, func_title, IndentStyle.BSDAllman): self._write_managed_function_body(code, func, class_, definition)
+        func_title = '{} {} {}({})'.format(' '.join(determines), self._get_cs_type(func.return_value.type_), func.name, ', '.join(args))
+        with CodeBlock(code, func_title, IndentStyle.BSDAllman): self._write_managed_function_body(code, func, class_)
     code('')
 
 BindingGeneratorCS._generate_managed_function = _generate_managed_function
 
-def _write_managed_function_body(self:BindingGeneratorCS, code:Code, func:Function, class_:Class, definition:Definition, call_by_derived:bool = False):
+def _write_managed_function_body(self:BindingGeneratorCS, code:Code, func:Function, class_:Class, call_by_derived:bool = False):
     # 関数名を定義
     name = _get_c_function_name(code, func, class_)
     # 関数の呼び出し処理
-    args = [self._type_cast(arg.type_, arg.name, definition, arg.called_by) for arg in func.args]
+    args = [self._type_cast(arg.type_, arg.name, arg.called_by) for arg in func.args]
     if not func.is_static and not func.is_constructor: args = [self.self_ptr_name] + args
     for arg in func.args:
         if not arg.nullable and (isinstance(arg.type_, Class) or arg.type_ == ctypes.c_wchar_p):

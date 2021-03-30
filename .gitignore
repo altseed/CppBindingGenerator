@@ -1,20 +1,19 @@
+# Hidden Directory
 .vscode
 .ionide
-*/__pycache__
-.vs/
-*.rs
+.vs
 
-tests/Build/**
-
-!tests/Build/GenerateProjects**
-
-**/rust**/target
-**/*.rs.bk
-!tests/results/rust**/build.rs
-!tests/results/rust/src/lib.rs
-!tests/results/rust_caller/src/main.rs
-!tests/results/rust/Cargo.toml
-Cargo.lock
-
-# when as submodule
+# Python
 __pycache__
+
+# Output Directory
+bin
+
+# C++ Wrapper
+
+# C# Binding
+obj
+
+# C++ Binding
+
+# Rust Binding

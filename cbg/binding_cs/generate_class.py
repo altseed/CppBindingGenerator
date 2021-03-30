@@ -2,12 +2,12 @@ import ctypes
 from cbg.common import *
 from cbg.binding_cs.binding_generator import BindingGeneratorCS
 
-def _generate_class(self:BindingGeneratorCS, code:Code, class_:Class, definition:Definition):
+def _generate_class(self:BindingGeneratorCS, code:Code, class_:Class):
     # XMLコメントを出力
     if class_.brief[self.language] != None:
         code('/// <summary>\n/// {}\n/// </summary>'.format(class_.brief[self.language]))
     # クラス名を取得
-    class_name = self._get_alias_or_name(class_, definition)
+    class_name = self._get_alias_or_name(class_)
     # Serializable属性
     if class_.serialize_type != SerializeType.Disable: code('[Serializable]')
     # 継承
@@ -30,14 +30,14 @@ def _generate_class(self:BindingGeneratorCS, code:Code, class_:Class, definition
             if class_.cache_mode == CacheMode.Cache: dictionary = 'Dictionary'
             if class_.cache_mode == CacheMode.Cache_ThreadSafe: dictionary = 'ConcurrentDictionary'
             dictionary = '{}<IntPtr, WeakReference<{}>>'.format(dictionary, class_name)
-            cache_code = 'private {0} cacheRepo = new {0}();'.format(dictionary)
+            cache_code = 'private static {0} cacheRepo = new {0}();'.format(dictionary)
             code('[EditorBrowsable(EditorBrowsableState.Never)]\n' + cache_code + '\n')
             release_func_name = 'cbg_{}_Release'.format(class_.name)
-            new_ = 'new' if class_.base_class != None else ''
+            new_ = 'new ' if class_.base_class != None else ''
             remove_func = 'TryRemove' if class_.cache_mode == CacheMode.Cache_ThreadSafe else 'Remove'
             add_func = 'TryAdd' if class_.cache_mode == CacheMode.Cache_ThreadSafe else 'Add'
             body = '''[EditorBrowsable(EditorBrowsableState.Never)]
-public static {2} {0} TryGetFromCache(IntPtr native)
+public static {2}{0} TryGetFromCache(IntPtr native)
 {{
     if(native == IntPtr.Zero) return null;
 
@@ -60,7 +60,7 @@ public static {2} {0} TryGetFromCache(IntPtr native)
     cacheRepo.{3}(native, new WeakReference<{0}>(newObject));
     return newObject;
 }}
-'''.format(self._get_alias_or_name(class_, definition), release_func_name, new_, add_func, remove_func)
+'''.format(self._get_alias_or_name(class_), release_func_name, new_, add_func, remove_func)
             code(body)
         # Coreインスタンスに対するポインタ
         if class_.base_class == None:
@@ -69,10 +69,10 @@ public static {2} {0} TryGetFromCache(IntPtr native)
             code('')
         # Coreメソッド
         for func in [f for f in class_.functions if len(f.targets) == 0 or 'csharp' in f.targets]:
-            self._generate_unmanaged_function(code, func, class_, definition)
+            self._generate_unmanaged_function(code, func, class_)
         for prop in class_.properties:
-            self._generate_unmanaged_property(code, prop, class_, definition)
-        self._generate_unmanaged_function(code, Function('Release'), class_, definition)
+            self._generate_unmanaged_property(code, prop, class_)
+        self._generate_unmanaged_function(code, Function('Release'), class_)
         code('#endregion\n')
         # コンストラクタの出力
         code('[EditorBrowsable(EditorBrowsableState.Never)]')
@@ -83,10 +83,10 @@ public static {2} {0} TryGetFromCache(IntPtr native)
         code('')
         # プロパティ呼び出し
         for prop in [p for p in class_.properties if p.is_only_extern]:
-            self._generate_managed_property(code, prop, class_, definition)
+            self._generate_managed_property(code, prop, class_)
         # 関数呼び出し
         for func in [f for f in class_.functions if not f.is_only_extern and (len(f.targets) == 0 or 'csharp' in f.targets)]:
-            self._generate_managed_function(code, func, class_, definition)
+            self._generate_managed_function(code, func, class_)
         # ISerializableの実装部分
         if class_.serialize_type in [SerializeType.Interface, SerializeType.Interface_Usebase]:
             code('#region ISerialiable\n')
@@ -107,7 +107,7 @@ public static {2} {0} TryGetFromCache(IntPtr native)
                 title_const += 'base(info, context)'
                 title_get_obj = 'protected override void '
             else:
-                title_get_obj = 'void ISerializable.' if class_.is_sealed else 'protected override void '
+                title_get_obj = 'void ISerializable.' if class_.is_sealed else 'protected virtual void '
                 if class_._constructor_count == 1: title_const += ' : this()'
                 elif class_.base_class == None: title_const += ' : this(new MemoryHandle(IntPtr.Zero))'
             title_get_obj += 'GetObjectData(SerializationInfo info, StreamingContext context)'
@@ -120,8 +120,9 @@ public static {2} {0} TryGetFromCache(IntPtr native)
             code('[EditorBrowsable(EditorBrowsableState.Never)]')
             with CodeBlock(code, title_const, IndentStyle.BSDAllman):
                 if class_.call_back_type != CallBackType.Disable: code('seInfo = info;\n')
-                else: _deserialize(code, class_, 'info')
+                else: self._deserialize(code, class_, 'info')
                 code('OnDeserialize_Constructor(info, context);')
+            code('')
             # シリアライズするデータの設定
             code('/// <summary>')
             code('/// シリアライズするデータを設定します。')
@@ -133,15 +134,17 @@ public static {2} {0} TryGetFromCache(IntPtr native)
                 if class_.serialize_type in [SerializeType.Interface_Usebase] and class_.base_class != None and class_.base_class.serialize_type in [SerializeType.Interface, SerializeType.Interface_Usebase]:
                     code('base.GetObjectData(info, context);\n')
                 else:
-                    code('if (info == null) throw new ArgumentNullException(nameof(info), "引数がnullです");\n')
+                    code('if (info == null) throw new ArgumentNullException(nameof(info), "引数がnullです");')
                 for prop in class_.properties:
                     if prop.serialized:
                         code('info.AddValue(S_{0}, {0});'.format(prop.name))
                 code('')
                 code('OnGetObjectData(info, context);')
+            code('')
             if (class_.base_class == None or class_.base_class.serialize_type in [SerializeType.Disable, SerializeType.AttributeOnly]) and not class_.is_sealed:
                 code('[EditorBrowsable(EditorBrowsableState.Never)]')
                 code('void ISerializable.GetObjectData(SerializationInfo info, StreamingContext context) => GetObjectData(info, context);')
+            code('')
             # OnGetObjectData
             code('')
             code('/// <summary>')
@@ -191,6 +194,7 @@ public static {2} {0} TryGetFromCache(IntPtr native)
                 code('var ptr = IntPtr.Zero;')
                 code('Deserialize_GetPtr(ref ptr, info);')
                 code('return ptr;')
+            code('')
             # Unsetter_Deserialize
             title_des = 'private' if class_.is_sealed else 'protected private'
             title_des += ' void {}_Unsetter_Deserialize(SerializationInfo info'.format(class_name)
@@ -212,7 +216,7 @@ public static {2} {0} TryGetFromCache(IntPtr native)
                         code('/// <param name="{0}"><see cref="{1}.{0}"/></param>'.format(prop.name, class_name))
                 code('[EditorBrowsable(EditorBrowsableState.Never)]')
                 with CodeBlock(code, title_des + title_des_args, IndentStyle.BSDAllman):
-                    _deserialize_nosetter(code, class_)
+                    self._deserialize_nosetter(code, class_)
             # ICacheKeeper
             if class_.handle_cache:
                 code('#region ICacheKeeper')
@@ -223,8 +227,8 @@ public static {2} {0} TryGetFromCache(IntPtr native)
                 code('[EditorBrowsable(EditorBrowsableState.Never)]')
                 with CodeBlock(code, 'IntPtr ICacheKeeper<{}>.Self'.format(class_name), IndentStyle.BSDAllman):
                     code('get => selfPtr;')
-                    with CodeBlock(code, 'set', IndentStyle.BSDAllman):
-                        code('selfPtr = value;')
+                    code('set => selfPtr = value;')
+                code('')
                 code('[EditorBrowsable(EditorBrowsableState.Never)]')
                 code('void ICacheKeeper<{0}>.Release(IntPtr native) => cbg_{0}_Release(native);'.format(class_name))
                 code('')
@@ -330,10 +334,7 @@ def _write_getvalue(self:BindingGeneratorCS, prop:Property):
     if prop.type_ == float:
         return 'GetSingle(S_{});'.format(prop.name)
     if prop.type_ == ctypes.c_wchar_p:
-        if prop.is_null_deserialized:
-            return 'GetString(S_{});'.format(prop.name)
-        else:
-            return 'GetString(S_{}) ?? throw new SerializationException("デシリアライズに失敗しました");'.format(prop.name)
+        return 'GetString(S_{}){};'.format(' ?? throw new SerializationException("デシリアライズに失敗しました")' if prop.is_null_deserialized else '', prop.name)
     if isinstance(prop.type_, Struct):
         return 'GetValue<{}>(S_{});'.format(prop.type_.alias, prop.name)
     if isinstance(prop.type_, Class) and not prop.is_null_deserialized:

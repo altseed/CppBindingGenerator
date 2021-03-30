@@ -1,7 +1,7 @@
 from cbg.common import *
 from cbg.binding_cs.binding_generator import BindingGeneratorCS
 
-def _generate_enum(self:BindingGeneratorCS, code:Code, enum:Enum, definition:Definition):
+def _generate_enum(self:BindingGeneratorCS, code:Code, enum:Enum):
     # XMLコメントを出力
     if enum.brief[self.language] != None:
         code('/// <summary>\n/// {}\n/// </summary>'.format(enum.brief[self.language]))
@@ -9,7 +9,7 @@ def _generate_enum(self:BindingGeneratorCS, code:Code, enum:Enum, definition:Def
     if enum.is_flag: code('[Flags]')
     code('[Serializable]')
     # 列挙型本体を出力
-    name = self._get_alias_or_name(enum, definition)
+    name = self._get_alias_or_name(enum)
     with CodeBlock(code, 'public enum ' + name + ' : int', IndentStyle.BSDAllman):
         for val in enum.values:
             # XMLコメントを出力

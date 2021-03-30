@@ -48,7 +48,7 @@ def _generate(self:WrapperGenerator):
     with CodeBlock(code, 'extern "C"'):
         code('')
         for class_ in self.definition.classes:
-            self._generate_class(code, class_, self.definition)
+            self._generate_class(code, class_)
     with open(self.output_path, mode='w', encoding='utf-8') as file:
         file.write(str(code))
 

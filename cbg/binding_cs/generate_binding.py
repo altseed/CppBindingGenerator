@@ -1,7 +1,7 @@
 from cbg.common import *
 from cbg.binding_cs.binding_generator import BindingGeneratorCS
 
-# define を元に wrapper のソースコードを自動生成
+# define を元に bindings のソースコードを自動生成
 def _generate(self:BindingGeneratorCS, language:str = 'ja'):
     self.language = language
     if self.output_path == None or self.output_path == '':
@@ -44,9 +44,9 @@ struct MemoryHandle
 }
 ''')
     # 列挙型
-    for enum in self.definition.enums: self._generate_enum(code, enum, self.definition)
+    for enum in self.definition.enums: self._generate_enum(code, enum)
     # クラス
-    for class_ in self.definition.classes: self._generate_class(code, class_, self.definition)
+    for class_ in self.definition.classes: self._generate_class(code, class_)
     # 名前空間終わり
     if self.definition.namespace != '':
         code.indent -= 1
