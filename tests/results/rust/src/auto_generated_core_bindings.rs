@@ -53,7 +53,7 @@ pub enum Animal {
 }
 
 #[link(name = "CoreLib")]
-extern {
+extern "C" {
     fn cbg_ClassAlias_Cpp_Constructor_0() -> *mut ();
     
     fn cbg_ClassAlias_Cpp_FuncSimple(self_ptr: *mut ()) -> *mut ();

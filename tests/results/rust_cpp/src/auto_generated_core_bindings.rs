@@ -44,8 +44,8 @@ fn encode_string(s: &str) -> Vec<u16> {
     v
 }
 
-#[link(name = "cplusplus", kind="dylib")]
-extern {
+#[link(name = "cplusplus")]
+extern "C" {
     fn cbg_ClassCppD_Constructor_0() -> *mut ();
     
     fn cbg_ClassCppD_FuncReturnClass(self_ptr: *mut ()) -> *mut ();
