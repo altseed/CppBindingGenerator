@@ -22,8 +22,11 @@ with EnumA as enum:
     enum.add('Cow')
     enum.add('Tiger', '3')
 
-# ClassC
+ClassA = cbg.Class('HelloWorld', 'ClassA', cbg.CacheMode.NoCache)
+ClassB = cbg.Class('HelloWorld', 'ClassB', cbg.CacheMode.Cache)
 ClassC = cbg.Class('HelloWorld', 'ClassC', cbg.CacheMode.ThreadSafeCache)
+
+# ClassC
 with ClassC as class_:
     constructor = class_.add_constructor()
 
@@ -59,7 +62,6 @@ with ClassC as class_:
             arg.called_by = cbg.ArgCalledBy.Ref
 
 # ClassB
-ClassB = cbg.Class('HelloWorld', 'ClassB', cbg.CacheMode.Cache)
 with ClassB as class_:
     constructor = class_.add_constructor()
 
@@ -91,7 +93,6 @@ with ClassB as class_:
         prop.has_setter = True
 
 # ClassA
-ClassA = cbg.Class('HelloWorld', 'ClassA', cbg.CacheMode.NoCache)
 with ClassA as class_:
     class_.add_constructor()
     class_.add_func('FuncSimple')

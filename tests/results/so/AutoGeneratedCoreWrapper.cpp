@@ -221,6 +221,27 @@ CBGEXPORT void CBGSTDCALL cbg_ClassB_SetMyProperty(void* cbg_self, int32_t value
     cbg_self_->SetMyProperty(cbg_arg0);
 }
 
+CBGEXPORT void* CBGSTDCALL cbg_ClassB_GetClassProperty(void* cbg_self) {
+    auto cbg_self_ = (HelloWorld::ClassB*)(cbg_self);
+
+    std::shared_ptr<HelloWorld::ClassA> cbg_ret = cbg_self_->GetClassProperty();
+    return (void*)HelloWorld::AddAndGetSharedPtr<HelloWorld::ClassA>(cbg_ret);
+}
+
+CBGEXPORT void CBGSTDCALL cbg_ClassB_SetClassProperty(void* cbg_self, void* value) {
+    auto cbg_self_ = (HelloWorld::ClassB*)(cbg_self);
+
+    std::shared_ptr<HelloWorld::ClassA> cbg_arg0 = HelloWorld::CreateAndAddSharedPtr<HelloWorld::ClassA>((HelloWorld::ClassA*)value);
+    cbg_self_->SetClassProperty(cbg_arg0);
+}
+
+CBGEXPORT void CBGSTDCALL cbg_ClassB_SetMyBool(void* cbg_self, bool value) {
+    auto cbg_self_ = (HelloWorld::ClassB*)(cbg_self);
+
+    bool cbg_arg0 = value;
+    cbg_self_->SetMyBool(cbg_arg0);
+}
+
 CBGEXPORT void CBGSTDCALL cbg_ClassB_AddRef(void* cbg_self) {
     auto cbg_self_ = (HelloWorld::ClassB*)(cbg_self);
 

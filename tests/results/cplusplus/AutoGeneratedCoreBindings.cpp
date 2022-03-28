@@ -401,6 +401,27 @@ namespace HelloWorldA
         proc(selfPtr, value);
     }
     
+    void* ClassB::cbg_ClassB_GetClassProperty(void* selfPtr)
+    {
+        typedef void* (*proc_t)(void* selfPtr);
+        static proc_t proc = GetLibrary()->GetProc<proc_t>("cbg_ClassB_GetClassProperty");
+        return proc(selfPtr);
+    }
+    
+    void ClassB::cbg_ClassB_SetClassProperty(void* selfPtr, void* value)
+    {
+        typedef void (*proc_t)(void* selfPtr, void* value);
+        static proc_t proc = GetLibrary()->GetProc<proc_t>("cbg_ClassB_SetClassProperty");
+        proc(selfPtr, value);
+    }
+    
+    void ClassB::cbg_ClassB_SetMyBool(void* selfPtr, int value)
+    {
+        typedef void (*proc_t)(void* selfPtr, int value);
+        static proc_t proc = GetLibrary()->GetProc<proc_t>("cbg_ClassB_SetMyBool");
+        proc(selfPtr, value);
+    }
+    
     void ClassB::cbg_ClassB_AddRef(void* selfPtr)
     {
         typedef void (*proc_t)(void* selfPtr);
@@ -430,6 +451,24 @@ namespace HelloWorldA
     {
         _MyProperty = value;
         cbg_ClassB_SetMyProperty(selfPtr, value);
+    }
+    
+    std::shared_ptr<ClassA> ClassB::get_ClassProperty()
+    {
+        return _ClassProperty;
+        auto ret = cbg_ClassB_GetClassProperty(selfPtr);
+        return std::shared_ptr<ClassA>(ret != nullptr ? new ClassA(ret) : nullptr);
+    }
+    void ClassB::set_ClassProperty(std::shared_ptr<ClassA> value)
+    {
+        _ClassProperty = value;
+        cbg_ClassB_SetClassProperty(selfPtr, value != nullptr ? (value->selfPtr) : nullptr);
+    }
+    
+    
+    void ClassB::set_MyBool(bool value)
+    {
+        cbg_ClassB_SetMyBool(selfPtr, value);
     }
     
     ClassB::ClassB(bool calledByDerived)

@@ -1,0 +1,6 @@
+[workspace]
+members = [
+    "./tests/results/rust",
+    "./tests/results/rust_cpp",
+    "./tests/results/rust_caller",
+]

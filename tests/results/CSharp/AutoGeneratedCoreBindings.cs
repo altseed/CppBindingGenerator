@@ -377,6 +377,21 @@ namespace HelloWorld
         
         [DllImport("CoreLib")]
         [EditorBrowsable(EditorBrowsableState.Never)]
+        private static extern IntPtr cbg_ClassB_GetClassProperty(IntPtr selfPtr);
+        [DllImport("CoreLib")]
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        private static extern void cbg_ClassB_SetClassProperty(IntPtr selfPtr, IntPtr value);
+        
+        
+        
+        
+        [DllImport("CoreLib")]
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        private static extern void cbg_ClassB_SetMyBool(IntPtr selfPtr, [MarshalAs(UnmanagedType.Bool)] bool value);
+        
+        
+        [DllImport("CoreLib")]
+        [EditorBrowsable(EditorBrowsableState.Never)]
         private static extern void cbg_ClassB_Release(IntPtr selfPtr);
         
         #endregion
@@ -405,6 +420,34 @@ namespace HelloWorld
             }
         }
         private int? _MyProperty;
+        
+        public ClassA ClassProperty
+        {
+            get
+            {
+                if (_ClassProperty != null)
+                {
+                    return _ClassProperty;
+                }
+                var ret = cbg_ClassB_GetClassProperty(selfPtr);
+                return ret != null ? new ClassA(new MemoryHandle(ret)) : null;
+            }
+            set
+            {
+                _ClassProperty = value;
+                cbg_ClassB_SetClassProperty(selfPtr, value != null ? value.selfPtr : IntPtr.Zero);
+            }
+        }
+        private ClassA _ClassProperty;
+        
+        
+        public bool MyBool
+        {
+            set
+            {
+                cbg_ClassB_SetMyBool(selfPtr, value);
+            }
+        }
         
         public ClassB()
         {

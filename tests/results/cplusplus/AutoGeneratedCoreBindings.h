@@ -217,6 +217,12 @@ namespace HelloWorldA
     
         static void cbg_ClassB_SetMyProperty(void* selfPtr, int value);
     
+        static void* cbg_ClassB_GetClassProperty(void* selfPtr);
+    
+        static void cbg_ClassB_SetClassProperty(void* selfPtr, void* value);
+    
+        static void cbg_ClassB_SetMyBool(void* selfPtr, int value);
+    
         static void cbg_ClassB_AddRef(void* selfPtr);
         
         static void cbg_ClassB_Release(void* selfPtr);
@@ -227,6 +233,7 @@ namespace HelloWorldA
         
     private:
         int _MyProperty;
+        std::shared_ptr<ClassA> _ClassProperty;
         
     public:
         /**
@@ -234,6 +241,15 @@ namespace HelloWorldA
          */
         int get_MyProperty();
         void set_MyProperty(int value);
+        
+        /**
+         @brief 
+         */
+        std::shared_ptr<ClassA> get_ClassProperty();
+        void set_ClassProperty(std::shared_ptr<ClassA> value);
+        
+        
+        void set_MyBool(bool value);
         
         protected:
         ClassB(bool calledByDerived);

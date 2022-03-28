@@ -14,11 +14,7 @@ You can write setting file using Python.
 
 # Run/Test
 
-Add ``` PYTHONPATH . ``` in environment variable.
-
-Call ```python tests/csharp.py ``` from a root directory
-
-Call ```tests/build/GenerateProjects.bat```
+call `tests/RunTest.bat` or `tests/RunTest_Mac.sh`
 
 # TODO
 

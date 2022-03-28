@@ -2,19 +2,19 @@
 .ionide
 */__pycache__
 .vs/
-*.rs
 
-tests/Build/**
+tests/results/Build/**
 
 !tests/Build/GenerateProjects**
 
+# Rust
+/target
 **/rust**/target
 **/*.rs.bk
-!tests/results/rust**/build.rs
-!tests/results/rust/src/lib.rs
-!tests/results/rust_caller/src/main.rs
-!tests/results/rust/Cargo.toml
-Cargo.lock
 
 # when as submodule
 __pycache__
+
+# C#
+**/bin/*
+**/obj/*

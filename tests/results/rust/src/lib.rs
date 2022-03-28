@@ -1,28 +1,25 @@
 #[macro_use]
 extern crate lazy_static;
 
-pub mod rust;
+pub mod auto_generated_core_bindings;
 
+#[repr(C)]
+#[derive(Debug, Clone)]
 pub struct ReplaceStruct<T> {
-    x : T,
-    y : T,
+    pub x : T,
+    pub y : T,
 }
 
-use rust::structs;
-
-impl From<structs::ReplaceStructA> for ReplaceStruct<f32> {
-    fn from(item: structs::ReplaceStructA) -> Self {
-        Self {
-            x : item.x,
-            y : item.y,
-        }
+pub mod structs {
+    #[repr(C)]
+    #[derive(Debug, Clone)]
+    pub struct StructA {
+        pub x : f32,
+        pub y : f32,
+        pub z : f32,
     }
 }
-impl Into<structs::ReplaceStructA> for ReplaceStruct<f32> {
-    fn into(self) -> structs::ReplaceStructA {
-        structs::ReplaceStructA {
-            x : self.x,
-            y : self.y,
-        }
-    }
+
+pub mod prelude {
+    pub use super::auto_generated_core_bindings::*;
 }
