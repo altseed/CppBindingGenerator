@@ -11,6 +11,7 @@ tests/results/Build/**
 /target
 **/rust**/target
 **/*.rs.bk
+Cargo.lock
 
 # when as submodule
 __pycache__
@@ -18,3 +19,7 @@ __pycache__
 # C#
 **/bin/*
 **/obj/*
+
+*.dll
+*.dylib
+*.so
