@@ -7,5 +7,5 @@ build = "build.rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[dependencies.cbg-rust-debug]
+[dependencies.cbg_rust]
 path = "../rust"

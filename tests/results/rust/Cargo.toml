@@ -1,8 +1,9 @@
 [package]
-name = "cbg-rust-debug"
+name = "cbg_rust"
 version = "0.1.0"
 authors = ["Altseed"]
 edition = "2021"
+build = "build.rs"
 
 [dependencies]
 "lazy_static"="1.4.0"

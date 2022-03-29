@@ -82,9 +82,9 @@ impl ClassCppD {
     }
     
     
-    pub fn func_return_class<>(&mut self) -> Option<Rc<RefCell<cbg_rust_debug::prelude::ClassB>>> {
+    pub fn func_return_class<>(&mut self) -> Option<Rc<RefCell<cbg_rust::prelude::ClassB>>> {
         let ret = unsafe { cbg_ClassCppD_FuncReturnClass(self.self_ptr) };
-        { let ret = cbg_rust_debug::prelude::ClassB::__try_get_from_cache(ret)?; Some(ret) }
+        { let ret = cbg_rust::prelude::ClassB::__try_get_from_cache(ret)?; Some(ret) }
     }
     
 }

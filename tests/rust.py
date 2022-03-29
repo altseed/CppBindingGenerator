@@ -34,7 +34,7 @@ bindingGenerator.generate()
 
 # generate
 dep = cbg.DefineDependency()
-dep.namespace = 'cbg_rust_debug::prelude'
+dep.namespace = 'cbg_rust::prelude'
 dep.define = define
 
 bindingGenerator_cpp = cbg.BindingGeneratorRust(define_cpp, [dep], args.lang)

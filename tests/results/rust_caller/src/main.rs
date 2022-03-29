@@ -1,5 +1,5 @@
-extern crate cbg_rust_debug;
-use cbg_rust_debug::{structs::*, prelude::*};
+extern crate cbg_rust;
+use cbg_rust::{structs::*, prelude::*};
 
 // use std::sync::{Arc, Mutex};
 

@@ -1,11 +1,12 @@
 [package]
-name = "cbg-rust-cpp-debug"
+name = "rust_cpp"
 version = "0.1.0"
 authors = ["Altseed"]
 edition = "2021"
+build = "build.rs"
 
 [dependencies]
 "lazy_static"="1.4.0"
 
-[dependencies.cbg-rust-debug]
+[dependencies.cbg_rust]
 path = "../rust"
