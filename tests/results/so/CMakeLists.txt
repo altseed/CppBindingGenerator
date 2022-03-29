@@ -9,5 +9,5 @@ add_library(CoreLib SHARED ${files})
 target_compile_features(CoreLib PUBLIC cxx_std_17)
 
 if(UNIX)
-    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address") 
+    set (CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -fsanitize=address") 
 endif()
