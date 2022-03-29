@@ -1,3 +1,6 @@
 #!/bin/sh
 cd `dirname $0`
-cmake -G "Xcode" ../results/
+cd ../results
+mkdir Build
+cd Build
+cmake -G "Xcode" ../
